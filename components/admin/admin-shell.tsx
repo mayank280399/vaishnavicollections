@@ -1,5 +1,5 @@
 "use client";
-
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -85,29 +85,15 @@ export function AdminShell({
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen w-full overflow-x-hidden bg-background">
       {/* =========================================
           Desktop Sidebar
           ========================================= */}
-      <aside className="fixed inset-y-0 left-0 hidden w-64 bg-brand-navy lg:flex lg:flex-col">
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-64 bg-brand-navy lg:flex lg:flex-col">
         {/* Logo */}
         <div className="flex h-16 items-center border-b border-white/10 px-6">
-          <Link href="/admin" className="flex items-center gap-3">
-            {/* Logo Icon */}
-            <div className="flex size-9 items-center justify-center rounded-xl bg-brand-gold text-brand-navy">
-              <Sparkles className="size-5" />
-            </div>
-
-            {/* Brand Name */}
-            <div>
-              <p className="text-sm font-semibold text-brand-white">
-                Vaishnavi
-              </p>
-
-              <p className="text-xs text-brand-gold">
-                Collections
-              </p>
-            </div>
+          <Link href="/admin" className="flex items-center gap-3">      
+            <Image src="/vc_white_logo.png" alt="Logo" width={240} height={140} />
           </Link>
         </div>
 
@@ -184,11 +170,9 @@ export function AdminShell({
                 onClick={() => setMobileMenuOpen(false)}
                 className="flex items-center gap-3"
               >
-                <div className="flex size-9 items-center justify-center rounded-xl bg-brand-gold text-brand-navy">
-                  <Sparkles className="size-5" />
-                </div>
+             
 
-                <div>
+                {/* <div>
                   <p className="text-sm font-semibold text-brand-white">
                     Vaishnavi
                   </p>
@@ -196,7 +180,8 @@ export function AdminShell({
                   <p className="text-xs text-brand-gold">
                     Collections
                   </p>
-                </div>
+                </div> */}
+                <Image src="/vc_white_logo.png" alt="Logo" width={200} height={80} />
               </Link>
 
               <button
@@ -251,9 +236,9 @@ export function AdminShell({
       {/* =========================================
           Main Area
           ========================================= */}
-      <div className="lg:pl-64">
+      <div className="min-w-0 lg:pl-64">
         {/* Mobile / Tablet Header */}
-        <header className="sticky top-0 z-40 flex h-16 items-center justify-between border-b border-white/10 bg-brand-navy px-4 lg:px-8">
+        <header className="sticky top-0 z-40 flex h-16 w-full items-center justify-between border-b border-white/10 bg-brand-navy px-4 sm:px-5 lg:px-8">
           {/* Mobile Menu */}
           <button
             onClick={() => setMobileMenuOpen(true)}
@@ -265,9 +250,7 @@ export function AdminShell({
 
           {/* Mobile Brand */}
           <div className="lg:hidden">
-            <p className="text-sm font-semibold text-brand-white">
-              Vaishnavi Collections
-            </p>
+            <Image src="/vc_white_logo.png" alt="Logo" width={200} height={80} />
           </div>
 
           {/* User */}
@@ -290,8 +273,10 @@ export function AdminShell({
         </header>
 
         {/* Page Content */}
-        <main className="min-h-screen bg-background pb-20 lg:pb-0">
-          {children}
+       <main className="min-h-screen w-full bg-background pb-20 lg:pb-0 ">
+  <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-5 sm:py-6 md:px-6 lg:px-8">
+    {children}
+    </div>
         </main>
       </div>
 

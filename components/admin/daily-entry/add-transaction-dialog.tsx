@@ -688,13 +688,9 @@ debugger;
         if (!nextOpen) resetForm();
       }}
     >
-      <Button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="gap-2 rounded-xl shadow-sm"
-      >
-        <Plus className="h-4 w-4" />
-        Add Transaction
+      <Button type="button" onClick={() => setOpen(true)}   className="col-start-2 row-start-1 shrink-0">
+        <Plus className="mr-2 h-4 w-4" />
+        Add
       </Button>
 
       <DialogContent
