@@ -63,14 +63,10 @@ export default function OffersBento() {
              * "large", "wide", "tall", "normal"
              * you can map them here.
              */
-            const sizeClass =
-              offer.size === "large"
-                ? "sm:col-span-2 sm:row-span-2"
-                : offer.size === "wide"
-                  ? "sm:col-span-2"
-                  : offer.size === "tall"
-                    ? "sm:row-span-2"
-                    : "";
+         const sizeClass =
+  offer.size === "tall"
+    ? "sm:row-span-2"
+    : "";
 
             return (
               <motion.div
