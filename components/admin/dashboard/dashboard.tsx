@@ -156,36 +156,50 @@ export function Dashboard({
     );
   }
 
-  return (
-    <div className="space-y-6 p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+return (
+  <div className="w-full space-y-6">
+
+    {/* ==================== HEADER ==================== */}
+    <div className="w-full">
+
+      {/* Dashboard + Add Button */}
+      <div className="flex w-full items-start justify-between gap-3 pb-4 lg:pb-0">
+
+        {/* Dashboard */}
+        <div className="min-w-0 flex-1">
+          <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl">
             Dashboard
           </h1>
 
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 max-w-md text-sm text-muted-foreground sm:text-base">
             Overview of your business performance
           </p>
         </div>
 
-        {/* Date Filter */}
-        <div className="flex flex-col items-stretch gap-2 sm:items-end">
-          <div className="flex flex-wrap gap-2 rounded-lg border bg-background p-1">
+        {/* Add Transaction Button */}
+        <div className="shrink-0">
+          <AddTransactionDialog />
+        </div>
+
+      </div>
+
+      {/* ==================== DATE FILTER ==================== */}
+      <div className="mt-4 w-full">
+
+        <div className="flex w-full flex-col gap-2 sm:items-end">
+
+          <div className="flex w-full flex-wrap gap-2 rounded-lg border bg-background p-1 sm:w-auto">
+
             {FILTERS.map((filter) => {
               const isSelected =
-                currentFilter ===
-                filter.value;
+                currentFilter === filter.value;
 
               return (
                 <button
                   key={filter.value}
                   type="button"
                   onClick={() =>
-                    updateFilter(
-                      filter.value
-                    )
+                    updateFilter(filter.value)
                   }
                   className={[
                     "rounded-md px-3 py-2 text-sm font-medium transition-colors",
@@ -199,12 +213,15 @@ export function Dashboard({
                 </button>
               );
             })}
+
           </div>
 
-          {/* Custom Date Range */}
+          {/* ==================== CUSTOM DATE RANGE ==================== */}
           {showCustomRange && (
-            <div className="flex flex-col gap-2 rounded-lg border bg-background p-3 sm:flex-row sm:items-end">
-              <div className="flex flex-col gap-1">
+            <div className="flex w-full flex-col gap-3 rounded-lg border bg-background p-3 sm:w-auto sm:flex-row sm:items-end">
+
+              {/* From */}
+              <div className="flex min-w-0 flex-col gap-1">
                 <label
                   htmlFor="dashboard-start-date"
                   className="text-xs font-medium text-muted-foreground"
@@ -221,11 +238,12 @@ export function Dashboard({
                       event.target.value
                     )
                   }
-                  className="h-9 rounded-md border bg-background px-3 text-sm"
+                  className="h-9 w-full rounded-md border bg-background px-3 text-sm sm:w-auto"
                 />
               </div>
 
-              <div className="flex flex-col gap-1">
+              {/* To */}
+              <div className="flex min-w-0 flex-col gap-1">
                 <label
                   htmlFor="dashboard-end-date"
                   className="text-xs font-medium text-muted-foreground"
@@ -242,103 +260,102 @@ export function Dashboard({
                       event.target.value
                     )
                   }
-                  className="h-9 rounded-md border bg-background px-3 text-sm"
+                  className="h-9 w-full rounded-md border bg-background px-3 text-sm sm:w-auto"
                 />
               </div>
 
+              {/* Apply */}
               <button
                 type="button"
                 onClick={applyCustomRange}
                 disabled={
                   !customStartDate ||
                   !customEndDate ||
-                  customStartDate >
-                    customEndDate
+                  customStartDate > customEndDate
                 }
-                className="h-9 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+                className="h-9 w-full rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50 sm:w-auto"
               >
                 Apply
               </button>
+
             </div>
           )}
+
         </div>
-         <AddTransactionDialog />
       </div>
 
-      {/* Metrics */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          title="Total Sales"
-          value={data.totalSales}
-          change={data.revenueChange}
-          icon={Banknote}
-          tone="green"
-          isCurrency
-        />
-
-        <MetricCard
-          title="Expenses"
-          value={data.totalExpenses}
-          change={data.expenseChange}
-          icon={Wallet}
-          tone="orange"
-          isCurrency
-        />
-
-        <MetricCard
-          title="Gross Profit"
-          value={data.grossProfit}
-          change={data.grossProfitChange}
-          icon={ChartNoAxesCombined}
-          tone="green"
-          isCurrency
-        />
-
-        <MetricCard
-          title={
-            isProfit
-              ? "Profit"
-              : "Loss"
-          }
-          value={data.profitLoss}
-          change={data.profitChange}
-          icon={
-            isProfit
-              ? ArrowUpRight
-              : ArrowDownRight
-          }
-          tone={
-            isProfit
-              ? "green"
-              : "red"
-          }
-          isCurrency
-          showSign
-        />
-      </div>
-
-      {/* Charts */}
-      <div className="grid gap-6 xl:grid-cols-2">
-        <RevenueChart
-          data={data.revenueTrend}
-        />
-
-        <SalesExpenseChart
-          data={data.salesVsExpenses}
-        />
-      </div>
-
-      {/* Products + Recent Sales */}
-      <div className="grid gap-6 xl:grid-cols-2">
-        <TopProducts
-          products={data.topProducts}
-        />
-
-        <RecentSales
-          sales={data.recentSales}
-        />
-      </div>
     </div>
-  );
+
+
+    {/* ==================== METRICS ==================== */}
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+
+      <MetricCard
+        title="Total Sales"
+        value={data.totalSales}
+        change={data.revenueChange}
+        icon={Banknote}
+        tone="green"
+        isCurrency
+      />
+
+      <MetricCard
+        title="Expenses"
+        value={data.totalExpenses}
+        change={data.expenseChange}
+        icon={Wallet}
+        tone="orange"
+        isCurrency
+      />
+
+      <MetricCard
+        title="Gross Profit"
+        value={data.grossProfit}
+        change={data.grossProfitChange}
+        icon={ChartNoAxesCombined}
+        tone="green"
+        isCurrency
+      />
+
+      <MetricCard
+        title={isProfit ? "Profit" : "Loss"}
+        value={data.profitLoss}
+        change={data.profitChange}
+        icon={isProfit ? ArrowUpRight : ArrowDownRight}
+        tone={isProfit ? "green" : "red"}
+        isCurrency
+        showSign
+      />
+
+    </div>
+
+
+    {/* ==================== CHARTS ==================== */}
+    <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-2">
+
+      <RevenueChart
+        data={data.revenueTrend}
+      />
+
+      <SalesExpenseChart
+        data={data.salesVsExpenses}
+      />
+
+    </div>
+
+
+    {/* ==================== PRODUCTS + RECENT SALES ==================== */}
+    <div className="grid grid-cols-1 gap-4 sm:gap-6 xl:grid-cols-2">
+
+      <TopProducts
+        products={data.topProducts}
+      />
+
+      <RecentSales
+        sales={data.recentSales}
+      />
+    </div>
+  </div>
+);
 }
 
