@@ -1,0 +1,240 @@
+.hero {
+  position: relative;
+  overflow: hidden;
+  background: #000;
+}
+
+.track {
+  position: relative;
+  height: 88vh;
+}
+
+.slide {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* Background Image & Overlay */
+.imageContainer {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.backgroundImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.7;
+  /* Allow overlay to darken it */
+}
+
+.imageOverlay {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 20% 50%, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.4) 50%, rgba(0, 0, 0, 0.7) 100%);
+  z-index: 2;
+}
+
+.content {
+  position: relative;
+  z-index: 10;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+/* Copy */
+.copy {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 24px;
+  max-width: 720px;
+}
+
+.subtitle {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.title {
+  color: #ffffff;
+  line-height: 1.02;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.desc {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.6;
+  max-width: 520px;
+}
+
+.ctas {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.primaryCta {
+  position: relative;
+  overflow: hidden;
+}
+
+.statsRow {
+  display: flex;
+  gap: 40px;
+  margin-top: 24px;
+  padding-top: 32px;
+  border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.stat strong {
+  display: block;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.stat span {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.backgroundImageOverlay {
+  height: 120px;
+  width: 100%;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  background-image: linear-gradient(to top, #000, transparent);
+  z-index: 5;
+}
+
+/* Controls */
+.controls {
+  position: relative;
+  z-index: 20;
+  background: rgba(0, 0, 0);
+  backdrop-filter: blur(10px);
+  /* border-top: 1px solid rgba(255, 255, 255, 0.1); */
+}
+
+.controlsInner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 64px;
+}
+
+.dots {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: var(--radius-full);
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  padding: 0;
+}
+
+.dot.dotActive {
+  width: 32px;
+  background: var(--accent);
+}
+
+.arrows {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.arrowBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-full);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.arrowBtn:hover {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  transform: scale(1.05);
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .copy {
+    max-width: 600px;
+  }
+}
+
+@media (max-width: 768px) {
+  .hero {
+    height: auto;
+  }
+
+  .track {
+    height: 90vh;
+    min-height: 600px;
+  }
+
+  .copy {
+    gap: 20px;
+  }
+
+  .title {
+    font-size: clamp(38px, 10vw, 56px);
+  }
+
+  .desc {
+    font-size: 16px;
+  }
+
+  .statsRow {
+    gap: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .ctas {
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+  }
+
+  .primaryCta,
+  .ctas a {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .statsRow {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+}

@@ -1,0 +1,73 @@
+.section {
+  background: var(--bg-secondary);
+  overflow: hidden;
+}
+
+.intro {
+  text-align: center;
+  margin-bottom: 32px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--fg-subtle);
+}
+
+.rowMask {
+  overflow: hidden;
+  width: 100%;
+  position: relative;
+}
+
+.rowMask::before,
+.rowMask::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 160px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.rowMask::before {
+  left: 0;
+  background: linear-gradient(90deg, var(--bg-secondary) 0%, transparent 100%);
+}
+
+.rowMask::after {
+  right: 0;
+  background: linear-gradient(270deg, var(--bg-secondary) 0%, transparent 100%);
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  width: max-content;
+  gap: 0;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 32px;
+  white-space: nowrap;
+  border-right: 1px solid var(--border);
+}
+
+.logoImg {
+  height: 32px;
+  width: auto;
+  filter: grayscale(100%);
+  opacity: 0.4;
+  transition: all 0.3s ease;
+}
+
+.item:hover .logoImg {
+  filter: grayscale(0%);
+  opacity: 1;
+}
