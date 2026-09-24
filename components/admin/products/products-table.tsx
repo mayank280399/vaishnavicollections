@@ -43,6 +43,7 @@ export type Product = {
     | "PUBLISHED"
     | "ARCHIVED";
   featured: boolean | null;
+  primary_image_url?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -59,14 +60,15 @@ type ProductsTableProps = {
   onDeleted?: () => void;
 };
 
-const money = new Intl.NumberFormat(
-  "en-IN",
-  {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }
-);
+const money =
+  new Intl.NumberFormat(
+    "en-IN",
+    {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }
+  );
 
 const visibilityLabels: Record<
   Product["visibility"],
@@ -102,7 +104,9 @@ export function ProductsTable({
     useState("ALL");
 
   const [deletingProduct, setDeletingProduct] =
-    useState<Product | null>(null);
+    useState<Product | null>(
+      null
+    );
 
   const [deleting, setDeleting] =
     useState(false);
@@ -110,13 +114,9 @@ export function ProductsTable({
   const [deleteError, setDeleteError] =
     useState("");
 
-  // --------------------------------------------------
-  // CATEGORY HELPERS
-  // --------------------------------------------------
-
-  const getCategory = (
+  function getCategory(
     categoryId: string | null
-  ) => {
+  ) {
     if (!categoryId) {
       return null;
     }
@@ -124,14 +124,15 @@ export function ProductsTable({
     return (
       categories.find(
         (category) =>
-          category.id === categoryId
+          category.id ===
+          categoryId
       ) ?? null
     );
-  };
+  }
 
-  const getParentCategory = (
+  function getParentCategory(
     categoryId: string | null
-  ) => {
+  ) {
     const category =
       getCategory(categoryId);
 
@@ -146,11 +147,11 @@ export function ProductsTable({
     return getCategory(
       category.parent_id
     );
-  };
+  }
 
-  const getSubcategory = (
+  function getSubcategory(
     categoryId: string | null
-  ) => {
+  ) {
     const category =
       getCategory(categoryId);
 
@@ -162,18 +163,15 @@ export function ProductsTable({
     }
 
     return category;
-  };
-
-  // --------------------------------------------------
-  // FILTER CATEGORIES
-  // --------------------------------------------------
+  }
 
   const parentCategories =
     useMemo(
       () =>
         categories.filter(
           (category) =>
-            category.parent_id === null
+            category.parent_id ===
+            null
         ),
       [categories]
     );
@@ -185,7 +183,8 @@ export function ProductsTable({
       ) {
         return categories.filter(
           (category) =>
-            category.parent_id !== null
+            category.parent_id !==
+            null
         );
       }
 
@@ -199,14 +198,12 @@ export function ProductsTable({
       categoryFilter,
     ]);
 
-  // --------------------------------------------------
-  // FILTER PRODUCTS
-  // --------------------------------------------------
-
   const filteredProducts =
     useMemo(() => {
       const query =
-        search.trim().toLowerCase();
+        search
+          .trim()
+          .toLowerCase();
 
       return products.filter(
         (product) => {
@@ -230,17 +227,20 @@ export function ProductsTable({
               .includes(query);
 
           const matchesCategory =
-            categoryFilter === "ALL" ||
+            categoryFilter ===
+              "ALL" ||
             parentCategory?.id ===
               categoryFilter;
 
           const matchesSubcategory =
-            subcategoryFilter === "ALL" ||
+            subcategoryFilter ===
+              "ALL" ||
             subcategory?.id ===
               subcategoryFilter;
 
           const matchesVisibility =
-            visibilityFilter === "ALL" ||
+            visibilityFilter ===
+              "ALL" ||
             product.visibility ===
               visibilityFilter;
 
@@ -261,23 +261,12 @@ export function ProductsTable({
       categories,
     ]);
 
-  // --------------------------------------------------
-  // FILTER HANDLERS
-  // --------------------------------------------------
-
   function handleCategoryChange(
     value: string
   ) {
     setCategoryFilter(value);
-
-    // A category change invalidates
-    // the currently selected subcategory.
     setSubcategoryFilter("ALL");
   }
-
-  // --------------------------------------------------
-  // DELETE
-  // --------------------------------------------------
 
   function openDeleteDialog(
     product: Product
@@ -304,6 +293,163 @@ export function ProductsTable({
     setDeleteError("");
 
     try {
+      /*
+       * Check whether this product is used
+       * in sales or purchases first.
+       */
+      const [
+        salesResult,
+        purchasesResult,
+      ] = await Promise.all([
+        supabase
+          .from("sale_items")
+          .select("id", {
+            count: "exact",
+            head: true,
+          })
+          .eq(
+            "product_id",
+            deletingProduct.id
+          ),
+
+        supabase
+          .from("purchase_items")
+          .select("id", {
+            count: "exact",
+            head: true,
+          })
+          .eq(
+            "product_id",
+            deletingProduct.id
+          ),
+      ]);
+
+      if (
+        salesResult.error ||
+        purchasesResult.error
+      ) {
+        throw (
+          salesResult.error ??
+          purchasesResult.error
+        );
+      }
+
+      const salesCount =
+        salesResult.count ?? 0;
+
+      const purchasesCount =
+        purchasesResult.count ?? 0;
+
+      if (
+        salesCount > 0 ||
+        purchasesCount > 0
+      ) {
+        throw new Error(
+          "This product has been used in sales or purchases and cannot be deleted. Archive the product instead to preserve historical records."
+        );
+      }
+
+      /*
+       * Get product images so their
+       * Storage files can be removed.
+       */
+      const {
+        data: images,
+        error:
+          imageLoadError,
+      } = await supabase
+        .from("product_images")
+        .select(
+          "id, image_url"
+        )
+        .eq(
+          "product_id",
+          deletingProduct.id
+        );
+
+      if (imageLoadError) {
+        throw imageLoadError;
+      }
+
+      const PRODUCT_IMAGE_BUCKET =
+        "product-images";
+
+      const storagePaths =
+        (images ?? [])
+          .map((image) => {
+            const marker =
+              `/storage/v1/object/public/${PRODUCT_IMAGE_BUCKET}/`;
+
+            const index =
+              image.image_url.indexOf(
+                marker
+              );
+
+            if (index === -1) {
+              return null;
+            }
+
+            return decodeURIComponent(
+              image.image_url.slice(
+                index +
+                  marker.length
+              )
+            );
+          })
+          .filter(
+            (
+              path
+            ): path is string =>
+              Boolean(path)
+          );
+
+      /*
+       * Delete image records.
+       */
+      if (images?.length) {
+        const {
+          error:
+            imageDeleteError,
+        } = await supabase
+          .from("product_images")
+          .delete()
+          .eq(
+            "product_id",
+            deletingProduct.id
+          );
+
+        if (imageDeleteError) {
+          throw imageDeleteError;
+        }
+      }
+
+      /*
+       * Delete Storage files.
+       */
+      if (storagePaths.length) {
+        const {
+          error:
+            storageDeleteError,
+        } =
+          await supabase.storage
+            .from(
+              PRODUCT_IMAGE_BUCKET
+            )
+            .remove(
+              storagePaths
+            );
+
+        if (storageDeleteError) {
+          console.error(
+            "Storage image cleanup error:",
+            storageDeleteError
+          );
+        }
+      }
+
+      /*
+       * Finally delete product.
+       */
       const {
         error,
       } = await supabase
@@ -337,14 +483,10 @@ export function ProductsTable({
     }
   }
 
-  // --------------------------------------------------
-  // UI
-  // --------------------------------------------------
-
   return (
     <>
       <div className="overflow-hidden rounded-xl border bg-card">
-        {/* TABLE HEADER */}
+        {/* HEADER */}
         <div className="border-b px-5 py-4">
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
@@ -354,7 +496,9 @@ export function ProductsTable({
                 </h2>
 
                 <p className="text-sm text-muted-foreground">
-                  {filteredProducts.length}{" "}
+                  {
+                    filteredProducts.length
+                  }{" "}
                   {filteredProducts.length ===
                   1
                     ? "product"
@@ -365,7 +509,6 @@ export function ProductsTable({
 
             {/* FILTERS */}
             <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-              {/* SEARCH */}
               <div className="space-y-1.5">
                 <Label className="text-xs">
                   Search
@@ -376,9 +519,12 @@ export function ProductsTable({
 
                   <Input
                     value={search}
-                    onChange={(event) =>
+                    onChange={(
+                      event
+                    ) =>
                       setSearch(
-                        event.target.value
+                        event.target
+                          .value
                       )
                     }
                     placeholder="Search product or SKU..."
@@ -387,7 +533,6 @@ export function ProductsTable({
                 </div>
               </div>
 
-              {/* CATEGORY */}
               <div className="space-y-1.5">
                 <Label className="text-xs">
                   Category
@@ -406,19 +551,26 @@ export function ProductsTable({
                   </option>
 
                   {parentCategories.map(
-                    (category) => (
+                    (
+                      category
+                    ) => (
                       <option
-                        key={category.id}
-                        value={category.id}
+                        key={
+                          category.id
+                        }
+                        value={
+                          category.id
+                        }
                       >
-                        {category.name}
+                        {
+                          category.name
+                        }
                       </option>
                     )
                   )}
                 </SelectField>
               </div>
 
-              {/* SUBCATEGORY */}
               <div className="space-y-1.5">
                 <Label className="text-xs">
                   Subcategory
@@ -437,19 +589,26 @@ export function ProductsTable({
                   </option>
 
                   {subcategoriesForFilter.map(
-                    (category) => (
+                    (
+                      category
+                    ) => (
                       <option
-                        key={category.id}
-                        value={category.id}
+                        key={
+                          category.id
+                        }
+                        value={
+                          category.id
+                        }
                       >
-                        {category.name}
+                        {
+                          category.name
+                        }
                       </option>
                     )
                   )}
                 </SelectField>
               </div>
 
-              {/* VISIBILITY */}
               <div className="space-y-1.5">
                 <Label className="text-xs">
                   Status
@@ -489,13 +648,11 @@ export function ProductsTable({
           <div className="flex min-h-[300px] items-center justify-center">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-
               Loading products...
             </div>
           </div>
         ) : filteredProducts.length ===
           0 ? (
-          /* EMPTY */
           <div className="flex min-h-[300px] flex-col items-center justify-center gap-3 px-6 text-center">
             <Package className="h-10 w-10 text-muted-foreground" />
 
@@ -510,9 +667,8 @@ export function ProductsTable({
             </div>
           </div>
         ) : (
-          /* TABLE */
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[1100px] text-sm">
+            <table className="w-full min-w-[1150px] text-sm">
               <thead>
                 <tr className="border-b bg-muted/40">
                   <th className="px-5 py-3 text-left font-medium">
@@ -574,28 +730,54 @@ export function ProductsTable({
 
                     return (
                       <tr
-                        key={product.id}
+                        key={
+                          product.id
+                        }
                         className="border-b last:border-0 hover:bg-muted/30"
                       >
                         {/* PRODUCT */}
                         <td className="px-5 py-4">
-                          <div className="font-medium">
-                            {product.name}
-                          </div>
-
-                          {product.short_description && (
-                            <div className="mt-1 max-w-[260px] truncate text-xs text-muted-foreground">
-                              {
-                                product.short_description
-                              }
+                          <div className="flex items-center gap-3">
+                            <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border bg-muted">
+                              {product.primary_image_url ? (
+                                <img
+                                  src={
+                                    product.primary_image_url
+                                  }
+                                  alt={
+                                    product.name
+                                  }
+                                  className="h-full w-full object-cover"
+                                />
+                              ) : (
+                                <div className="flex h-full w-full items-center justify-center">
+                                  <Package className="h-5 w-5 text-muted-foreground" />
+                                </div>
+                              )}
                             </div>
-                          )}
 
-                          {product.featured && (
-                            <span className="mt-1 inline-flex text-xs text-muted-foreground">
-                              Featured
-                            </span>
-                          )}
+                            <div className="min-w-0">
+                              <div className="font-medium">
+                                {
+                                  product.name
+                                }
+                              </div>
+
+                              {product.short_description && (
+                                <div className="mt-1 max-w-[240px] truncate text-xs text-muted-foreground">
+                                  {
+                                    product.short_description
+                                  }
+                                </div>
+                              )}
+
+                              {product.featured && (
+                                <span className="mt-1 inline-flex text-xs text-muted-foreground">
+                                  Featured
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </td>
 
                         {/* CATEGORY */}
@@ -644,9 +826,11 @@ export function ProductsTable({
                         <td className="px-5 py-4 text-right">
                           <span
                             className={
-                              stock <= 0
+                              stock <=
+                              0
                                 ? "font-medium text-destructive"
-                                : stock <= 5
+                                : stock <=
+                                    5
                                   ? "font-medium"
                                   : ""
                             }
@@ -678,7 +862,6 @@ export function ProductsTable({
                               }
                             >
                               <Edit className="mr-1.5 h-4 w-4" />
-
                               Edit
                             </Button>
 
@@ -694,7 +877,6 @@ export function ProductsTable({
                               }
                             >
                               <Trash2 className="mr-1.5 h-4 w-4" />
-
                               Delete
                             </Button>
                           </div>
@@ -709,7 +891,6 @@ export function ProductsTable({
         )}
       </div>
 
-      {/* DELETE CONFIRMATION */}
       {deletingProduct && (
         <DeleteProductDialog
           product={
@@ -731,10 +912,6 @@ export function ProductsTable({
     </>
   );
 }
-
-// --------------------------------------------------
-// SELECT
-// --------------------------------------------------
 
 function SelectField({
   value,
@@ -766,10 +943,6 @@ function SelectField({
   );
 }
 
-// --------------------------------------------------
-// STATUS BADGE
-// --------------------------------------------------
-
 function StatusBadge({
   visibility,
 }: {
@@ -778,12 +951,16 @@ function StatusBadge({
   let className =
     "bg-yellow-100 text-yellow-700";
 
-  if (visibility === "PUBLISHED") {
+  if (
+    visibility === "PUBLISHED"
+  ) {
     className =
       "bg-green-100 text-green-700";
   }
 
-  if (visibility === "ARCHIVED") {
+  if (
+    visibility === "ARCHIVED"
+  ) {
     className =
       "bg-muted text-muted-foreground";
   }
@@ -800,10 +977,6 @@ function StatusBadge({
     </span>
   );
 }
-
-// --------------------------------------------------
-// DELETE DIALOG
-// --------------------------------------------------
 
 function DeleteProductDialog({
   product,
@@ -859,10 +1032,6 @@ function DeleteProductDialog({
           {error && (
             <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
               {error}
-
-              <p className="mt-2 text-xs">
-                If this product has already been used in sales or purchases, the database may prevent deletion to protect your historical records.
-              </p>
             </div>
           )}
 
@@ -870,8 +1039,12 @@ function DeleteProductDialog({
             <Button
               type="button"
               variant="outline"
-              onClick={onCancel}
-              disabled={deleting}
+              onClick={
+                onCancel
+              }
+              disabled={
+                deleting
+              }
             >
               Cancel
             </Button>
@@ -879,8 +1052,12 @@ function DeleteProductDialog({
             <Button
               type="button"
               variant="destructive"
-              onClick={onConfirm}
-              disabled={deleting}
+              onClick={
+                onConfirm
+              }
+              disabled={
+                deleting
+              }
             >
               {deleting && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

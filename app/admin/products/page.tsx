@@ -127,7 +127,7 @@ export default function ProductsPage() {
   ).length;
 
   return (
-   <div className="mx-auto w-full max-w-7xl space-y-5 px-4 py-5 sm:space-y-6 sm:px-5 sm:py-6 md:px-6 lg:px-8">
+   <div className="mx-auto w-full  space-y-5 px-4 py-5 sm:space-y-6 sm:px-5 sm:py-6 md:px-6 lg:px-8">
       {/* HEADER */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">

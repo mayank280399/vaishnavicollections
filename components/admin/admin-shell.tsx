@@ -11,8 +11,10 @@ import {
   Menu,
   Receipt,
   Sparkles,
+  ShoppingCart,
   Users,
   X,
+  Settings,
 } from "lucide-react";
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -34,24 +36,35 @@ const navigation = [
     icon: Boxes,
   },
   {
-    name: "Customers",
-    href: "/admin/customers",
-    icon: Users,
-  },
-  {
     name: "Expenses",
     href: "/admin/expenses",
     icon: CircleDollarSign,
+  },
+    {
+    name: "Purchases",
+    href: "/admin/purchases",
+    icon: ShoppingCart,
+  },
+  {
+    name: "Customers",
+    href: "/admin/customers",
+    icon: Users,
   },
   {
     name: "Loyalty",
     href: "/admin/loyalty",
     icon: Sparkles,
   },
+ 
   {
     name: "Reports",
     href: "/admin/reports",
     icon: BarChart3,
+  },
+  {
+    name: "Settings",
+    href: "/admin/settings",
+    icon: Settings,
   },
 ];
 
@@ -274,7 +287,7 @@ export function AdminShell({
 
         {/* Page Content */}
        <main className="min-h-screen w-full bg-background pb-20 lg:pb-0 ">
-  <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-5 sm:py-6 md:px-6 lg:px-8">
+  <div className="mx-auto w-full px-4 py-5 sm:px-5 sm:py-6 md:px-6 lg:px-8">
     {children}
     </div>
         </main>
