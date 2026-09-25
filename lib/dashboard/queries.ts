@@ -1,660 +1,578 @@
 import { createClient } from "@/lib/supabase/server";
 
-import {
-  calculatePercentageChange,
-  getDateKey,
-  toNumber,
-} from "./calculations";
-
 import type {
   DashboardData,
-  DashboardProduct,
-  RecentSale,
   RevenuePoint,
   SalesExpensePoint,
+  DashboardProduct,
+  RecentSale,
+  SalesCategoryPoint,
+  PaymentMethodPoint,
+  InventoryOverview,
+  CustomerGrowthPoint,
+  CustomerSourcePoint,
+  ExpenseCategoryPoint,
+  ProfitabilityData,
 } from "./types";
 
-type SaleRow = {
-  id: string;
-  invoice_number: string | null;
-  purchased_at: string;
-  total_amount: number | string | null;
-  gross_profit: number | string | null;
-  payment_method: string | null;
+export type DashboardRange =
+  | "today"
+  | "week"
+  | "month"
+  | "year"
+  | "all"
+  | "custom";
+
+export type DashboardFilters = {
+  range?: DashboardRange;
+  start?: string;
+  end?: string;
 };
 
-type ExpenseRow = {
-  id: string;
-  expense_date: string;
-  amount: number | string | null;
-  category: string | null;
-  subcategory: string | null;
-  description: string | null;
+type DateRange = {
+  startDate: string | null;
+  endDate: string | null;
 };
 
-type PurchaseRow = {
-  id: string;
-  invoice_number: string | null;
-  purchased_at: string;
-  payment_method: string | null;
-  total_amount: number | string | null;
-};
+/* -------------------------------------------------------------------------- */
+/* HELPERS                                                                    */
+/* -------------------------------------------------------------------------- */
 
-type SaleItemRow = {
-  sale_id: string;
-  product_id: string;
-  quantity: number | string | null;
-  unit_price: number | string | null;
-  line_total: number | string | null;
-  products:
-    | {
-        name: string;
-      }[]
-    | null;
-};
+function toNumber(value: unknown): number {
+  const number = Number(value);
 
-export type DashboardDateRange = {
-  startDate: string;
-  endDate: string;
-  previousStartDate?: string;
-  previousEndDate?: string;
-};
-
-function getPurchaseDate(purchase: PurchaseRow): string {
-  return purchase.purchased_at;
+  return Number.isFinite(number) ? number : 0;
 }
 
-function getPurchaseAmount(purchase: PurchaseRow): number {
-     return toNumber(purchase.total_amount);
+function formatDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
 }
 
-function isDateInRange(
-  date: string,
-  startDate: string,
-  endDate: string
-): boolean {
-  return date >= startDate && date <= endDate;
+function getDateRange(filters: DashboardFilters): DateRange {
+  const range = filters.range ?? "month";
+
+  const now = new Date();
+
+  const today = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  );
+
+  switch (range) {
+    case "today":
+      return {
+        startDate: formatDate(today),
+        endDate: formatDate(today),
+      };
+
+    case "week": {
+      // Monday -> Sunday
+      const day = today.getDay();
+      const daysFromMonday = day === 0 ? 6 : day - 1;
+
+      const start = new Date(today);
+      start.setDate(today.getDate() - daysFromMonday);
+
+      const end = new Date(start);
+      end.setDate(start.getDate() + 6);
+
+      return {
+        startDate: formatDate(start),
+        endDate: formatDate(end),
+      };
+    }
+
+    case "month": {
+      const start = new Date(
+        today.getFullYear(),
+        today.getMonth(),
+        1,
+      );
+
+      const end = new Date(
+        today.getFullYear(),
+        today.getMonth() + 1,
+        0,
+      );
+
+      return {
+        startDate: formatDate(start),
+        endDate: formatDate(end),
+      };
+    }
+
+    case "year": {
+      const start = new Date(
+        today.getFullYear(),
+        0,
+        1,
+      );
+
+      const end = new Date(
+        today.getFullYear(),
+        11,
+        31,
+      );
+
+      return {
+        startDate: formatDate(start),
+        endDate: formatDate(end),
+      };
+    }
+
+    case "custom":
+      return {
+        startDate: filters.start ?? null,
+        endDate: filters.end ?? null,
+      };
+
+    case "all":
+      return {
+        startDate: null,
+        endDate: null,
+      };
+
+    default:
+      return {
+        startDate: formatDate(
+          new Date(
+            today.getFullYear(),
+            today.getMonth(),
+            1,
+          ),
+        ),
+        endDate: formatDate(today),
+      };
+  }
 }
+
+function applyDateRange<
+  T extends {
+    gte: Function;
+    lte: Function;
+  },
+>(
+  query: T,
+  column: string,
+  range: DateRange,
+) {
+  let result = query;
+
+  if (range.startDate) {
+    result = result.gte(
+      column,
+      range.startDate,
+    );
+  }
+
+  if (range.endDate) {
+    result = result.lte(
+      column,
+      `${range.endDate}T23:59:59`,
+    );
+  }
+
+  return result;
+}
+
+function formatPeriodLabel(date: string): string {
+  const parsed = new Date(
+    `${date}T00:00:00`,
+  );
+
+  if (Number.isNaN(parsed.getTime())) {
+    return date;
+  }
+
+  return parsed.toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+  });
+}
+
+function formatMonthLabel(month: string): string {
+  const parsed = new Date(
+    `${month}-01T00:00:00`,
+  );
+
+  if (Number.isNaN(parsed.getTime())) {
+    return month;
+  }
+
+  return parsed.toLocaleDateString("en-IN", {
+    month: "short",
+    year: "numeric",
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* MAIN DASHBOARD QUERY                                                       */
+/* -------------------------------------------------------------------------- */
 
 export async function getDashboardData(
-  range: DashboardDateRange
+  filters: DashboardFilters = {},
 ): Promise<DashboardData> {
   const supabase = await createClient();
 
-  const {
-    startDate,
-    endDate,
-    previousStartDate,
-    previousEndDate,
-  } = range;
+  const range = getDateRange(filters);
 
-  /*
-   * ------------------------------------------------------------
-   * DATE RANGE HELPERS
-   * ------------------------------------------------------------
-   *
-   * Current range:
-   *   startDate -> endDate
-   *
-   * Previous range:
-   *   previousStartDate -> previousEndDate
-   *
-   * Previous dates are optional because "All Time" does not
-   * necessarily have a meaningful previous period.
-   */
+  /* ------------------------------------------------------------------------ */
+  /* SALES                                                                     */
+  /* ------------------------------------------------------------------------ */
 
-  const hasPreviousRange =
-    Boolean(previousStartDate && previousEndDate);
-
-  /*
-   * ------------------------------------------------------------
-   * SALES
-   * ------------------------------------------------------------
-   *
-   * Load the current selected range.
-   *
-   * If a previous range exists, load that range too so that
-   * percentage changes are calculated from real data.
-   */
-
-  let salesQueryStart = startDate;
-  let salesQueryEnd = endDate;
-
-  if (
-    hasPreviousRange &&
-    previousStartDate &&
-    previousEndDate &&
-    previousStartDate < salesQueryStart
-  ) {
-    salesQueryStart = previousStartDate;
-  }
-
-  if (
-    hasPreviousRange &&
-    previousStartDate &&
-    previousEndDate &&
-    previousEndDate > salesQueryEnd
-  ) {
-    salesQueryEnd = previousEndDate;
-  }
-
-  const {
-    data: salesData,
-    error: salesError,
-  } = await supabase
+  let salesQuery = supabase
     .from("sales")
-    .select(`
-      id,
-      invoice_number,
-      purchased_at,
-      total_amount,
-      gross_profit,
-      payment_method
-    `)
-    .gte(
-      "purchased_at",
-      `${salesQueryStart}T00:00:00.000Z`
+    .select(
+      `
+        id,
+        invoice_number,
+        customer_id,
+        total_amount,
+        cost_amount,
+        gross_profit,
+        payment_method,
+        status,
+        purchased_at
+      `,
     )
-    .lte(
-      "purchased_at",
-      `${salesQueryEnd}T23:59:59.999Z`
-    )
+    .eq("status", "COMPLETED")
     .order("purchased_at", {
       ascending: false,
     });
 
-  if (salesError) {
-    console.error(
-      "Dashboard sales error:",
-      salesError
-    );
+  salesQuery = applyDateRange(
+    salesQuery,
+    "purchased_at",
+    range,
+  ) as typeof salesQuery;
 
-    throw new Error(
-      `Unable to load sales data: ${salesError.message}`
-    );
-  }
+  /* ------------------------------------------------------------------------ */
+  /* EXPENSES                                                                  */
+  /* ------------------------------------------------------------------------ */
 
-  const sales = (salesData ?? []) as SaleRow[];
-
-  /*
-   * ------------------------------------------------------------
-   * OPERATING EXPENSES
-   * ------------------------------------------------------------
-   */
-
-  let expensesQueryStart = startDate;
-  let expensesQueryEnd = endDate;
-
-  if (
-    hasPreviousRange &&
-    previousStartDate &&
-    previousEndDate &&
-    previousStartDate < expensesQueryStart
-  ) {
-    expensesQueryStart = previousStartDate;
-  }
-
-  if (
-    hasPreviousRange &&
-    previousStartDate &&
-    previousEndDate &&
-    previousEndDate > expensesQueryEnd
-  ) {
-    expensesQueryEnd = previousEndDate;
-  }
-
-  const {
-    data: expensesData,
-    error: expensesError,
-  } = await supabase
+  let expensesQuery = supabase
     .from("expenses")
-    .select(`
-      id,
-      expense_date,
-      amount,
-      category,
-      subcategory,
-      description
-    `)
-    .gte(
-      "expense_date",
-      expensesQueryStart
-    )
-    .lte(
-      "expense_date",
-      expensesQueryEnd
+    .select(
+      `
+        id,
+        amount,
+        category,
+        description,
+        expense_date,
+        created_at
+      `,
     )
     .order("expense_date", {
       ascending: false,
     });
 
-  if (expensesError) {
-    console.error(
-      "Dashboard expenses error:",
-      expensesError
-    );
+  expensesQuery = applyDateRange(
+    expensesQuery,
+    "expense_date",
+    range,
+  ) as typeof expensesQuery;
 
-    throw new Error(
-      `Unable to load expense data: ${expensesError.message}`
-    );
-  }
+  /* ------------------------------------------------------------------------ */
+  /* PURCHASES                                                                 */
+  /* ------------------------------------------------------------------------ */
 
-  const operatingExpenses =
-    (expensesData ?? []) as ExpenseRow[];
-
-  /*
-   * ------------------------------------------------------------
-   * INVENTORY PURCHASES
-   * ------------------------------------------------------------
-   *
-   * IMPORTANT:
-   *
-   * purchases table columns:
-   *
-   * id
-   * invoice_number
-   * purchased_at
-   * payment_method
-   * total_amount
-   * notes
-   *
-   * Expenses shown on the dashboard =
-   *
-   * Inventory Purchases + Operating Expenses
-   */
-
-  let purchasesQueryStart = startDate;
-  let purchasesQueryEnd = endDate;
-
-  if (
-    hasPreviousRange &&
-    previousStartDate &&
-    previousEndDate &&
-    previousStartDate < purchasesQueryStart
-  ) {
-    purchasesQueryStart = previousStartDate;
-  }
-
-  if (
-    hasPreviousRange &&
-    previousStartDate &&
-    previousEndDate &&
-    previousEndDate > purchasesQueryEnd
-  ) {
-    purchasesQueryEnd = previousEndDate;
-  }
-
-  const {
-    data: purchasesData,
-    error: purchasesError,
-  } = await supabase
+  let purchasesQuery = supabase
     .from("purchases")
-    .select(`
-      id,
-      invoice_number,
-      purchased_at,
-      payment_method,
-      total_amount
-    `)
-    .gte(
-      "purchased_at",
-      `${purchasesQueryStart}T00:00:00.000Z`
+    .select(
+      `
+        id,
+        total_amount,
+        purchased_at,
+        status
+      `,
     )
-    .lte(
-      "purchased_at",
-      `${purchasesQueryEnd}T23:59:59.999Z`
-    )
+     .in("status", ["RECEIVED", "COMPLETED"])
     .order("purchased_at", {
       ascending: false,
     });
 
-  /*
-   * NEVER silently ignore this error.
-   *
-   * Previously the code commented this out, which meant a
-   * purchase query failure could make purchases appear as ₹0.
-   */
+  purchasesQuery = applyDateRange(
+    purchasesQuery,
+    "purchased_at",
+    range,
+  ) as typeof purchasesQuery;
 
-  if (purchasesError) {
-    // console.error(
-    //   "Dashboard purchases error:",
-    //   purchasesError
-    // );
+  /* ------------------------------------------------------------------------ */
+  /* CUSTOMERS                                                                 */
+  /* ------------------------------------------------------------------------ */
 
-    // throw new Error(
-    //   `Unable to load purchase data: ${purchasesError.message}`
-    // );
-  }
-
-  const purchases =
-    (purchasesData ?? []) as PurchaseRow[];
-  /*
-   * ------------------------------------------------------------
-   * CURRENT PERIOD DATA
-   * ------------------------------------------------------------
-   */
-
-  const currentSales = sales.filter((sale) => {
-    const date = sale.purchased_at.slice(0, 10);
-
-    return isDateInRange(
-      date,
-      startDate,
-      endDate
-    );
-  });
-
-  const currentExpenses =
-    operatingExpenses.filter((expense) =>
-      isDateInRange(
-        expense.expense_date,
-        startDate,
-        endDate
-      )
-    );
-
-  const currentPurchases =
-    purchases.filter((purchase) => {
-      const date =
-        getPurchaseDate(purchase).slice(0, 10);
-
-      return isDateInRange(
-        date,
-        startDate,
-        endDate
-      );
+  let customersQuery = supabase
+    .from("customers")
+    .select(
+      `
+        id,
+        source,
+        created_at
+      `,
+    )
+    .order("created_at", {
+      ascending: true,
     });
 
+  /*
+   * Customer data is date based, so it must follow the dashboard filter too.
+   */
+  customersQuery = applyDateRange(
+    customersQuery,
+    "created_at",
+    range,
+  ) as typeof customersQuery;
+
+  /* ------------------------------------------------------------------------ */
+  /* PRODUCTS / INVENTORY                                                      */
+  /* ------------------------------------------------------------------------ */
 
   /*
-   * ------------------------------------------------------------
-   * PREVIOUS PERIOD DATA
-   * ------------------------------------------------------------
+   * Inventory is intentionally NOT date filtered.
+   *
+   * products.stock_quantity represents the CURRENT inventory snapshot.
+   * A historical inventory value would require inventory movement/history
+   * records. Filtering products by a sales date would produce incorrect
+   * inventory numbers.
    */
+const productsQuery = supabase
+  .from("products")
+  .select(
+    `
+      id,
+      name,
+      stock_quantity,
+      cost_price,
+      selling_price,
+      product_categories (
+        id,
+        name
+      )
+    `,
+  );
 
-  const previousSales =
-    hasPreviousRange &&
-    previousStartDate &&
-    previousEndDate
-      ? sales.filter((sale) => {
-          const date =
-            sale.purchased_at.slice(0, 10);
+  /* ------------------------------------------------------------------------ */
+  /* SALE ITEMS                                                                */
+  /* ------------------------------------------------------------------------ */
 
-          return isDateInRange(
-            date,
-            previousStartDate,
-            previousEndDate
-          );
-        })
-      : [];
-
-  const previousExpenses =
-    hasPreviousRange &&
-    previousStartDate &&
-    previousEndDate
-      ? operatingExpenses.filter((expense) =>
-          isDateInRange(
-            expense.expense_date,
-            previousStartDate,
-            previousEndDate
-          )
+  /*
+   * sale_items themselves don't need a separate date filter.
+   *
+   * They are restricted using the IDs of the already date-filtered sales.
+   */
+  const saleItemsQuery = supabase
+  .from("sale_items")
+  .select(
+    `
+      id,
+      sale_id,
+      product_id,
+      quantity,
+      unit_price,
+      products (
+        id,
+        name,
+        product_categories (
+          id,
+          name
         )
-      : [];
+      )
+    `,
+  );
 
-  const previousPurchases =
-    hasPreviousRange &&
-    previousStartDate &&
-    previousEndDate
-      ? purchases.filter((purchase) => {
-          const date =
-            getPurchaseDate(purchase).slice(0, 10);
+  /* ------------------------------------------------------------------------ */
+  /* EXECUTE QUERIES                                                           */
+  /* ------------------------------------------------------------------------ */
 
-          return isDateInRange(
-            date,
-            previousStartDate,
-            previousEndDate
-          );
-        })
-      : [];
+  const [
+    salesResult,
+    expensesResult,
+    purchasesResult,
+    customersResult,
+    productsResult,
+    saleItemsResult,
+  ] = await Promise.all([
+    salesQuery,
+    expensesQuery,
+    purchasesQuery,
+    customersQuery,
+    productsQuery,
+    saleItemsQuery,
+  ]);
 
-  /*
-   * ------------------------------------------------------------
-   * TOTAL SALES
-   * ------------------------------------------------------------
-   */
+  /* ------------------------------------------------------------------------ */
+  /* ERROR HANDLING                                                            */
+  /* ------------------------------------------------------------------------ */
 
-  const totalSales = currentSales.reduce(
+  if (salesResult.error) {
+    throw new Error(
+      `Failed to load sales: ${salesResult.error.message}`,
+    );
+  }
+
+  if (expensesResult.error) {
+    throw new Error(
+      `Failed to load expenses: ${expensesResult.error.message}`,
+    );
+  }
+
+  if (purchasesResult.error) {
+    throw new Error(
+      `Failed to load purchases: ${purchasesResult.error.message}`,
+    );
+  }
+
+  if (customersResult.error) {
+    throw new Error(
+      `Failed to load customers: ${customersResult.error.message}`,
+    );
+  }
+
+  if (productsResult.error) {
+    throw new Error(
+      `Failed to load products: ${productsResult.error.message}`,
+    );
+  }
+
+  if (saleItemsResult.error) {
+    throw new Error(
+      `Failed to load sale items: ${saleItemsResult.error.message}`,
+    );
+  }
+
+  const sales = salesResult.data ?? [];
+  const expenses = expensesResult.data ?? [];
+  const purchases = purchasesResult.data ?? [];
+  const customers = customersResult.data ?? [];
+  const products = productsResult.data ?? [];
+  const saleItems = saleItemsResult.data ?? [];
+  
+console.log(
+  "Dashboard sales:",
+  sales.length,
+);
+
+console.log(
+  "Dashboard sale items:",
+  saleItems,
+);
+
+
+  /* ------------------------------------------------------------------------ */
+  /* KPI VALUES                                                                */
+  /* ------------------------------------------------------------------------ */
+
+  const totalSales = sales.reduce(
     (sum, sale) =>
       sum + toNumber(sale.total_amount),
-    0
+    0,
   );
 
-  const previousSalesTotal =
-    previousSales.reduce(
-      (sum, sale) =>
-        sum + toNumber(sale.total_amount),
-      0
-    );
+  const totalPurchases = purchases.reduce(
+    (sum, purchase) =>
+      sum + toNumber(purchase.total_amount),
+    0,
+  );
 
-  /*
-   * ------------------------------------------------------------
-   * OPERATING EXPENSES
-   * ------------------------------------------------------------
-   */
+  const totalExpenses = expenses.reduce(
+    (sum, expense) =>
+      sum + toNumber(expense.amount),
+    0,
+  );
 
-  const operatingExpenseTotal =
-    currentExpenses.reduce(
-      (sum, expense) =>
-        sum + toNumber(expense.amount),
-      0
-    );
-
-  const previousOperatingExpenseTotal =
-    previousExpenses.reduce(
-      (sum, expense) =>
-        sum + toNumber(expense.amount),
-      0
-    );
-
-  /*
-   * ------------------------------------------------------------
-   * INVENTORY PURCHASES
-   * ------------------------------------------------------------
-   */
-   const inventoryPurchaseTotal =
-    currentPurchases.reduce(
-      (sum, purchase) =>
-        sum + getPurchaseAmount(purchase),
-      0
-    );
-
-  const previousInventoryPurchaseTotal =
-    previousPurchases.reduce(
-      (sum, purchase) =>
-        sum + getPurchaseAmount(purchase),
-      0
-    );
-
-  /*
-   * ------------------------------------------------------------
-   * TOTAL EXPENSES / MONEY OUT
-   * ------------------------------------------------------------
-   *
-   * THIS IS THE IMPORTANT FIX.
-   *
-   * Dashboard Expenses means ALL MONEY GOING OUT:
-   *
-   * Inventory Purchases
-   * +
-   * Operating Expenses
-   *
-   * This value is used by:
-   *
-   * 1. Expenses metric card
-   * 2. Sales vs Expenses chart
-   * 3. Profit/Loss cash movement
-   */
-
-    const totalExpenses = inventoryPurchaseTotal + operatingExpenseTotal;
-    const previousTotalExpenses = previousInventoryPurchaseTotal + previousOperatingExpenseTotal;
-
-  /*
-   * ------------------------------------------------------------
-   * GROSS PROFIT
-   * ------------------------------------------------------------
-   *
-   * Gross profit continues to come from the stored
-   * gross_profit on sales.
-   *
-   * Inventory purchases are NOT directly deducted here.
-   */
-
-  const grossProfit = currentSales.reduce(
+  const grossProfit = sales.reduce(
     (sum, sale) =>
       sum + toNumber(sale.gross_profit),
-    0
+    0,
   );
 
-  const previousGrossProfit =
-    previousSales.reduce(
-      (sum, sale) =>
-        sum + toNumber(sale.gross_profit),
-      0
-    );
+  const cashSurplus =
+  totalSales - totalPurchases - totalExpenses;
 
   /*
-   * ------------------------------------------------------------
-   * PROFIT / LOSS
-   * ------------------------------------------------------------
-   *
-   * For the dashboard cash movement:
-   *
-   * Sales - All Money Out
+   * These are currently placeholders.
+   * We can calculate period-over-period changes separately after the
+   * filtered dashboard is working correctly.
    */
+  const revenueChange = 0;
+  const expenseChange = 0;
+  const profitChange = 0;
+  const grossProfitChange = 0;
 
-  const profitLoss =
-    totalSales - totalExpenses;
+  /* ------------------------------------------------------------------------ */
+  /* REVENUE TREND                                                             */
+  /* ------------------------------------------------------------------------ */
 
-  /*
-   * ------------------------------------------------------------
-   * REVENUE TREND
-   * ------------------------------------------------------------
-   *
-   * Only current selected range.
-   */
+  const revenueMap = new Map<
+    string,
+    number
+  >();
 
-  const revenueMap =
-    new Map<string, number>();
-
-  currentSales.forEach((sale) => {
-    const date = getDateKey(
-      sale.purchased_at
-    );
-
-    if (!date) return;
+  for (const sale of sales) {
+    const date = String(
+      sale.purchased_at,
+    ).slice(0, 10);
 
     revenueMap.set(
       date,
       (revenueMap.get(date) ?? 0) +
-        toNumber(sale.total_amount)
+        toNumber(sale.total_amount),
     );
-  });
+  }
 
   const revenueTrend: RevenuePoint[] =
     Array.from(revenueMap.entries())
       .sort(([a], [b]) =>
-        a.localeCompare(b)
+        a.localeCompare(b),
       )
       .map(([date, revenue]) => ({
         date,
         revenue,
       }));
 
-  /*
-   * ------------------------------------------------------------
-   * SALES VS EXPENSES
-   * ------------------------------------------------------------
-   *
-   * For every date in the selected range:
-   *
-   * Sales =
-   *   sales on that date
-   *
-   * Expenses =
-   *   operating expenses on that date
-   *   +
-   *   inventory purchases on that date
-   */
+  /* ------------------------------------------------------------------------ */
+  /* SALES VS EXPENSES                                                         */
+  /* ------------------------------------------------------------------------ */
 
-  const salesExpenseMap =
-    new Map<
-      string,
-      {
-        sales: number;
-        expenses: number;
-      }
-    >();
+  const salesExpenseMap = new Map<
+    string,
+    {
+      sales: number;
+      expenses: number;
+    }
+  >();
 
-  /*
-   * SALES
-   */
-
-  currentSales.forEach((sale) => {
-    const date = getDateKey(
-      sale.purchased_at
-    );
-
-    if (!date) return;
-
-    const existing =
-      salesExpenseMap.get(date) ?? {
-        sales: 0,
-        expenses: 0,
-      };
-
-    existing.sales +=
-      toNumber(sale.total_amount);
-
-    salesExpenseMap.set(
-      date,
-      existing
-    );
-  });
-
-  /*
-   * OPERATING EXPENSES
-   */
-
-  currentExpenses.forEach((expense) => {
-    const date = expense.expense_date;
-
-    if (!date) return;
-
-    const existing =
-      salesExpenseMap.get(date) ?? {
-        sales: 0,
-        expenses: 0,
-      };
-
-    existing.expenses +=
-      toNumber(expense.amount);
-
-    salesExpenseMap.set(
-      date,
-      existing
-    );
-  });
-
-  /*
-   * INVENTORY PURCHASES
-   */
-
-  currentPurchases.forEach((purchase) => {
-    const date = getPurchaseDate(
-      purchase
+  for (const sale of sales) {
+    const date = String(
+      sale.purchased_at,
     ).slice(0, 10);
 
-    if (!date) return;
+    const existing =
+      salesExpenseMap.get(date) ?? {
+        sales: 0,
+        expenses: 0,
+      };
+
+    existing.sales += toNumber(
+      sale.total_amount,
+    );
+
+    salesExpenseMap.set(
+      date,
+      existing,
+    );
+  }
+
+  for (const expense of expenses) {
+    const date = String(
+      expense.expense_date ??
+        expense.created_at,
+    ).slice(0, 10);
 
     const existing =
       salesExpenseMap.get(date) ?? {
@@ -662,246 +580,442 @@ export async function getDashboardData(
         expenses: 0,
       };
 
-    existing.expenses +=
-      getPurchaseAmount(purchase);
+    existing.expenses += toNumber(
+      expense.amount,
+    );
 
     salesExpenseMap.set(
       date,
-      existing
+      existing,
     );
-  });
+  }
 
-  const salesVsExpenses:
-    SalesExpensePoint[] =
+  const salesVsExpenses: SalesExpensePoint[] =
     Array.from(
-      salesExpenseMap.entries()
+      salesExpenseMap.entries(),
     )
       .sort(([a], [b]) =>
-        a.localeCompare(b)
+        a.localeCompare(b),
       )
       .map(([period, values]) => ({
-        period,
+        period: formatPeriodLabel(period),
         sales: values.sales,
         expenses: values.expenses,
       }));
 
-  /*
-   * ------------------------------------------------------------
-   * TOP PRODUCTS
-   * ------------------------------------------------------------
-   *
-   * Only products belonging to current selected range
-   * are included.
-   */
+  /* ------------------------------------------------------------------------ */
+  /* SALES BY CATEGORY                                                         */
+  /* ------------------------------------------------------------------------ */
 
-  const saleIds = currentSales.map(
-    (sale) => sale.id
+  const salesByCategoryMap = new Map<
+    string,
+    number
+  >();
+
+  const filteredSaleIds = new Set(
+    sales.map((sale) => sale.id),
   );
 
-  let saleItems: SaleItemRow[] = [];
-
-  if (saleIds.length > 0) {
-    const {
-      data: saleItemsData,
-      error: saleItemsError,
-    } = await supabase
-      .from("sale_items")
-      .select(`
-        sale_id,
-        product_id,
-        quantity,
-        unit_price,
-        line_total,
-        products(name)
-      `)
-      .in(
-        "sale_id",
-        saleIds
-      );
-
-    if (saleItemsError) {
-      console.error(
-        "Dashboard sale items error:",
-        saleItemsError
-      );
-
-      throw new Error(
-        `Unable to load sale item data: ${saleItemsError.message}`
-      );
+  for (const item of saleItems) {
+    if (!filteredSaleIds.has(item.sale_id)) {
+      continue;
     }
 
-    saleItems =
-      (saleItemsData ?? []) as SaleItemRow[];
+    const product = Array.isArray(
+      item.products,
+    )
+      ? item.products[0]
+      : item.products;
+
+    if (!product) {
+      continue;
+    }
+
+    const category = Array.isArray(
+      product.product_categories,
+    )
+      ? product.product_categories[0]
+      : product.product_categories;
+
+    const categoryName =
+      category?.name ??
+      "Uncategorized";
+
+    const amount =
+      item.total_amount != null
+        ? toNumber(item.total_amount)
+        : toNumber(item.quantity) *
+          toNumber(item.unit_price);
+          
+
+    salesByCategoryMap.set(
+      categoryName,
+      (salesByCategoryMap.get(
+        categoryName,
+      ) ?? 0) + amount,
+    );
   }
 
-  const currentSaleIds =
-    new Set(
-      currentSales.map(
-        (sale) => sale.id
-      )
-    );
-
-  const productMap =
-    new Map<
-      string,
-      DashboardProduct
-    >();
-
-  saleItems
-    .filter((item) =>
-      currentSaleIds.has(
-        item.sale_id
-      )
-    )
-    .forEach((item) => {
-      const productId =
-        item.product_id;
-
-      const productName =
-        item.products?.[0]?.name ??
-        "Unknown Product";
-
-      const existing =
-        productMap.get(productId) ?? {
-          productId,
-          productName,
-          revenue: 0,
-          quantity: 0,
-        };
-
-      existing.quantity +=
-        toNumber(item.quantity);
-
-      existing.revenue +=
-        toNumber(item.line_total);
-
-      productMap.set(
-        productId,
-        existing
-      );
-    });
-
-  const topProducts =
+  const salesByCategory: SalesCategoryPoint[] =
     Array.from(
-      productMap.values()
+      salesByCategoryMap.entries(),
     )
-      .sort(
-        (a, b) =>
-          b.revenue - a.revenue
-      )
-      .slice(0, 5);
-
-  /*
-   * ------------------------------------------------------------
-   * RECENT SALES
-   * ------------------------------------------------------------
-   */
-
-  const recentSales: RecentSale[] =
-    currentSales
-      .slice(0, 10)
-      .map((sale) => ({
-        id: sale.id,
-
-        invoiceNumber:
-          sale.invoice_number ??
-          sale.id,
-
-        amount:
-          toNumber(
-            sale.total_amount
-          ),
-
-        profit:
-          toNumber(
-            sale.gross_profit
-          ),
-
-        purchasedAt:
-          sale.purchased_at,
-
-        paymentMethod:
-          sale.payment_method ??
-          "Unknown",
+      .sort(([, a], [, b]) => b - a)
+      .map(([category, revenue]) => ({
+        category,
+        revenue,
       }));
 
-  /*
-   * ------------------------------------------------------------
-   * RETURN DASHBOARD DATA
-   * ------------------------------------------------------------
-   */
+  /* ------------------------------------------------------------------------ */
+  /* PAYMENT METHODS                                                           */
+  /* ------------------------------------------------------------------------ */
+
+  const paymentMethodMap = new Map<
+    string,
+    number
+  >();
+
+  for (const sale of sales) {
+    const method =
+      sale.payment_method ?? "OTHER";
+
+    paymentMethodMap.set(
+      method,
+      (paymentMethodMap.get(method) ?? 0) +
+        toNumber(sale.total_amount),
+    );
+  }
+
+  const paymentMethods: PaymentMethodPoint[] =
+    Array.from(
+      paymentMethodMap.entries(),
+    )
+      .sort(([, a], [, b]) => b - a)
+      .map(([method, amount]) => ({
+        method,
+        amount,
+      }));
+
+  /* ------------------------------------------------------------------------ */
+  /* TOP PRODUCTS                                                              */
+  /* ------------------------------------------------------------------------ */
+
+  const productMap = new Map<
+    string,
+    DashboardProduct
+  >();
+
+  for (const item of saleItems) {
+    if (!filteredSaleIds.has(item.sale_id)) {
+      continue;
+    }
+
+    const product = Array.isArray(
+      item.products,
+    )
+      ? item.products[0]
+      : item.products;
+
+    if (!product) {
+      continue;
+    }
+
+    const productId = product.id;
+
+    const existing =
+      productMap.get(productId) ?? {
+        productId,
+        productName:
+          product.name ??
+          "Unknown Product",
+        revenue: 0,
+        quantity: 0,
+      };
+
+    const revenue =
+      item.total_amount != null
+        ? toNumber(item.total_amount)
+        : toNumber(item.quantity) *
+          toNumber(item.unit_price);
+
+    existing.revenue += revenue;
+
+    existing.quantity += toNumber(
+      item.quantity,
+    );
+
+    productMap.set(
+      productId,
+      existing,
+    );
+  }
+
+  const topProducts: DashboardProduct[] =
+    Array.from(productMap.values())
+      .sort(
+        (a, b) =>
+          b.revenue - a.revenue,
+      )
+      .slice(0, 10);
+
+  /* ------------------------------------------------------------------------ */
+  /* RECENT SALES                                                              */
+  /* ------------------------------------------------------------------------ */
+
+  const recentSales: RecentSale[] =
+    sales.slice(0, 10).map((sale) => ({
+      id: sale.id,
+      invoiceNumber:
+        sale.invoice_number ?? "N/A",
+      amount: toNumber(
+        sale.total_amount,
+      ),
+      profit: toNumber(
+        sale.gross_profit,
+      ),
+      purchasedAt:
+        sale.purchased_at,
+      paymentMethod:
+        sale.payment_method ??
+        "OTHER",
+    }));
+
+  /* ------------------------------------------------------------------------ */
+  /* INVENTORY                                                                 */
+  /* ------------------------------------------------------------------------ */
+
+  const totalProducts =
+    products.length;
+
+  const unitsInStock = products.reduce(
+    (sum, product) =>
+      sum +
+      Math.max(
+        0,
+        toNumber(
+          product.stock_quantity,
+        ),
+      ),
+    0,
+  );
+
+  const inventoryValue =
+    products.reduce(
+      (sum, product) =>
+        sum +
+        Math.max(
+          0,
+          toNumber(
+            product.stock_quantity,
+          ),
+        ) *
+          toNumber(
+            product.cost_price,
+          ),
+      0,
+    );
+
+  const lowStock = products.filter(
+    (product) => {
+      const stock = toNumber(
+        product.stock_quantity,
+      );
+
+      return (
+        stock > 0 &&
+        stock <= 5
+      );
+    },
+  ).length;
+
+  const outOfStock =
+    products.filter(
+      (product) =>
+        toNumber(
+          product.stock_quantity,
+        ) <= 0,
+    ).length;
+
+  const inventory: InventoryOverview = {
+    totalProducts,
+    unitsInStock,
+    inventoryValue,
+    lowStock,
+    outOfStock,
+  };
+
+  /* ------------------------------------------------------------------------ */
+  /* CUSTOMER GROWTH                                                           */
+  /* ------------------------------------------------------------------------ */
+
+  const customerGrowthMap =
+    new Map<string, number>();
+
+  for (const customer of customers) {
+    const createdDate = String(
+      customer.created_at,
+    ).slice(0, 10);
+
+    let period = createdDate;
+
+    if (
+      filters.range === "year"
+    ) {
+      period =
+        createdDate.slice(0, 7);
+    }
+
+    customerGrowthMap.set(
+      period,
+      (customerGrowthMap.get(
+        period,
+      ) ?? 0) + 1,
+    );
+  }
+
+  const customerGrowth: CustomerGrowthPoint[] =
+    Array.from(
+      customerGrowthMap.entries(),
+    )
+      .sort(([a], [b]) =>
+        a.localeCompare(b),
+      )
+      .map(
+        ([period, customers]) => ({
+          period:
+            filters.range === "year"
+              ? formatMonthLabel(
+                  period,
+                )
+              : formatPeriodLabel(
+                  period,
+                ),
+          customers,
+        }),
+      );
+
+  /* ------------------------------------------------------------------------ */
+  /* CUSTOMER SOURCES                                                          */
+  /* ------------------------------------------------------------------------ */
+
+  const customerSourceMap =
+    new Map<string, number>();
+
+  for (const customer of customers) {
+    const source =
+      customer.source ?? "OTHER";
+
+    customerSourceMap.set(
+      source,
+      (customerSourceMap.get(
+        source,
+      ) ?? 0) + 1,
+    );
+  }
+
+  const customerSources: CustomerSourcePoint[] =
+    Array.from(
+      customerSourceMap.entries(),
+    )
+      .sort(([, a], [, b]) => b - a)
+      .map(
+        ([source, customers]) => ({
+          source,
+          customers,
+        }),
+      );
+
+  /* ------------------------------------------------------------------------ */
+  /* EXPENSES BY CATEGORY                                                      */
+  /* ------------------------------------------------------------------------ */
+
+  const expenseCategoryMap =
+    new Map<string, number>();
+
+  for (const expense of expenses) {
+    const category =
+      expense.category ?? "Other";
+
+    expenseCategoryMap.set(
+      category,
+      (expenseCategoryMap.get(
+        category,
+      ) ?? 0) +
+        toNumber(expense.amount),
+    );
+  }
+
+  const expensesByCategory: ExpenseCategoryPoint[] =
+    Array.from(
+      expenseCategoryMap.entries(),
+    )
+      .sort(([, a], [, b]) => b - a)
+      .map(
+        ([category, amount]) => ({
+          category,
+          amount,
+        }),
+      );
+
+  /* ------------------------------------------------------------------------ */
+  /* PROFITABILITY                                                             */
+  /* ------------------------------------------------------------------------ */
+
+  const netProfit = cashSurplus; // Assuming cashSurplus is the net profit for this example
+
+  const netMargin =
+    totalSales > 0
+      ? (netProfit / totalSales) *
+        100
+      : 0;
+
+  const profitability: ProfitabilityData =
+    {
+      revenue: totalSales,
+      grossProfit,
+      expenses: totalExpenses,
+      netProfit,
+      netMargin,
+    };
+
+  /* ------------------------------------------------------------------------ */
+  /* FINAL RESULT                                                              */
+  /* ------------------------------------------------------------------------ */
 
   return {
-    /*
-     * Metric cards
-     */
-
+    /* KPI */
     totalSales,
-
-    /*
-     * IMPORTANT:
-     * Purchases + Operating Expenses
-     */
+    totalPurchases,
     totalExpenses,
-
     grossProfit,
+    cashSurplus,
 
-    /*
-     * Sales - All Money Out
-     */
-    profitLoss,
+    revenueChange,
+    expenseChange,
+    profitChange,
+    grossProfitChange,
 
-    /*
-     * Percentage changes
-     */
-
-    revenueChange:
-      hasPreviousRange
-        ? calculatePercentageChange(
-            totalSales,
-            previousSalesTotal
-          )
-        : 0,
-
-    expenseChange:
-      hasPreviousRange
-        ? calculatePercentageChange(
-            totalExpenses,
-            previousTotalExpenses
-          )
-        : 0,
-
-    profitChange:
-      hasPreviousRange
-        ? calculatePercentageChange(
-            profitLoss,
-            previousSalesTotal -
-              previousTotalExpenses
-          )
-        : 0,
-
-    grossProfitChange:
-      hasPreviousRange
-        ? calculatePercentageChange(
-            grossProfit,
-            previousGrossProfit
-          )
-        : 0,
-
-    /*
-     * Charts
-     */
-
+    /* SALES */
     revenueTrend,
-
     salesVsExpenses,
+    salesByCategory,
+    paymentMethods,
 
-    /*
-     * Other dashboard data
-     */
-
+    /* PRODUCTS */
     topProducts,
-
     recentSales,
+
+    /* INVENTORY */
+    inventory,
+
+    /* CUSTOMERS */
+    customerGrowth,
+    customerSources,
+
+    /* EXPENSES */
+    expensesByCategory,
+
+    /* PROFITABILITY */
+    profitability,
   };
 }

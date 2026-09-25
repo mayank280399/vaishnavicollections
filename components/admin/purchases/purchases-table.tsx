@@ -36,9 +36,7 @@ const PAYMENT_METHODS = [
   ["OTHER", "Other"],
 ] as const;
 
-function paymentLabel(
-  value: string | null
-) {
+function paymentLabel(value: string | null) {
   const found = PAYMENT_METHODS.find(
     ([code]) => code === value
   );
@@ -46,24 +44,18 @@ function paymentLabel(
   return found?.[1] ?? value ?? "—";
 }
 
-const money = new Intl.NumberFormat(
-  "en-IN",
-  {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 2,
-  }
-);
+const money = new Intl.NumberFormat("en-IN", {
+  style: "currency",
+  currency: "INR",
+  maximumFractionDigits: 2,
+});
 
 function formatDate(value: string) {
-  return new Intl.DateTimeFormat(
-    "en-IN",
-    {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    }
-  ).format(new Date(value));
+  return new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(value));
 }
 
 export default function PurchasesTable() {
@@ -500,6 +492,17 @@ export default function PurchasesTable() {
    * --------------------------------------------------
    * DELETE PURCHASE
    * --------------------------------------------------
+   *
+   * Only RECEIVED purchases affect stock.
+   *
+   * Before changing any stock:
+   * 1. Aggregate all quantities.
+   * 2. Read current stock.
+   * 3. Validate every item.
+   *
+   * This prevents a partial stock update when one
+   * item later turns out to have insufficient stock.
+   * --------------------------------------------------
    */
 
   async function deletePurchase(
@@ -522,121 +525,288 @@ export default function PurchasesTable() {
 
     try {
       /*
-       * Reverse stock first.
+       * PENDING and CANCELLED purchases
+       * never changed inventory.
+       *
+       * Therefore there is nothing to
+       * reverse in stock.
        */
+      if (
+        purchase.status ===
+        "RECEIVED"
+      ) {
+        /*
+         * Aggregate quantities by product/variant.
+         *
+         * This also handles a purchase that
+         * accidentally contains the same product
+         * more than once.
+         */
 
-      for (const item of purchase.items) {
-        if (item.variant_id) {
-          const {
-            data: variant,
-            error: variantError,
-          } = await supabase
-            .from(
-              "product_variants"
-            )
-            .select(
-              "id,stock_quantity"
-            )
-            .eq(
-              "id",
-              item.variant_id
-            )
-            .single();
+        const stockChanges =
+          new Map<
+            string,
+            {
+              productId: string;
+              variantId: string | null;
+              quantity: number;
+              name: string;
+            }
+          >();
 
-          if (variantError) {
-            throw variantError;
-          }
-
-          const newStock =
-            Number(
-              variant.stock_quantity ??
-                0
-            ) -
+        for (const item of purchase.items) {
+          const quantity =
             Number(item.quantity);
 
-          if (newStock < 0) {
-            throw new Error(
-              `Cannot delete ${purchase.invoice_number ?? "purchase"} because stock for the selected variant would become negative.`
-            );
+          if (
+            !Number.isFinite(
+              quantity
+            ) ||
+            quantity <= 0
+          ) {
+            continue;
           }
 
-          const {
-            error: updateError,
-          } = await supabase
-            .from(
-              "product_variants"
-            )
-            .update({
-              stock_quantity:
-                newStock,
+          const key = item.variant_id
+            ? `variant:${item.variant_id}`
+            : `product:${item.product_id}`;
 
-              updated_at:
-                new Date().toISOString(),
-            })
-            .eq(
-              "id",
-              item.variant_id
-            );
+          const existing =
+            stockChanges.get(key);
 
-          if (updateError) {
-            throw updateError;
+          if (existing) {
+            existing.quantity +=
+              quantity;
+          } else {
+            stockChanges.set(key, {
+              productId:
+                item.product_id,
+              variantId:
+                item.variant_id,
+              quantity,
+              name:
+                item.variant_id
+                  ? `${
+                      item.product_name
+                    }${
+                      item.variant_name
+                        ? ` · ${item.variant_name}`
+                        : ""
+                    }`
+                  : item.product_name,
+            });
           }
-        } else {
-          const {
-            data: product,
-            error: productError,
-          } = await supabase
-            .from("products")
-            .select(
-              "id,stock_quantity"
-            )
-            .eq(
-              "id",
-              item.product_id
-            )
-            .single();
+        }
 
-          if (productError) {
-            throw productError;
+        /*
+         * --------------------------------------------------
+         * VALIDATE ALL STOCK FIRST
+         * --------------------------------------------------
+         */
+
+        const changes =
+          Array.from(
+            stockChanges.values()
+          );
+
+        for (const change of changes) {
+          if (change.variantId) {
+            const {
+              data: variant,
+              error: variantError,
+            } = await supabase
+              .from(
+                "product_variants"
+              )
+              .select(
+                "id,stock_quantity"
+              )
+              .eq(
+                "id",
+                change.variantId
+              )
+              .eq(
+                "product_id",
+                change.productId
+              )
+              .single();
+
+            if (variantError) {
+              throw variantError;
+            }
+
+            const currentStock =
+              Number(
+                variant.stock_quantity ??
+                  0
+              );
+
+            const newStock =
+              currentStock -
+              change.quantity;
+
+            if (newStock < 0) {
+              throw new Error(
+                `Cannot delete ${
+                  purchase.invoice_number ??
+                  "this purchase"
+                } because "${change.name}" has only ${currentStock} in stock, but ${change.quantity} would need to be removed.`
+              );
+            }
+          } else {
+            const {
+              data: product,
+              error: productError,
+            } = await supabase
+              .from("products")
+              .select(
+                "id,stock_quantity"
+              )
+              .eq(
+                "id",
+                change.productId
+              )
+              .single();
+
+            if (productError) {
+              throw productError;
+            }
+
+            const currentStock =
+              Number(
+                product.stock_quantity ??
+                  0
+              );
+
+            const newStock =
+              currentStock -
+              change.quantity;
+
+            if (newStock < 0) {
+              throw new Error(
+                `Cannot delete ${
+                  purchase.invoice_number ??
+                  "this purchase"
+                } because "${change.name}" has only ${currentStock} in stock, but ${change.quantity} would need to be removed.`
+              );
+            }
           }
+        }
 
-          const newStock =
-            Number(
-              product.stock_quantity ??
-                0
-            ) -
-            Number(item.quantity);
+        /*
+         * --------------------------------------------------
+         * APPLY STOCK CHANGES
+         * --------------------------------------------------
+         *
+         * All stock values have already been
+         * validated above.
+         */
 
-          if (newStock < 0) {
-            throw new Error(
-              `Cannot delete ${purchase.invoice_number ?? "purchase"} because product stock would become negative.`
-            );
-          }
+        for (const change of changes) {
+          if (change.variantId) {
+            const {
+              data: variant,
+              error: variantError,
+            } = await supabase
+              .from(
+                "product_variants"
+              )
+              .select(
+                "id,stock_quantity"
+              )
+              .eq(
+                "id",
+                change.variantId
+              )
+              .eq(
+                "product_id",
+                change.productId
+              )
+              .single();
 
-          const {
-            error: updateError,
-          } = await supabase
-            .from("products")
-            .update({
-              stock_quantity:
-                newStock,
+            if (variantError) {
+              throw variantError;
+            }
 
-              updated_at:
-                new Date().toISOString(),
-            })
-            .eq(
-              "id",
-              item.product_id
-            );
+            const newStock =
+              Number(
+                variant.stock_quantity ??
+                  0
+              ) -
+              change.quantity;
 
-          if (updateError) {
-            throw updateError;
+            const {
+              error: updateError,
+            } = await supabase
+              .from(
+                "product_variants"
+              )
+              .update({
+                stock_quantity:
+                  newStock,
+                updated_at:
+                  new Date().toISOString(),
+              })
+              .eq(
+                "id",
+                change.variantId
+              );
+
+            if (updateError) {
+              throw updateError;
+            }
+          } else {
+            const {
+              data: product,
+              error: productError,
+            } = await supabase
+              .from("products")
+              .select(
+                "id,stock_quantity"
+              )
+              .eq(
+                "id",
+                change.productId
+              )
+              .single();
+
+            if (productError) {
+              throw productError;
+            }
+
+            const newStock =
+              Number(
+                product.stock_quantity ??
+                  0
+              ) -
+              change.quantity;
+
+            const {
+              error: updateError,
+            } = await supabase
+              .from("products")
+              .update({
+                stock_quantity:
+                  newStock,
+                updated_at:
+                  new Date().toISOString(),
+              })
+              .eq(
+                "id",
+                change.productId
+              );
+
+            if (updateError) {
+              throw updateError;
+            }
           }
         }
       }
 
       /*
-       * Delete purchase items.
+       * --------------------------------------------------
+       * DELETE PURCHASE ITEMS
+       * --------------------------------------------------
        */
 
       const {
@@ -654,7 +824,9 @@ export default function PurchasesTable() {
       }
 
       /*
-       * Delete purchase header.
+       * --------------------------------------------------
+       * DELETE PURCHASE HEADER
+       * --------------------------------------------------
        */
 
       const {
@@ -670,6 +842,10 @@ export default function PurchasesTable() {
       if (purchaseDeleteError) {
         throw purchaseDeleteError;
       }
+
+      /*
+       * Update local state immediately.
+       */
 
       setPurchases(
         (current) =>

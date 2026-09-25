@@ -23,7 +23,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -68,7 +67,7 @@ type Customer = {
   first_purchase_at: string | null;
   last_purchase_at: string | null;
 };
-    
+
 type SaleDialogProps = {
   showTrigger?: boolean;
   editSale?: {
@@ -78,6 +77,12 @@ type SaleDialogProps = {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   onSaved?: () => void;
+};
+
+type StockChange = {
+  productId: string;
+  variantId: string | null;
+  delta: number;
 };
 
 const PAYMENT_METHODS = [
@@ -98,6 +103,35 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 function number(value: number | string | null | undefined) {
   return Number(value ?? 0) || 0;
+}
+
+function stockKey(productId: string, variantId: string | null) {
+  return `${productId}:${variantId ?? ""}`;
+}
+
+function aggregateStockChanges(changes: StockChange[]) {
+  const map = new Map<string, StockChange>();
+
+  for (const change of changes) {
+    if (!change.delta) continue;
+
+    const key = stockKey(
+      change.productId,
+      change.variantId
+    );
+
+    const existing = map.get(key);
+
+    if (existing) {
+      existing.delta += change.delta;
+    } else {
+      map.set(key, { ...change });
+    }
+  }
+
+  return Array.from(map.values()).filter(
+    (change) => change.delta !== 0
+  );
 }
 
 function Field({
@@ -256,6 +290,191 @@ export function SaleDialog({
     Math.max(1, number(quantity));
 
   /*
+   * Get current stock for a product or variant.
+   */
+  async function getStock(
+    productId: string,
+    variantId: string | null
+  ) {
+    if (variantId) {
+      const { data, error } = await supabase
+        .from("product_variants")
+        .select("id,stock_quantity")
+        .eq("id", variantId)
+        .single();
+
+      if (error) throw error;
+
+      return number(data?.stock_quantity);
+    }
+
+    const { data, error } = await supabase
+      .from("products")
+      .select("id,stock_quantity")
+      .eq("id", productId)
+      .single();
+
+    if (error) throw error;
+
+    return number(data?.stock_quantity);
+  }
+
+  /*
+   * Apply a stock delta.
+   *
+   * Positive delta = stock comes back / is added.
+   * Negative delta = stock is consumed / sold.
+   */
+  async function adjustStock(
+    productId: string,
+    variantId: string | null,
+    delta: number
+  ) {
+    if (!delta) return;
+
+    if (variantId) {
+      const { data: variant, error: variantError } =
+        await supabase
+          .from("product_variants")
+          .select("id,stock_quantity")
+          .eq("id", variantId)
+          .single();
+
+      if (variantError) throw variantError;
+
+      const currentStock = number(
+        variant?.stock_quantity
+      );
+
+      const newStock = currentStock + delta;
+
+      if (newStock < 0) {
+        throw new Error(
+          "Insufficient stock for the selected variant."
+        );
+      }
+
+      const { error } = await supabase
+        .from("product_variants")
+        .update({
+          stock_quantity: newStock,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", variantId);
+
+      if (error) throw error;
+
+      return;
+    }
+
+    const { data: product, error: productError } =
+      await supabase
+        .from("products")
+        .select("id,stock_quantity")
+        .eq("id", productId)
+        .single();
+
+    if (productError) throw productError;
+
+    const currentStock = number(
+      product?.stock_quantity
+    );
+
+    const newStock = currentStock + delta;
+
+    if (newStock < 0) {
+      throw new Error(
+        "Insufficient stock for the selected product."
+      );
+    }
+
+    const { error } = await supabase
+      .from("products")
+      .update({
+        stock_quantity: newStock,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", productId);
+
+    if (error) throw error;
+  }
+
+  /*
+   * Validate every negative stock change before applying
+   * any stock changes.
+   *
+   * This prevents a multi-change sale edit from partially
+   * changing stock before discovering insufficient stock.
+   */
+  async function validateStockChanges(
+    changes: StockChange[]
+  ) {
+    const aggregated = aggregateStockChanges(changes);
+
+    for (const change of aggregated) {
+      if (change.delta >= 0) continue;
+
+      const currentStock = await getStock(
+        change.productId,
+        change.variantId
+      );
+
+      const resultingStock =
+        currentStock + change.delta;
+
+      if (resultingStock < 0) {
+        const required = Math.abs(change.delta);
+
+        throw new Error(
+          `Insufficient stock. Available: ${currentStock}, required: ${required}.`
+        );
+      }
+    }
+  }
+
+  /*
+   * Apply stock changes and remember what was successfully
+   * changed so the caller can roll them back if necessary.
+   */
+  async function applyStockChanges(
+    changes: StockChange[]
+  ) {
+    const aggregated = aggregateStockChanges(changes);
+    const applied: StockChange[] = [];
+
+    try {
+      for (const change of aggregated) {
+        await adjustStock(
+          change.productId,
+          change.variantId,
+          change.delta
+        );
+
+        applied.push(change);
+      }
+
+      return applied;
+    } catch (error) {
+      /*
+       * Best-effort rollback for changes already applied.
+       */
+      for (const change of [...applied].reverse()) {
+        try {
+          await adjustStock(
+            change.productId,
+            change.variantId,
+            -change.delta
+          );
+        } catch {
+          // Do not hide the original error.
+        }
+      }
+
+      throw error;
+    }
+  }
+
+  /*
    * Load master data.
    */
   useEffect(() => {
@@ -328,8 +547,10 @@ export function SaleDialog({
         setCustomers(customerResult.data ?? []);
 
         if (!isEditMode && !customerId) {
-          const walkIn = (customerResult.data ?? []).find(
-            (customer) => /walk.?in/i.test(customer.display_name)
+          const walkIn = (
+            customerResult.data ?? []
+          ).find((customer) =>
+            /walk.?in/i.test(customer.display_name)
           );
 
           if (walkIn) {
@@ -360,9 +581,11 @@ export function SaleDialog({
       setLoadingSale(true);
       setError("");
       setMessage("");
-const saleId = editSale?.id;
 
-if (!saleId) return;
+      const saleId = editSale?.id;
+
+      if (!saleId) return;
+
       const { data, error: saleError } = await supabase
         .from("sales")
         .select(`
@@ -386,7 +609,8 @@ if (!saleId) return;
 
       if (saleError || !data) {
         setError(
-          saleError?.message ?? "Unable to load this sale."
+          saleError?.message ??
+            "Unable to load this sale."
         );
         setLoadingSale(false);
         return;
@@ -547,6 +771,22 @@ if (!saleId) return;
     const lineCost = cost * qty;
     const profit = total - lineCost;
 
+    /*
+     * A new completed sale consumes stock.
+     */
+    const stockChanges: StockChange[] = [
+      {
+        productId,
+        variantId: variantId || null,
+        delta: -qty,
+      },
+    ];
+
+    /*
+     * Validate stock before creating the sale.
+     */
+    await validateStockChanges(stockChanges);
+
     const invoiceNumber = `INV-${Date.now()}`;
 
     const purchasedAt = new Date(
@@ -607,8 +847,28 @@ if (!saleId) return;
       throw new Error(itemError.message);
     }
 
-    // Stock is intentionally not changed here because the current
-    // add-sale flow also does not update product stock.
+    /*
+     * Now consume stock.
+     *
+     * Validation was already performed before the sale
+     * was created. If the actual stock update fails,
+     * remove the newly created sale.
+     */
+    try {
+      await applyStockChanges(stockChanges);
+    } catch (stockError) {
+      await supabase
+        .from("sale_items")
+        .delete()
+        .eq("sale_id", sale.id);
+
+      await supabase
+        .from("sales")
+        .delete()
+        .eq("id", sale.id);
+
+      throw stockError;
+    }
 
     setMessage(`Sale saved • ${invoiceNumber}`);
   }
@@ -637,8 +897,8 @@ if (!saleId) return;
     }
 
     /*
-     * Load the existing sale/item so we can update the
-     * same records instead of creating a new sale.
+     * Load the existing sale/item so we can calculate
+     * the exact stock difference.
      */
     const { data: existingSale, error: existingError } =
       await supabase
@@ -649,7 +909,9 @@ if (!saleId) return;
           total_amount,
           cost_amount,
           gross_profit,
+          payment_method,
           purchased_at,
+          status,
           sale_items (
             id,
             product_id,
@@ -694,6 +956,60 @@ if (!saleId) return;
     ).toISOString();
 
     /*
+     * Build the NET stock change.
+     *
+     * Old sale quantity is restored (+oldQty).
+     * New sale quantity is consumed (-newQty).
+     *
+     * Examples:
+     *
+     * 5 -> 3 of same product:
+     * +5 -3 = +2
+     *
+     * 5 -> 7 of same product:
+     * +5 -7 = -2
+     *
+     * Product A 5 -> Product B 3:
+     * A +5
+     * B -3
+     */
+    const stockChanges: StockChange[] = [
+      {
+        productId: oldItem.product_id,
+        variantId: oldItem.variant_id,
+        delta: number(oldItem.quantity),
+      },
+      {
+        productId,
+        variantId: variantId || null,
+        delta: -qty,
+      },
+    ];
+
+    const aggregatedStockChanges =
+      aggregateStockChanges(stockChanges);
+
+    /*
+     * Validate all negative changes BEFORE modifying
+     * either stock or sale records.
+     */
+    await validateStockChanges(
+      aggregatedStockChanges
+    );
+
+    /*
+     * Apply stock first.
+     *
+     * This ensures that if the new sale needs additional
+     * stock, that stock is actually available before the
+     * sale record is changed.
+     */
+    const appliedStockChanges =
+      await applyStockChanges(
+        aggregatedStockChanges
+      );
+
+    /*
      * Update sale header.
      */
     const { error: saleUpdateError } = await supabase
@@ -715,6 +1031,24 @@ if (!saleId) return;
       .eq("id", editSale.id);
 
     if (saleUpdateError) {
+      /*
+       * Sale update failed, so restore the exact stock
+       * changes that were already applied.
+       */
+      for (const change of [
+        ...appliedStockChanges,
+      ].reverse()) {
+        try {
+          await adjustStock(
+            change.productId,
+            change.variantId,
+            -change.delta
+          );
+        } catch {
+          // Keep the original database error.
+        }
+      }
+
       throw new Error(saleUpdateError.message);
     }
 
@@ -737,6 +1071,43 @@ if (!saleId) return;
       .eq("id", oldItem.id);
 
     if (itemUpdateError) {
+      /*
+       * Roll the sale header and stock back if the
+       * sale-item update fails.
+       */
+      try {
+        await supabase
+          .from("sales")
+          .update({
+            customer_id: existingSale.customer_id,
+            total_amount: existingSale.total_amount,
+            cost_amount: existingSale.cost_amount,
+            gross_profit: existingSale.gross_profit,
+            payment_method:
+              existingSale.payment_method,
+            purchased_at:
+              existingSale.purchased_at,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", editSale.id);
+      } catch {
+        // Keep the original item error.
+      }
+
+      for (const change of [
+        ...appliedStockChanges,
+      ].reverse()) {
+        try {
+          await adjustStock(
+            change.productId,
+            change.variantId,
+            -change.delta
+          );
+        } catch {
+          // Keep the original database error.
+        }
+      }
+
       throw new Error(itemUpdateError.message);
     }
 
@@ -776,14 +1147,14 @@ if (!saleId) return;
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      {!isEditMode && showTrigger ? (    
-          <Button
-             type="button"
-              onClick={() => handleOpenChange(true)}
->
-            <Plus className="mr-2 h-4 w-4" />
-            Add Sale
-          </Button> 
+      {!isEditMode && showTrigger ? (
+        <Button
+          type="button"
+          onClick={() => handleOpenChange(true)}
+        >
+          <Plus className="mr-2 h-4 w-4" />
+          Add Sale
+        </Button>
       ) : null}
 
       <DialogContent
@@ -1142,7 +1513,7 @@ if (!saleId) return;
                     variant="outline"
                     className="h-11 rounded-xl sm:min-w-28"
                     onClick={() => {
-                     handleOpenChange(false);
+                      handleOpenChange(false);
                     }}
                     disabled={saving}
                   >
