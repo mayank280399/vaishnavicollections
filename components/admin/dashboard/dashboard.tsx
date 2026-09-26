@@ -31,7 +31,6 @@ type DashboardProps = {
 };
 
 export function Dashboard({ data }: DashboardProps) {
-  console.log("Dashboard data:", data); // Debugging line to check the data being passed
   return (
     <div className="w-full min-w-0">
       {/* HEADER */}

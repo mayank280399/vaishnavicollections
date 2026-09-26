@@ -220,14 +220,14 @@ export default function Footer() {
                 </Link>
 
                 <Link
-                  href="#"
+                  href="/terms"
                   className="text-sm text-white/60 transition-colors duration-200 hover:text-[#C88A3D]"
                 >
                   Terms of Service
                 </Link>
 
                 <Link
-                  href="#"
+                  href="/privacy-policy"
                   className="text-sm text-white/60 transition-colors duration-200 hover:text-[#C88A3D]"
                 >
                   Privacy Policy

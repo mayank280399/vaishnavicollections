@@ -111,9 +111,9 @@ export function SalesByCategory({
           </div>
         </div>
       ) : (
-        <div className="flex min-h-0 flex-1 items-center gap-3">
+        <div className="grid min-h-0 flex-1 grid-cols-1 items-center gap-4 sm:grid-cols-[minmax(180px,1fr)_minmax(180px,1fr)]">
           {/* Donut */}
-          <div className="relative h-[190px] w-[48%] min-w-0 shrink-0">
+          <div className="relative mx-auto h-[190px] w-full max-w-[220px] min-w-0">
             <ResponsiveContainer
               width="100%"
               height="100%"
