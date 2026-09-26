@@ -9,13 +9,13 @@ import {
 interface CategoriesStatsProps {
   total: number;
   active: number;
-  products: number;
+  subcategories: number;
 }
 
 export function CategoriesStats({
   total,
   active,
-  products,
+  subcategories,
 }: CategoriesStatsProps) {
   const stats = [
     {
@@ -29,8 +29,8 @@ export function CategoriesStats({
       icon: CircleCheck,
     },
     {
-      label: "Products",
-      value: products,
+      label: "Subcategories",
+      value: subcategories,
       icon: Package,
     },
   ];

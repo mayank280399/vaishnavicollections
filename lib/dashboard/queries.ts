@@ -642,10 +642,8 @@ console.log(
       "Uncategorized";
 
     const amount =
-      item.total_amount != null
-        ? toNumber(item.total_amount)
-        : toNumber(item.quantity) *
-          toNumber(item.unit_price);
+  toNumber(item.quantity) *
+  toNumber(item.unit_price);
           
 
     salesByCategoryMap.set(
@@ -732,11 +730,9 @@ console.log(
         quantity: 0,
       };
 
-    const revenue =
-      item.total_amount != null
-        ? toNumber(item.total_amount)
-        : toNumber(item.quantity) *
-          toNumber(item.unit_price);
+  const revenue =
+  toNumber(item.quantity) *
+  toNumber(item.unit_price);
 
     existing.revenue += revenue;
 

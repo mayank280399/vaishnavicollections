@@ -11,8 +11,9 @@ import {
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ProductCategory } from "@/lib/categories/category-types";
 
-import type { ProductCategory } from "./category-types";
+
 
 interface CategoryCardProps {
   category: ProductCategory;

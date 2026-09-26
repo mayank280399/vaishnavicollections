@@ -1665,7 +1665,7 @@ export function PurchaseDialog({
       onOpenChange={handleOpenChange}
     >
       {showTrigger ? (
-        <DialogTrigger asChild>
+        <DialogTrigger>
           <Button className="gap-2 bg-brand-navy text-white hover:bg-brand-navy/90">
             <Plus className="h-4 w-4" />
             Add Purchase

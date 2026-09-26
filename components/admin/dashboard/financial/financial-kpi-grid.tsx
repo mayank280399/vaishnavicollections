@@ -42,7 +42,7 @@ export function FinancialKpiGrid({
       <FinancialKpiCard
         title="Total Purchases"
         value={data.totalPurchases}
-        change={data.purchaseChange}
+        //change={data.purchaseChange}
         icon={ShoppingCart}
         tone="blue"
       />

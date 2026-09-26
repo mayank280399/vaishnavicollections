@@ -125,10 +125,12 @@ export async function getSalesReport(
       date: formatDate(row.purchased_at),
       amount: toNumber(row.total_amount),
       paymentMethod: row.payment_method,
-      customerName:
-        Array.isArray(row.customers)
-          ? row.customers[0]?.display_name ?? "Walk-in Customer"
-          : row.customers?.display_name ?? "Walk-in Customer",
+     customerName:
+  Array.isArray(row.customers)
+    ? (row.customers[0] as { display_name?: string | null } | undefined)
+        ?.display_name ?? "Walk-in Customer"
+    : (row.customers as { display_name?: string | null } | null)
+        ?.display_name ?? "Walk-in Customer",
     })),
   };
 }

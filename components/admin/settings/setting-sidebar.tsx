@@ -1,5 +1,6 @@
 "use client";
 
+import { SettingsSection } from "@/lib/settings/settings-types";
 import {
   FileText,
   Gift,
@@ -9,7 +10,6 @@ import {
   Users,
 } from "lucide-react";
 
-import type { SettingsSection } from "./settings-types";
 
 interface SettingsSidebarProps {
   activeSection: SettingsSection;

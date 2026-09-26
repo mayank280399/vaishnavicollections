@@ -52,7 +52,9 @@ export function LoyaltyCustomerDialog({
     }
 
     setSaving(true);
-
+if (!customer) {
+  return;
+}
     try {
       await onAdjust(
         customer.id,

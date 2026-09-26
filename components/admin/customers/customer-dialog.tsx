@@ -267,7 +267,7 @@ export default function CustomerDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       {showTrigger ? (
-        <DialogTrigger asChild>
+        <DialogTrigger>
           <Button className="h-10 rounded-xl px-4">
             <Plus className="mr-2 h-4 w-4" />
             Add Customer

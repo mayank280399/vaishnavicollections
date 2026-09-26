@@ -50,7 +50,7 @@ export function SalesTrend({ data }: SalesTrendProps) {
       <DashboardSectionHeader
         title="Sales Trend"
         subtitle="Revenue over time"
-        href="/admin/sales"
+        viewAllHref="/admin/sales"
       />
 
       {!hasData ? (

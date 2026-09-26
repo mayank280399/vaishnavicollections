@@ -26,7 +26,7 @@ export function ProfitabilityOverview({ data }: Props) {
   const revenue = data.totalSales;
   const expenses = data.totalExpenses;
   const grossProfit = data.grossProfit;
-  const netProfit = data.profitLoss;
+  const netProfit = data.cashSurplus;
 
   const margin =
     revenue > 0

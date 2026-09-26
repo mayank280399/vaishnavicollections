@@ -14,11 +14,9 @@ import { CategoriesStats } from "./categories-stats";
 import { CategoriesToolbar } from "./categories-toolbar";
 import { CategoryCard } from "./category-card";
 import { CategoryDialog } from "./category-dialog";
+import { CategoryFormData, ProductCategory } from "@/lib/categories/category-types";
 
-import type {
-  CategoryFormData,
-  ProductCategory,
-} from "./category-types";
+
 
 const supabase = createClient();
 
