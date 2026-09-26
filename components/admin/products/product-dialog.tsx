@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from "react";
+
 import {
   Loader2,
   Plus,
@@ -18,6 +24,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+
+import {
+  ProductImageUploader,
+  type ExistingProductImage,
+  type ProductImageItem,
+  MIN_PRODUCT_IMAGES,
+  MAX_PRODUCT_IMAGES,
+} from "@/components/admin/products/product-image-uploader";
 
 type Category = {
   id: string;
@@ -56,6 +70,23 @@ type ProductDialogProps = {
   onSaved?: () => void;
 };
 
+const PRODUCT_IMAGE_BUCKET =
+  "product-images";
+
+const generateSlug = (
+  value: string
+) => {
+  return value
+    .toLowerCase()
+    .trim()
+    .replace(
+      /[^a-z0-9\s-]/g,
+      ""
+    )
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-");
+};
+
 export function ProductDialog({
   product = null,
   categories,
@@ -68,7 +99,8 @@ export function ProductDialog({
     []
   );
 
-  const isEditMode = Boolean(product);
+  const isEditMode =
+    Boolean(product);
 
   const isControlled =
     controlledOpen !== undefined;
@@ -82,12 +114,11 @@ export function ProductDialog({
   const [saving, setSaving] =
     useState(false);
 
+  const [loadingImages, setLoadingImages] =
+    useState(false);
+
   const [error, setError] =
     useState("");
-
-  // --------------------------------------------------
-  // FORM STATE
-  // --------------------------------------------------
 
   const [name, setName] =
     useState("");
@@ -127,21 +158,25 @@ export function ProductDialog({
       "DRAFT" | "PUBLISHED" | "ARCHIVED"
     >("PUBLISHED");
 
-  // --------------------------------------------------
-  // CATEGORIES
-  // --------------------------------------------------
+  const [images, setImages] =
+    useState<ProductImageItem[]>([]);
 
-  const parentCategories = useMemo(
-    () =>
-      categories.filter(
-        (category) =>
-          category.parent_id === null
-      ),
-    [categories]
-  );
+  const [originalImages, setOriginalImages] =
+    useState<ExistingProductImage[]>([]);
 
-  const subcategories = useMemo(
-    () => {
+  const parentCategories =
+    useMemo(
+      () =>
+        categories.filter(
+          (category) =>
+            category.parent_id ===
+            null
+        ),
+      [categories]
+    );
+
+  const subcategories =
+    useMemo(() => {
       if (!parentCategoryId) {
         return [];
       }
@@ -151,13 +186,10 @@ export function ProductDialog({
           category.parent_id ===
           parentCategoryId
       );
-    },
-    [categories, parentCategoryId]
-  );
-
-  // --------------------------------------------------
-  // RESET FORM
-  // --------------------------------------------------
+    }, [
+      categories,
+      parentCategoryId,
+    ]);
 
   function resetForm() {
     setName("");
@@ -175,12 +207,82 @@ export function ProductDialog({
     setFeatured(false);
     setVisibility("PUBLISHED");
 
+    setImages([]);
+    setOriginalImages([]);
+
     setError("");
+    setLoadingImages(false);
   }
 
-  // --------------------------------------------------
-  // LOAD PRODUCT INTO EDIT FORM
-  // --------------------------------------------------
+  async function loadProductImages(
+    productId: string
+  ) {
+    setLoadingImages(true);
+
+    const {
+      data,
+      error: imageError,
+    } = await supabase
+      .from("product_images")
+      .select(`
+        id,
+        product_id,
+        variant_id,
+        image_url,
+        alt_text,
+        sort_order,
+        is_primary
+      `)
+      .eq(
+        "product_id",
+        productId
+      )
+      .order("sort_order", {
+        ascending: true,
+      });
+
+    if (imageError) {
+      console.error(
+        "Error loading product images:",
+        imageError
+      );
+
+      setError(
+        imageError.message
+      );
+      setOriginalImages([]);
+      setImages([]);
+      setLoadingImages(false);
+
+      return;
+    }
+
+    const loaded =
+      (data ??
+        []) as ExistingProductImage[];
+
+    setOriginalImages(loaded);
+
+    setImages(
+      loaded.map((image) => ({
+        tempId: `existing-${image.id}`,
+        id: image.id,
+        previewUrl:
+          image.image_url,
+        imageUrl:
+          image.image_url,
+        altText:
+          image.alt_text ?? "",
+        isPrimary:
+          image.is_primary,
+        sortOrder:
+          image.sort_order,
+        isNew: false,
+      }))
+    );
+
+    setLoadingImages(false);
+  }
 
   useEffect(() => {
     if (!open) {
@@ -209,50 +311,74 @@ export function ProductDialog({
         selectedCategory.id;
     }
 
-    setName(product.name ?? "");
+    setName(
+      product.name ?? ""
+    );
 
     setCategoryId(
       product.category_id ?? ""
     );
 
-    setParentCategoryId(parentId);
+    setParentCategoryId(
+      parentId
+    );
 
-    setSku(product.sku ?? "");
+    setSku(
+      product.sku ?? ""
+    );
 
     setShortDescription(
       product.short_description ?? ""
     );
 
     setCostPrice(
-      product.cost_price !== null &&
-        product.cost_price !== undefined
-        ? String(product.cost_price)
+      product.cost_price !==
+        null &&
+        product.cost_price !==
+          undefined
+        ? String(
+            product.cost_price
+          )
         : ""
     );
 
     setSellingPrice(
-      product.selling_price !== null &&
-        product.selling_price !== undefined
-        ? String(product.selling_price)
+      product.selling_price !==
+        null &&
+        product.selling_price !==
+          undefined
+        ? String(
+            product.selling_price
+          )
         : ""
     );
 
     setOnlinePrice(
-      product.online_price !== null &&
-        product.online_price !== undefined
-        ? String(product.online_price)
+      product.online_price !==
+        null &&
+        product.online_price !==
+          undefined
+        ? String(
+            product.online_price
+          )
         : ""
     );
 
     setStockQuantity(
-      product.stock_quantity !== null &&
-        product.stock_quantity !== undefined
-        ? String(product.stock_quantity)
+      product.stock_quantity !==
+        null &&
+        product.stock_quantity !==
+          undefined
+        ? String(
+            product.stock_quantity
+          )
         : ""
     );
 
     setOnlineEnabled(
-      Boolean(product.online_enabled)
+      Boolean(
+        product.online_enabled
+      )
     );
 
     setFeatured(
@@ -260,17 +386,20 @@ export function ProductDialog({
     );
 
     setVisibility(
-      product.visibility ?? "PUBLISHED"
+      product.visibility ??
+        "PUBLISHED"
     );
+
+    loadProductImages(
+      product.id
+    );
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     open,
     product,
     categories,
   ]);
-
-  // --------------------------------------------------
-  // OPEN / CLOSE
-  // --------------------------------------------------
 
   function handleOpenChange(
     value: boolean
@@ -281,27 +410,17 @@ export function ProductDialog({
 
     onOpenChange?.(value);
 
-    if (!value) {
+    if (!value && !saving) {
       resetForm();
     }
   }
-
-  // --------------------------------------------------
-  // CATEGORY CHANGE
-  // --------------------------------------------------
 
   function handleParentCategoryChange(
     value: string
   ) {
     setParentCategoryId(value);
-
-    // Reset subcategory when parent changes.
     setCategoryId("");
   }
-
-  // --------------------------------------------------
-  // SUBCATEGORY CHANGE
-  // --------------------------------------------------
 
   function handleSubcategoryChange(
     value: string
@@ -309,12 +428,439 @@ export function ProductDialog({
     setCategoryId(value);
   }
 
-  // --------------------------------------------------
-  // SAVE / UPDATE
-  // --------------------------------------------------
+  function validateImages() {
+    if (
+      images.length <
+      MIN_PRODUCT_IMAGES
+    ) {
+      return `Please add at least ${MIN_PRODUCT_IMAGES} product images.`;
+    }
+
+    if (
+      images.length >
+      MAX_PRODUCT_IMAGES
+    ) {
+      return `You can have a maximum of ${MAX_PRODUCT_IMAGES} product images.`;
+    }
+
+    const primaryCount =
+      images.filter(
+        (image) =>
+          image.isPrimary
+      ).length;
+
+    if (primaryCount !== 1) {
+      return "Please select exactly one primary image.";
+    }
+
+    return null;
+  }
+
+  async function uploadNewImages(
+    productId: string,
+    newImages: ProductImageItem[]
+  ) {
+    const uploaded: {
+      storagePath: string;
+      imageUrl: string;
+      tempId: string;
+      altText: string;
+      isPrimary: boolean;
+      sortOrder: number;
+    }[] = [];
+
+    try {
+      for (
+        let index = 0;
+        index < newImages.length;
+        index++
+      ) {
+        const image =
+          newImages[index];
+
+        if (!image.file) {
+          continue;
+        }
+
+        const extension =
+          image.file.name
+            .split(".")
+            .pop()
+            ?.toLowerCase() ||
+          "jpg";
+
+        const storagePath =
+          `${productId}/${crypto.randomUUID()}.${extension}`;
+
+        const {
+          error: uploadError,
+        } = await supabase.storage
+          .from(
+            PRODUCT_IMAGE_BUCKET
+          )
+          .upload(
+            storagePath,
+            image.file,
+            {
+              cacheControl:
+                "3600",
+              upsert: false,
+              contentType:
+                image.file.type,
+            }
+          );
+
+        if (uploadError) {
+          throw uploadError;
+        }
+
+        const {
+          data: publicUrlData,
+        } =
+          supabase.storage
+            .from(
+              PRODUCT_IMAGE_BUCKET
+            )
+            .getPublicUrl(
+              storagePath
+            );
+
+        uploaded.push({
+          storagePath,
+          imageUrl:
+            publicUrlData.publicUrl,
+          tempId: image.tempId,
+          altText:
+            image.altText.trim(),
+          isPrimary:
+            image.isPrimary,
+          sortOrder:
+            image.sortOrder,
+        });
+      }
+
+      return uploaded;
+    } catch (error) {
+      if (uploaded.length) {
+        await supabase.storage
+          .from(
+            PRODUCT_IMAGE_BUCKET
+          )
+          .remove(
+            uploaded.map(
+              (item) =>
+                item.storagePath
+            )
+          );
+      }
+
+      throw error;
+    }
+  }
+
+  function getStoragePathFromUrl(
+    imageUrl: string
+  ) {
+    const marker =
+      `/storage/v1/object/public/${PRODUCT_IMAGE_BUCKET}/`;
+
+    const index =
+      imageUrl.indexOf(marker);
+
+    if (index === -1) {
+      return null;
+    }
+
+    return decodeURIComponent(
+      imageUrl.slice(
+        index + marker.length
+      )
+    );
+  }
+
+  async function deleteStorageFiles(
+    urls: string[]
+  ) {
+    const paths = urls
+      .map(
+        getStoragePathFromUrl
+      )
+      .filter(
+        (
+          path
+        ): path is string =>
+          Boolean(path)
+      );
+
+    if (!paths.length) {
+      return;
+    }
+
+    const {
+      error: storageError,
+    } =
+      await supabase.storage
+        .from(
+          PRODUCT_IMAGE_BUCKET
+        )
+        .remove(paths);
+
+    if (storageError) {
+      console.error(
+        "Storage cleanup error:",
+        storageError
+      );
+    }
+  }
+
+  async function saveProductImages(
+    productId: string
+  ) {
+    const currentExistingIds =
+      new Set(
+        images
+          .filter(
+            (image) =>
+              !image.isNew &&
+              image.id
+          )
+          .map(
+            (image) =>
+              image.id as string
+          )
+      );
+
+    const removedExisting =
+      originalImages.filter(
+        (image) =>
+          !currentExistingIds.has(
+            image.id
+          )
+      );
+
+    /*
+     * Delete removed image records.
+     */
+    if (
+      removedExisting.length
+    ) {
+      const removedIds =
+        removedExisting.map(
+          (image) =>
+            image.id
+        );
+
+      const {
+        error:
+          deleteImageError,
+      } = await supabase
+        .from("product_images")
+        .delete()
+        .in(
+          "id",
+          removedIds
+        );
+
+      if (deleteImageError) {
+        throw deleteImageError;
+      }
+
+      await deleteStorageFiles(
+        removedExisting.map(
+          (image) =>
+            image.image_url
+        )
+      );
+    }
+
+    /*
+     * Upload new images.
+     */
+    const newImages =
+      images.filter(
+        (image) =>
+          image.isNew
+      );
+
+    const uploaded =
+      await uploadNewImages(
+        productId,
+        newImages
+      );
+
+    /*
+     * Insert uploaded image records.
+     */
+    if (uploaded.length) {
+      const rows =
+        uploaded.map(
+          (image) => ({
+            product_id:
+              productId,
+            variant_id:
+              null,
+            image_url:
+              image.imageUrl,
+            alt_text:
+              image.altText ||
+              null,
+            sort_order:
+              image.sortOrder,
+            is_primary:
+              image.isPrimary,
+          })
+        );
+
+      const {
+        error:
+          insertImageError,
+      } = await supabase
+        .from("product_images")
+        .insert(rows);
+
+      if (insertImageError) {
+        await deleteStorageFiles(
+          uploaded.map(
+            (image) =>
+              image.storagePath
+          )
+        );
+
+        throw insertImageError;
+      }
+    }
+
+    /*
+     * Refresh all current image IDs.
+     */
+    const {
+      data: savedImages,
+      error:
+        savedImagesError,
+    } = await supabase
+      .from("product_images")
+      .select(`
+        id,
+        image_url,
+        alt_text,
+        sort_order,
+        is_primary
+      `)
+      .eq(
+        "product_id",
+        productId
+      );
+
+    if (savedImagesError) {
+      throw savedImagesError;
+    }
+
+    /*
+     * Reapply primary + ordering safely.
+     *
+     * First set all images to non-primary.
+     */
+    if (savedImages?.length) {
+      const {
+        error:
+          resetPrimaryError,
+      } = await supabase
+        .from("product_images")
+        .update({
+          is_primary:
+            false,
+        })
+        .eq(
+          "product_id",
+          productId
+        );
+
+      if (resetPrimaryError) {
+        throw resetPrimaryError;
+      }
+
+      /*
+       * Match images by URL.
+       */
+      for (
+        const image of images
+      ) {
+        const dbImage =
+          savedImages.find(
+            (saved) =>
+              saved.id ===
+                image.id ||
+              saved.image_url ===
+                image.imageUrl
+          );
+
+        if (!dbImage) {
+          continue;
+        }
+
+        const {
+          error:
+            updateImageError,
+        } = await supabase
+          .from("product_images")
+          .update({
+            sort_order:
+              image.sortOrder,
+            alt_text:
+              image.altText.trim() ||
+              null,
+          })
+          .eq(
+            "id",
+            dbImage.id
+          );
+
+        if (updateImageError) {
+          throw updateImageError;
+        }
+      }
+
+      const primaryImage =
+        images.find(
+          (image) =>
+            image.isPrimary
+        );
+
+      if (primaryImage) {
+        const dbPrimary =
+          savedImages.find(
+            (saved) =>
+              saved.id ===
+                primaryImage.id ||
+              saved.image_url ===
+                primaryImage.imageUrl
+          );
+
+        if (dbPrimary) {
+          const {
+            error:
+              primaryError,
+          } = await supabase
+            .from("product_images")
+            .update({
+              is_primary:
+                true,
+            })
+            .eq(
+              "id",
+              dbPrimary.id
+            );
+
+          if (primaryError) {
+            throw primaryError;
+          }
+        }
+      }
+    }
+  }
 
   async function handleSubmit(
-    event: React.FormEvent<HTMLFormElement>
+    event: FormEvent<HTMLFormElement>
   ) {
     event.preventDefault();
 
@@ -384,19 +930,27 @@ export function ProductDialog({
       return;
     }
 
+    const imageValidation =
+      validateImages();
+
+    if (imageValidation) {
+      setError(
+        imageValidation
+      );
+      return;
+    }
+
     setSaving(true);
-const generateSlug = (value: string) => {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-");
-};
+
     try {
       const payload = {
         name: trimmedName,
-         slug: generateSlug(trimmedName),
+
+        slug:
+          generateSlug(
+            trimmedName
+          ),
+
         category_id:
           categoryId,
 
@@ -404,21 +958,30 @@ const generateSlug = (value: string) => {
           sku.trim() || null,
 
         short_description:
-          shortDescription.trim() || null,
+          shortDescription.trim() ||
+          null,
 
         cost_price:
-          Number(costPrice || 0),
+          Number(
+            costPrice || 0
+          ),
 
         selling_price:
-          Number(sellingPrice || 0),
+          Number(
+            sellingPrice || 0
+          ),
 
         online_price:
           onlinePrice === ""
             ? null
-            : Number(onlinePrice),
+            : Number(
+                onlinePrice
+              ),
 
         stock_quantity:
-          Number(stockQuantity || 0),
+          Number(
+            stockQuantity || 0
+          ),
 
         online_enabled:
           onlineEnabled,
@@ -430,27 +993,72 @@ const generateSlug = (value: string) => {
           visibility,
       };
 
-      if (isEditMode && product) {
+      let productId =
+        product?.id ?? null;
+
+      if (
+        isEditMode &&
+        product
+      ) {
         const {
           error: updateError,
         } = await supabase
           .from("products")
           .update(payload)
-          .eq("id", product.id);
+          .eq(
+            "id",
+            product.id
+          );
 
         if (updateError) {
           throw updateError;
         }
       } else {
         const {
-          error: insertError,
+          data:
+            insertedProduct,
+          error:
+            insertError,
         } = await supabase
           .from("products")
-          .insert(payload);
+          .insert(payload)
+          .select("id")
+          .single();
 
         if (insertError) {
           throw insertError;
         }
+
+        productId =
+          insertedProduct.id;
+      }
+
+      if (!productId) {
+        throw new Error(
+          "Unable to determine product ID."
+        );
+      }
+
+      try {
+        await saveProductImages(
+          productId
+        );
+      } catch (imageError) {
+        /*
+         * If this was a brand-new product,
+         * remove it when image saving fails.
+         */
+        if (!isEditMode) {
+          await supabase
+            .from("products")
+            .delete()
+            .eq(
+              "id",
+              productId
+            );
+        }
+
+        throw imageError;
       }
 
       onSaved?.();
@@ -472,27 +1080,26 @@ const generateSlug = (value: string) => {
     }
   }
 
-  // --------------------------------------------------
-  // UI
-  // --------------------------------------------------
-
   return (
     <Dialog
       open={open}
-      onOpenChange={handleOpenChange}
+      onOpenChange={
+        handleOpenChange
+      }
     >
-      {/* ONLY ADD MODE HAS A TRIGGER */}
       {!isEditMode && (
         <Button
           type="button"
-          onClick={() => handleOpenChange(true)}
+          onClick={() =>
+            handleOpenChange(true)
+          }
         >
           <Plus className="mr-2 h-4 w-4" />
           Add Product
         </Button>
       )}
 
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl bg-white">
+      <DialogContent className="max-h-[90vh] overflow-y-auto bg-white sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle>
             {isEditMode
@@ -502,13 +1109,12 @@ const generateSlug = (value: string) => {
         </DialogHeader>
 
         <form
-          onSubmit={handleSubmit}
+          onSubmit={
+            handleSubmit
+          }
           className="space-y-6"
         >
-          {/* ----------------------------------------- */}
           {/* BASIC INFORMATION */}
-          {/* ----------------------------------------- */}
-
           <section className="space-y-4">
             <div>
               <h3 className="font-medium">
@@ -538,7 +1144,6 @@ const generateSlug = (value: string) => {
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
-              {/* CATEGORY */}
               <div className="space-y-2">
                 <Label>
                   Category *
@@ -562,24 +1167,31 @@ const generateSlug = (value: string) => {
                   {parentCategories.map(
                     (category) => (
                       <option
-                        key={category.id}
-                        value={category.id}
+                        key={
+                          category.id
+                        }
+                        value={
+                          category.id
+                        }
                       >
-                        {category.name}
+                        {
+                          category.name
+                        }
                       </option>
                     )
                   )}
                 </select>
               </div>
 
-              {/* SUBCATEGORY */}
               <div className="space-y-2">
                 <Label>
                   Subcategory *
                 </Label>
 
                 <select
-                  value={categoryId}
+                  value={
+                    categoryId
+                  }
                   onChange={(event) =>
                     handleSubcategoryChange(
                       event.target.value
@@ -597,10 +1209,16 @@ const generateSlug = (value: string) => {
                   {subcategories.map(
                     (category) => (
                       <option
-                        key={category.id}
-                        value={category.id}
+                        key={
+                          category.id
+                        }
+                        value={
+                          category.id
+                        }
                       >
-                        {category.name}
+                        {
+                          category.name
+                        }
                       </option>
                     )
                   )}
@@ -632,7 +1250,9 @@ const generateSlug = (value: string) => {
 
               <textarea
                 id="short-description"
-                value={shortDescription}
+                value={
+                  shortDescription
+                }
                 onChange={(event) =>
                   setShortDescription(
                     event.target.value
@@ -645,10 +1265,35 @@ const generateSlug = (value: string) => {
             </div>
           </section>
 
-          {/* ----------------------------------------- */}
-          {/* PRICING */}
-          {/* ----------------------------------------- */}
+          {/* IMAGES */}
+          <section className="border-t pt-5">
+            {loadingImages ? (
+              <div className="flex items-center justify-center py-10 text-sm text-muted-foreground">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Loading product images...
+              </div>
+            ) : (
+              <ProductImageUploader
+                key={
+                  product?.id ??
+                  "new-product"
+                }
+                productId={
+                  product?.id
+                }
+                initialImages={
+                  originalImages
+                }
+                value={images}
+                onChange={
+                  setImages
+                }
+                disabled={saving}
+              />
+            )}
+          </section>
 
+          {/* PRICING */}
           <section className="space-y-4 border-t pt-5">
             <div>
               <h3 className="font-medium">
@@ -691,7 +1336,9 @@ const generateSlug = (value: string) => {
                   type="number"
                   min="0"
                   step="0.01"
-                  value={sellingPrice}
+                  value={
+                    sellingPrice
+                  }
                   onChange={(event) =>
                     setSellingPrice(
                       event.target.value
@@ -711,7 +1358,9 @@ const generateSlug = (value: string) => {
                   type="number"
                   min="0"
                   step="0.01"
-                  value={onlinePrice}
+                  value={
+                    onlinePrice
+                  }
                   onChange={(event) =>
                     setOnlinePrice(
                       event.target.value
@@ -723,10 +1372,7 @@ const generateSlug = (value: string) => {
             </div>
           </section>
 
-          {/* ----------------------------------------- */}
           {/* INVENTORY */}
-          {/* ----------------------------------------- */}
-
           <section className="space-y-4 border-t pt-5">
             <div>
               <h3 className="font-medium">
@@ -748,7 +1394,9 @@ const generateSlug = (value: string) => {
                 type="number"
                 min="0"
                 step="1"
-                value={stockQuantity}
+                value={
+                  stockQuantity
+                }
                 onChange={(event) =>
                   setStockQuantity(
                     event.target.value
@@ -759,10 +1407,7 @@ const generateSlug = (value: string) => {
             </div>
           </section>
 
-          {/* ----------------------------------------- */}
           {/* ONLINE STORE */}
-          {/* ----------------------------------------- */}
-
           <section className="space-y-4 border-t pt-5">
             <div>
               <h3 className="font-medium">
@@ -773,7 +1418,9 @@ const generateSlug = (value: string) => {
             <label className="flex cursor-pointer items-start gap-3">
               <input
                 type="checkbox"
-                checked={onlineEnabled}
+                checked={
+                  onlineEnabled
+                }
                 onChange={(event) =>
                   setOnlineEnabled(
                     event.target.checked
@@ -796,7 +1443,9 @@ const generateSlug = (value: string) => {
             <label className="flex cursor-pointer items-start gap-3">
               <input
                 type="checkbox"
-                checked={featured}
+                checked={
+                  featured
+                }
                 onChange={(event) =>
                   setFeatured(
                     event.target.checked
@@ -817,17 +1466,16 @@ const generateSlug = (value: string) => {
             </label>
           </section>
 
-          {/* ----------------------------------------- */}
           {/* VISIBILITY */}
-          {/* ----------------------------------------- */}
-
           <section className="space-y-2 border-t pt-5">
             <Label>
               Visibility
             </Label>
 
             <select
-              value={visibility}
+              value={
+                visibility
+              }
               onChange={(event) =>
                 setVisibility(
                   event.target.value as
@@ -852,26 +1500,22 @@ const generateSlug = (value: string) => {
             </select>
           </section>
 
-          {/* ----------------------------------------- */}
           {/* ERROR */}
-          {/* ----------------------------------------- */}
-
           {error && (
             <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
               {error}
             </div>
           )}
 
-          {/* ----------------------------------------- */}
           {/* ACTIONS */}
-          {/* ----------------------------------------- */}
-
           <div className="flex justify-end gap-2 border-t pt-5">
             <Button
               type="button"
               variant="outline"
               onClick={() =>
-                handleOpenChange(false)
+                handleOpenChange(
+                  false
+                )
               }
               disabled={saving}
             >
@@ -880,7 +1524,10 @@ const generateSlug = (value: string) => {
 
             <Button
               type="submit"
-              disabled={saving}
+              disabled={
+                saving ||
+                loadingImages
+              }
             >
               {saving && (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

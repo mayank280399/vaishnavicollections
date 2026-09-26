@@ -25,24 +25,116 @@ export type RecentSale = {
   paymentMethod: string;
 };
 
+/* -------------------------------------------------------------------------- */
+/* SALES                                                                       */
+/* -------------------------------------------------------------------------- */
+
+export type SalesCategoryPoint = {
+  category: string;
+  revenue: number;
+};
+
+export type PaymentMethodPoint = {
+  method: string;
+  amount: number;
+};
+
+/* -------------------------------------------------------------------------- */
+/* INVENTORY                                                                   */
+/* -------------------------------------------------------------------------- */
+
+export type InventoryOverview = {
+  totalProducts: number;
+  unitsInStock: number;
+  inventoryValue: number;
+  lowStock: number;
+  outOfStock: number;
+};
+
+/* -------------------------------------------------------------------------- */
+/* CUSTOMERS                                                                   */
+/* -------------------------------------------------------------------------- */
+
+export type CustomerGrowthPoint = {
+  period: string;
+  customers: number;
+};
+
+export type CustomerSourcePoint = {
+  source: string;
+  customers: number;
+};
+
+/* -------------------------------------------------------------------------- */
+/* EXPENSES                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export type ExpenseCategoryPoint = {
+  category: string;
+  amount: number;
+};
+
+/* -------------------------------------------------------------------------- */
+/* PROFITABILITY                                                               */
+/* -------------------------------------------------------------------------- */
+
+export type ProfitabilityData = {
+  revenue: number;
+  grossProfit: number;
+  expenses: number;
+  netProfit: number;
+  netMargin: number;
+};
+
+/* -------------------------------------------------------------------------- */
+/* DASHBOARD DATA                                                              */
+/* -------------------------------------------------------------------------- */
+
 export type DashboardData = {
-  // Main metrics
+  /* ------------------------------ KPI CARDS ------------------------------ */
+
   totalSales: number;
+  totalPurchases: number;
   totalExpenses: number;
   grossProfit: number;
-  profitLoss: number;
+   cashSurplus: number;
 
-  // Percentage changes
   revenueChange: number;
   expenseChange: number;
   profitChange: number;
   grossProfitChange: number;
 
-  // Charts
+  /* ------------------------------ SALES ---------------------------------- */
+
   revenueTrend: RevenuePoint[];
+
   salesVsExpenses: SalesExpensePoint[];
 
-  // Other dashboard sections
+  salesByCategory: SalesCategoryPoint[];
+
+  paymentMethods: PaymentMethodPoint[];
+
+  /* ------------------------------ PRODUCTS -------------------------------- */
+
   topProducts: DashboardProduct[];
+
   recentSales: RecentSale[];
+
+  /* ------------------------------ INVENTORY ------------------------------- */
+
+  inventory: InventoryOverview;
+
+  /* ------------------------------ CUSTOMERS ------------------------------- */
+
+  customerGrowth: CustomerGrowthPoint[];
+
+  customerSources: CustomerSourcePoint[];
+
+  /* ------------------------------ EXPENSES -------------------------------- */
+
+  expensesByCategory: ExpenseCategoryPoint[];
+
+  /* ------------------------------ PROFITABILITY --------------------------- */
+
+  profitability: ProfitabilityData;
 };
