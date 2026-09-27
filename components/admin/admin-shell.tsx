@@ -60,6 +60,11 @@ const navigation = [
     icon: Sparkles,
   },
   {
+    name: "Inventory",
+    href: "/admin/inventory",
+    icon: Boxes,
+  },
+   {
     name: "Reports",
     href: "/admin/reports",
     icon: BarChart3,
