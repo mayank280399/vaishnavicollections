@@ -855,6 +855,7 @@ export function ProductsTable({
                               type="button"
                               variant="outline"
                               size="sm"
+                              className="admin-row-action"
                               onClick={() =>
                                 onEdit(
                                   product
@@ -869,7 +870,7 @@ export function ProductsTable({
                               type="button"
                               variant="outline"
                               size="sm"
-                              className="text-destructive hover:text-destructive"
+                              className="admin-row-action admin-row-action--delete"
                               onClick={() =>
                                 openDeleteDialog(
                                   product

@@ -212,8 +212,15 @@ export const categories: Category[] = [
 
 export type Slide = {
   id: number;
+
+  // Desktop
   title: string;
   subtitle: string;
+
+  // Mobile
+  mobileTitle: string;
+  mobileSubtitle: string;
+
   description: string;
   cta: string;
   ctaLink: string;
@@ -225,36 +232,90 @@ export type Slide = {
 export const slides: Slide[] = [
   {
     id: 1,
-    title: "Light as a\nStatement",
-    subtitle: "New Lighting Collection",
-    description: "Sculptural floor lamps and pendants that transform any room into a gallery.",
-    cta: "Shop Lighting",
-    ctaLink: "/products?category=Lighting",
-    badge: "New Arrivals '26",
-    bg: "linear-gradient(135deg, #fef3e2 0%, #fde8c8 50%, #fbd5a0 100%)",
-    image: "/banner-image/banner-lamp.jpg",
+
+    title: "Laddu Gopal Ji\nPoshak & Shringar",
+    subtitle: "Beautifully Crafted for Your Kanha Ji",
+
+    mobileTitle: "Laddu Gopal Ji\nPoshak & Shringar",
+    mobileSubtitle: "Beautifully Crafted for Your Kanha Ji",
+
+    description:
+      "Discover beautiful poshak, mukut, jewellery and shringar accessories for your Laddu Gopal Ji.",
+
+    cta: "Shop Collection",
+    ctaLink: "/products?category=Laddu%20Gopal",
+
+    badge: "Laddu Gopal Collection",
+
+    bg: "linear-gradient(90deg, rgba(7, 26, 53, 0.82) 0%, rgba(7, 26, 53, 0.62) 28%, rgba(7, 26, 53, 0.25) 55%, rgba(7, 26, 53, 0) 78%)",
+
+    image: "/banner-image/banner-laddugopal.png",
   },
+
   {
     id: 2,
-    title: "Crafted To\nLast Long",
-    subtitle: "Furniture Collection",
-    description: "Solid wood furniture made by skilled artisans. Designed to outlast trends.",
-    cta: "Explore Furniture",
-    ctaLink: "/products?category=Furniture",
-    badge: "Artisan Made",
-    bg: "linear-gradient(135deg, #f0ede8 0%, #e8e2d8 50%, #ddd4c5 100%)",
-    image: "/banner-image/banner-chair.jpg",
+
+    title: "Beautiful Details\nfor Your Home",
+    subtitle: "Home Décor Collection",
+
+    mobileTitle: "Beautiful Details\nfor Your Home",
+    mobileSubtitle: "Elegant Décor for Every Corner",
+
+    description:
+      "Discover elegant décor, textiles and accessories to add warmth and personality to your home.",
+
+    cta: "Explore Home Décor",
+    ctaLink: "/products?category=Decor",
+
+    badge: "Home Collection",
+
+    bg: "linear-gradient(90deg, rgba(7, 26, 53, 0.82) 0%, rgba(7, 26, 53, 0.62) 28%, rgba(7, 26, 53, 0.25) 55%, rgba(7, 26, 53, 0) 78%)",
+
+    image: "/banner-image/Banner-homedecor.png",
   },
+
   {
     id: 3,
-    title: "Up to 40%\nOff Decor",
-    subtitle: "Season's End Sale",
-    description: "Premium ceramics, mirrors, and objects at our biggest discount of the year.",
-    cta: "Shop the Sale",
-    ctaLink: "/products?badge=Sale",
-    badge: "Limited Time",
-    bg: "linear-gradient(135deg, #fff7ed 0%, #ffedd5 50%, #fed7aa 100%)",
-    image: "/banner-image/banner-decor.jpg",
+
+    title: "Beauty Essentials,\nYour Way",
+    subtitle: "Cosmetics & Beauty",
+
+    mobileTitle: "Beauty Essentials,\nYour Way",
+    mobileSubtitle: "Everyday Beauty, Your Way",
+
+    description:
+      "Explore cosmetics and everyday beauty essentials selected for your personal style.",
+
+    cta: "Shop Cosmetics",
+    ctaLink: "/products?category=Cosmetics",
+
+    badge: "Beauty Collection",
+
+    bg: "linear-gradient(90deg, rgba(7, 26, 53, 0.82) 0%, rgba(7, 26, 53, 0.62) 28%, rgba(7, 26, 53, 0.25) 55%, rgba(7, 26, 53, 0) 78%)",
+
+    image: "/banner-image/banner-cosmetics.png",
+  },
+
+  {
+    id: 4,
+
+    title: "Cute Details,\nMade by Hand",
+    subtitle: "Scrunchies & Hair Bows",
+
+    mobileTitle: "Cute Details,\nMade by Hand",
+    mobileSubtitle: "Handmade Scrunchies & Bows",
+
+    description:
+      "Add a playful touch to your everyday style with handmade scrunchies, bows and hair accessories.",
+
+    cta: "Shop Hair Accessories",
+    ctaLink: "/products?category=Hair%20Accessories",
+
+    badge: "Handmade Collection",
+
+    bg: "linear-gradient(90deg, rgba(7, 26, 53, 0.82) 0%, rgba(7, 26, 53, 0.62) 28%, rgba(7, 26, 53, 0.25) 55%, rgba(7, 26, 53, 0) 78%)",
+
+    image: "/banner-image/banner-scrunchies.png",
   },
 ];
 

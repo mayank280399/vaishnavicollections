@@ -83,7 +83,7 @@ export default function Navbar() {
       {/* =========================================================
           Top Promo Bar
           ========================================================= */}
-      <div className="flex w-full items-center justify-center gap-2 bg-[#1B263B] px-4 py-2 text-center text-xs font-medium tracking-wide text-white sm:text-sm">
+      <div className="flex w-full items-center justify-center gap-2 bg-[#171B4D] px-4 py-2 text-center text-xs font-medium tracking-wide text-white sm:text-sm">
         <Sparkles
           size={14}
           className="hidden shrink-0 sm:block"
@@ -169,8 +169,8 @@ export default function Navbar() {
                     className={[
                       "group flex items-center gap-1.5 py-2 text-sm font-medium transition-colors duration-200",
                       active
-                        ? "text-[#C88A3D]"
-                        : "text-[#1B263B] hover:text-[#C88A3D]",
+                        ? "text-[#C9952E]"
+                        : "text-[#171B4D] hover:text-[#C9952E]",
                     ].join(" ")}
                   >
                     {link.label}
@@ -191,7 +191,7 @@ export default function Navbar() {
                   {/* Active underline */}
                   <span
                     className={[
-                      "absolute bottom-0 left-0 h-0.5 rounded-full bg-[#C88A3D] transition-all duration-200",
+                      "absolute bottom-0 left-0 h-0.5 rounded-full bg-[#C9952E] transition-all duration-200",
                       active
                         ? "w-full"
                         : "w-0 group-hover:w-full",
@@ -230,7 +230,7 @@ export default function Navbar() {
                             <Link
                               key={sub.label}
                               href={sub.href}
-                              className="block rounded-lg px-4 py-3 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-[#F8F3EC] hover:text-[#C88A3D]"
+                              className="block rounded-lg px-4 py-3 text-sm font-medium text-gray-700 transition-colors duration-150 hover:bg-[#F8F1E2] hover:text-[#171B4D]"
                             >
                               {sub.label}
                             </Link>
@@ -252,7 +252,7 @@ export default function Navbar() {
             <button
               type="button"
               aria-label="Search"
-              className="relative flex size-10 items-center justify-center rounded-full text-[#1B263B] transition-colors hover:bg-gray-100 hover:text-[#C88A3D]"
+              className="relative flex size-10 items-center justify-center rounded-full text-[#171B4D] transition-colors hover:bg-gray-100 hover:text-[#C9952E]"
             >
               <Search size={19} />
             </button>
@@ -261,12 +261,12 @@ export default function Navbar() {
             <button
               type="button"
               aria-label="Wishlist"
-              className="relative flex size-10 items-center justify-center rounded-full text-[#1B263B] transition-colors hover:bg-gray-100 hover:text-[#C88A3D]"
+              className="relative flex size-10 items-center justify-center rounded-full text-[#171B4D] transition-colors hover:bg-gray-100 hover:text-[#C9952E]"
             >
               <Heart size={19} />
 
               {wishlistCount > 0 && (
-                <span className="absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full bg-[#C88A3D] text-[9px] font-bold text-white">
+                <span className="absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full bg-[#C9952E] text-[9px] font-bold text-[#171B4D]">
                   {wishlistCount}
                 </span>
               )}
@@ -276,12 +276,12 @@ export default function Navbar() {
             <Link
               href="#"
               aria-label="Cart"
-              className="relative flex size-10 items-center justify-center rounded-full text-[#1B263B] transition-colors hover:bg-gray-100 hover:text-[#C88A3D]"
+              className="relative flex size-10 items-center justify-center rounded-full text-[#171B4D] transition-colors hover:bg-gray-100 hover:text-[#C9952E]"
             >
               <ShoppingBag size={19} />
 
               {cartCount > 0 && (
-                <span className="absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full bg-[#C88A3D] text-[9px] font-bold text-white">
+                <span className="absolute right-0.5 top-0.5 flex size-4 items-center justify-center rounded-full bg-[#C9952E] text-[9px] font-bold text-[#171B4D]">
                   {cartCount}
                 </span>
               )}
@@ -292,7 +292,7 @@ export default function Navbar() {
               type="button"
               onClick={() => setMobileOpen(true)}
               aria-label="Open menu"
-              className="ml-1 flex size-10 items-center justify-center rounded-full text-[#1B263B] transition-colors hover:bg-gray-100 hover:text-[#C88A3D] lg:hidden"
+              className="ml-1 flex size-10 items-center justify-center rounded-full text-[#171B4D] transition-colors hover:bg-gray-100 hover:text-[#C9952E] lg:hidden"
             >
               <Menu size={22} />
             </button>
@@ -347,7 +347,7 @@ export default function Navbar() {
                   type="button"
                   onClick={() => setMobileOpen(false)}
                   aria-label="Close menu"
-                  className="flex size-10 items-center justify-center rounded-full text-[#1B263B] transition-colors hover:bg-gray-100 hover:text-[#C88A3D]"
+                  className="flex size-10 items-center justify-center rounded-full text-[#171B4D] transition-colors hover:bg-gray-100 hover:text-[#C9952E]"
                 >
                   <X size={22} />
                 </button>
@@ -376,8 +376,8 @@ export default function Navbar() {
                         className={[
                           "flex items-center justify-between border-b border-gray-100 py-4 text-base font-medium transition-colors",
                           pathname === link.href
-                            ? "text-[#C88A3D]"
-                            : "text-[#1B263B] hover:text-[#C88A3D]",
+                            ? "text-[#C9952E]"
+                            : "text-[#171B4D] hover:text-[#C9952E]",
                         ].join(" ")}
                         onClick={() =>
                           setMobileOpen(false)
@@ -400,7 +400,7 @@ export default function Navbar() {
                             <Link
                               key={sub.label}
                               href={sub.href}
-                              className="block py-2.5 text-sm text-gray-500 transition-colors hover:text-[#C88A3D]"
+                              className="block py-2.5 text-sm text-gray-500 transition-colors hover:text-[#171B4D]"
                               onClick={() =>
                                 setMobileOpen(false)
                               }
@@ -420,7 +420,7 @@ export default function Navbar() {
                 <Link
                   href="/products"
                   onClick={() => setMobileOpen(false)}
-                  className="flex w-full items-center justify-center rounded-xl bg-[#C88A3D] px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition-all duration-200 hover:bg-[#B77830] hover:shadow-md"
+                  className="flex min-h-12 w-full items-center justify-center rounded-xl bg-[#C9952E] px-6 py-3.5 text-sm font-semibold text-[#171B4D] shadow-sm transition-all duration-200 hover:bg-[#B18425] hover:shadow-md"
                 >
                   Shop Now
                 </Link>

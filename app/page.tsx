@@ -13,7 +13,7 @@ export default function Home() {
     <main>
       <Navbar />
       <HeroBanner />
-      <LogoCloud />
+      {/* <LogoCloud /> */}
       <FeaturedCategories />
       <FeaturedProducts />
       <OffersBento />

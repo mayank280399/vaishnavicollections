@@ -1,6 +1,5 @@
 "use client";
 
-import { SettingsSection } from "@/lib/settings/settings-types";
 import {
   FileText,
   Gift,
@@ -10,45 +9,57 @@ import {
   Users,
 } from "lucide-react";
 
+export type SettingsSection =
+  | "shop"
+  | "inventory"
+  | "invoice"
+  | "loyalty"
+  | "users"
+  | "app";
 
 interface SettingsSidebarProps {
   activeSection: SettingsSection;
   onSectionChange: (section: SettingsSection) => void;
 }
 
-const sections = [
+const sections: {
+  id: SettingsSection;
+  label: string;
+  description: string;
+  icon: typeof Store;
+}[] = [
   {
-    id: "shop" as const,
+    id: "shop",
     label: "Shop & Business",
     description: "Business information",
     icon: Store,
   },
   {
-    id: "inventory" as const,
+    id: "inventory",
     label: "Inventory",
     description: "Stock preferences",
     icon: Package,
   },
   {
-    id: "invoice" as const,
+    id: "invoice",
     label: "Invoice",
     description: "Invoice configuration",
     icon: FileText,
   },
   {
-    id: "loyalty" as const,
+    id: "loyalty",
     label: "Loyalty",
     description: "Rewards configuration",
     icon: Gift,
   },
   {
-    id: "users" as const,
+    id: "users",
     label: "Users & Access",
     description: "Staff and permissions",
     icon: Users,
   },
   {
-    id: "app" as const,
+    id: "app",
     label: "App Preferences",
     description: "Application behavior",
     icon: Settings2,
@@ -69,7 +80,9 @@ export function SettingsSidebar({
           <button
             key={section.id}
             type="button"
-            onClick={() => onSectionChange(section.id)}
+            onClick={() =>
+              onSectionChange(section.id)
+            }
             className={`flex w-full items-center gap-3 rounded-lg px-3 py-3 text-left transition ${
               active
                 ? "bg-muted font-medium"
@@ -78,14 +91,18 @@ export function SettingsSidebar({
           >
             <div
               className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border ${
-                active ? "bg-background" : "bg-muted/40"
+                active
+                  ? "bg-background"
+                  : "bg-muted/40"
               }`}
             >
               <Icon className="h-4 w-4" />
             </div>
 
             <div className="min-w-0">
-              <p className="text-sm">{section.label}</p>
+              <p className="text-sm">
+                {section.label}
+              </p>
 
               <p className="truncate text-xs text-muted-foreground">
                 {section.description}

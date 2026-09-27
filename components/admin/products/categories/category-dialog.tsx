@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+
+import { createClient } from "@/lib/supabase/client";
 
 import {
   Dialog,
@@ -14,9 +20,13 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CategoryFormData, ProductCategory } from "@/lib/categories/category-types";
 
+import {
+  CategoryFormData,
+  ProductCategory,
+} from "@/lib/categories/category-types";
 
+const supabase = createClient();
 
 interface CategoryDialogProps {
   open: boolean;
@@ -53,23 +63,27 @@ export function CategoryDialog({
   const [active, setActive] =
     useState(true);
 
+  const [isTopCollection, setIsTopCollection] =
+    useState(false);
+
+  const [imageUrl, setImageUrl] =
+    useState<string | null>(null);
+
+  const [selectedImage, setSelectedImage] =
+    useState<File | null>(null);
+
+  const [imagePreview, setImagePreview] =
+    useState<string | null>(null);
+
+  const [sortOrder, setSortOrder] =
+    useState(0);
+
   const [saving, setSaving] =
     useState(false);
 
   /*
    * Only top-level categories can be selected
    * as parents.
-   *
-   * This keeps the hierarchy:
-   *
-   * Category
-   *   └── Subcategory
-   *
-   * instead of allowing:
-   *
-   * Category
-   *   └── Subcategory
-   *         └── Sub-subcategory
    */
   const parentCategories = useMemo(
     () =>
@@ -96,16 +110,7 @@ export function CategoryDialog({
   }
 
   /*
-   * Populate form when the dialog opens.
-   *
-   * Edit:
-   * Load existing category.
-   *
-   * Add:
-   * Start with empty values.
-   *
-   * Add Subcategory:
-   * Automatically select the parent.
+   * Populate form when dialog opens.
    */
   useEffect(() => {
     if (!open) {
@@ -132,6 +137,24 @@ export function CategoryDialog({
       );
 
       setActive(category.active);
+
+      setIsTopCollection(
+        category.is_top_collection ?? false
+      );
+
+      setImageUrl(
+        category.image_url ?? null
+      );
+
+      setImagePreview(
+        category.image_url ?? null
+      );
+
+      setSortOrder(
+        category.sort_order ?? 0
+      );
+
+      setSelectedImage(null);
     } else {
       setName("");
       setSlug("");
@@ -144,6 +167,16 @@ export function CategoryDialog({
       );
 
       setActive(true);
+
+      setIsTopCollection(false);
+
+      setImageUrl(null);
+
+      setImagePreview(null);
+
+      setSelectedImage(null);
+
+      setSortOrder(0);
     }
   }, [
     open,
@@ -152,11 +185,7 @@ export function CategoryDialog({
   ]);
 
   /*
-   * Automatically generate slug while creating
-   * a new category.
-   *
-   * Once editing an existing category, we leave
-   * the slug under the user's control.
+   * Automatically generate slug while creating.
    */
   function handleNameChange(
     value: string
@@ -166,6 +195,89 @@ export function CategoryDialog({
     if (!category) {
       setSlug(generateSlug(value));
     }
+  }
+
+  /*
+   * Handle category image selection.
+   */
+  function handleImageChange(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file =
+      event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    /*
+     * Validate image type.
+     */
+    if (!file.type.startsWith("image/")) {
+      alert("Please select a valid image file.");
+      event.target.value = "";
+      return;
+    }
+
+    /*
+     * Keep category images reasonably sized.
+     */
+    if (file.size > 5 * 1024 * 1024) {
+      alert(
+        "Category image must be smaller than 5 MB."
+      );
+      event.target.value = "";
+      return;
+    }
+
+    setSelectedImage(file);
+
+    const previewUrl =
+      URL.createObjectURL(file);
+
+    setImagePreview(previewUrl);
+  }
+
+  /*
+   * Upload category image to Supabase Storage.
+   */
+  async function uploadCategoryImage(
+    file: File
+  ): Promise<string> {
+    const fileExtension =
+      file.name.split(".").pop()?.toLowerCase() ||
+      "jpg";
+
+    const safeName = name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+
+    const fileName =
+      `${safeName || "category"}-${crypto.randomUUID()}.${fileExtension}`;
+
+    const filePath = fileName;
+
+    const { error: uploadError } =
+      await supabase.storage
+        .from("category-images")
+        .upload(filePath, file, {
+          cacheControl: "3600",
+          upsert: false,
+        });
+
+    if (uploadError) {
+      throw uploadError;
+    }
+
+    const {
+      data: publicUrlData,
+    } = supabase.storage
+      .from("category-images")
+      .getPublicUrl(filePath);
+
+    return publicUrlData.publicUrl;
   }
 
   /*
@@ -193,9 +305,32 @@ export function CategoryDialog({
       return;
     }
 
+    /*
+     * Top Collections are only intended
+     * for top-level categories.
+     */
+    const finalIsTopCollection =
+      parentId
+        ? false
+        : isTopCollection;
+
     setSaving(true);
 
     try {
+      let finalImageUrl =
+        imageUrl;
+
+      /*
+       * Upload a new image only when
+       * the user selected one.
+       */
+      if (selectedImage) {
+        finalImageUrl =
+          await uploadCategoryImage(
+            selectedImage
+          );
+      }
+
       await onSubmit({
         name: trimmedName,
         slug: finalSlug,
@@ -205,7 +340,29 @@ export function CategoryDialog({
         parent_id:
           parentId || null,
         active,
+        is_top_collection:
+          finalIsTopCollection,
+        image_url:
+          finalImageUrl,
+        sort_order:
+          finalIsTopCollection
+            ? Math.max(
+                0,
+                Number(sortOrder) || 0
+              )
+            : 0,
       });
+    } catch (error) {
+      console.error(
+        "Failed to save category:",
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to save category."
+      );
     } finally {
       setSaving(false);
     }
@@ -240,7 +397,7 @@ export function CategoryDialog({
       open={open}
       onOpenChange={onOpenChange}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-lg bg-white">
+      <DialogContent className="max-h-[90vh] overflow-y-auto bg-white sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
             {title}
@@ -269,7 +426,7 @@ export function CategoryDialog({
                   event.target.value
                 )
               }
-              placeholder="e.g. Laddu Gopal"
+              placeholder="e.g. Laddu Gopal Poshak & Shringar"
               autoFocus
               disabled={saving}
             />
@@ -291,7 +448,7 @@ export function CategoryDialog({
                   )
                 )
               }
-              placeholder="e.g. laddu-gopal"
+              placeholder="e.g. laddu-gopal-poshak-shringar"
               disabled={saving}
             />
 
@@ -360,11 +517,21 @@ export function CategoryDialog({
             <select
               id="category-parent"
               value={parentId}
-              onChange={(event) =>
-                setParentId(
-                  event.target.value
-                )
-              }
+              onChange={(event) => {
+                const nextParentId =
+                  event.target.value;
+
+                setParentId(nextParentId);
+
+                /*
+                 * Subcategories cannot be
+                 * Top Collections.
+                 */
+                if (nextParentId) {
+                  setIsTopCollection(false);
+                  setSortOrder(0);
+                }
+              }}
               disabled={saving}
               className="flex h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             >
@@ -403,6 +570,138 @@ export function CategoryDialog({
               </p>
             )}
           </div>
+
+          {/* Category Image */}
+          <div className="space-y-3">
+            <div>
+              <Label htmlFor="category-image">
+                Category Image
+              </Label>
+
+              <p className="mt-1 text-xs text-muted-foreground">
+                This image will be used for the
+                category card on the storefront.
+              </p>
+            </div>
+
+            {imagePreview && (
+              <div className="overflow-hidden rounded-xl border bg-muted">
+                <img
+                  src={imagePreview}
+                  alt={
+                    name ||
+                    "Category preview"
+                  }
+                  className="h-48 w-full object-cover"
+                />
+              </div>
+            )}
+
+            <Input
+              id="category-image"
+              type="file"
+              accept="image/*"
+              onChange={
+                handleImageChange
+              }
+              disabled={saving}
+              className="cursor-pointer"
+            />
+
+            <p className="text-xs text-muted-foreground">
+              Recommended: high-quality JPG, PNG
+              or WebP. Maximum 5 MB.
+            </p>
+          </div>
+
+          {/* Top Collection */}
+          <div
+            className={`rounded-xl border p-4 ${
+              isSubcategory
+                ? "bg-muted/40"
+                : ""
+            }`}
+          >
+            <label
+              htmlFor="category-top-collection"
+              className={`flex items-start gap-3 ${
+                isSubcategory
+                  ? "cursor-not-allowed"
+                  : "cursor-pointer"
+              }`}
+            >
+              <input
+                id="category-top-collection"
+                type="checkbox"
+                checked={
+                  isSubcategory
+                    ? false
+                    : isTopCollection
+                }
+                onChange={(event) =>
+                  setIsTopCollection(
+                    event.target.checked
+                  )
+                }
+                disabled={
+                  saving ||
+                  isSubcategory
+                }
+                className="mt-0.5 h-4 w-4 rounded border"
+              />
+
+              <div>
+                <p className="text-sm font-medium">
+                  Is Top Collection
+                </p>
+
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Show this category in the
+                  Top Collections section
+                  on the storefront.
+                </p>
+
+                {isSubcategory && (
+                  <p className="mt-2 text-xs font-medium text-muted-foreground">
+                    Top Collections can only
+                    contain top-level categories.
+                  </p>
+                )}
+              </div>
+            </label>
+          </div>
+
+          {/* Display Order */}
+          {!isSubcategory &&
+            isTopCollection && (
+              <div className="space-y-2">
+                <Label htmlFor="category-sort-order">
+                  Display Order
+                </Label>
+
+                <Input
+                  id="category-sort-order"
+                  type="number"
+                  min={0}
+                  step={1}
+                  value={sortOrder}
+                  onChange={(event) =>
+                    setSortOrder(
+                      Number(
+                        event.target.value
+                      )
+                    )
+                  }
+                  disabled={saving}
+                  placeholder="1"
+                />
+
+                <p className="text-xs text-muted-foreground">
+                  Lower numbers appear first in
+                  Top Collections.
+                </p>
+              </div>
+            )}
 
           {/* Active */}
           <div className="rounded-xl border p-4">

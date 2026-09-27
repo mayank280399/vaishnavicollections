@@ -28,22 +28,22 @@ export function DashboardHeader() {
   }, []);
 
   return (
-    <header className="mb-6">
-      <div className="flex items-start justify-between gap-6">
+    <header className="mb-5 rounded-2xl border border-[#E8E4D8] bg-white p-4 shadow-[0_8px_24px_rgba(23,27,77,0.04)] sm:mb-6 sm:p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
         {/* Left: Heading */}
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
+          <h1 className="text-xl font-semibold tracking-tight text-brand-navy sm:text-3xl">
               
             Hello, {userName}
           </h1>
 
-          <p className="mt-1 hidden text-sm text-slate-500 sm:block">
+          <p className="mt-1 text-sm text-slate-500">
             Overview of your business performance
           </p>
         </div>
 
         {/* Right: Filter */}
-        <div className="shrink-0">
+        <div className="w-full shrink-0 sm:w-auto">
           <DashboardFilters />
         </div>
       </div>

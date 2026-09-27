@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 
 import { SaleDialog } from "@/components/admin/sales/sale-dialog";
+import { FilterDisclosure } from "@/components/admin/filter-disclosure";
 import { createClient } from "@/lib/supabase/client";
 
 type SaleRow = {
@@ -50,6 +51,38 @@ export default function SalesTable() {
   const [sortOrder, setSortOrder] = useState<
     "newest" | "oldest" | "highest" | "lowest"
   >("newest");
+  const [draftFilters, setDraftFilters] = useState({
+    search: "", category: "all", payment: "all", status: "all",
+    dateFrom: "", dateTo: "", sort: "newest" as "newest" | "oldest" | "highest" | "lowest",
+  });
+
+  function editDraft<K extends keyof typeof draftFilters>(
+    key: K,
+    value: (typeof draftFilters)[K],
+    commit: (value: (typeof draftFilters)[K]) => void,
+  ) {
+    setDraftFilters((current) => ({ ...current, [key]: value }));
+    if (window.matchMedia("(min-width: 1024px)").matches) commit(value);
+  }
+
+  function syncDraftFromApplied() {
+    setDraftFilters({ search, category: categoryFilter, payment: paymentFilter, status: statusFilter, dateFrom, dateTo, sort: sortOrder });
+  }
+
+  function applyDraftFilters() {
+    setSearch(draftFilters.search);
+    setCategoryFilter(draftFilters.category);
+    setPaymentFilter(draftFilters.payment);
+    setStatusFilter(draftFilters.status);
+    setDateFrom(draftFilters.dateFrom);
+    setDateTo(draftFilters.dateTo);
+    setSortOrder(draftFilters.sort);
+  }
+
+  function clearDraftFilters() {
+    setDraftFilters({ search: "", category: "all", payment: "all", status: "all", dateFrom: "", dateTo: "", sort: "newest" });
+    if (window.matchMedia("(min-width: 1024px)").matches) resetFilters();
+  }
 
   useEffect(() => {
     loadSales();
@@ -350,7 +383,8 @@ export default function SalesTable() {
     paymentFilter !== "all" ||
     statusFilter !== "all" ||
     dateFrom !== "" ||
-    dateTo !== "";
+    dateTo !== "" ||
+    sortOrder !== "newest";
 
   /* -----------------------------------------
      Loading
@@ -369,7 +403,7 @@ export default function SalesTable() {
   ----------------------------------------- */
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
+    <div className="space-y-5">
       {/* Header */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
@@ -381,6 +415,7 @@ export default function SalesTable() {
             View and manage all sales
           </p>
         </div>
+        <SaleDialog showTrigger onSaved={loadSales} />
       </div>
 
       {/* Error */}
@@ -467,27 +502,7 @@ export default function SalesTable() {
 
       {/* Filters */}
       <div className="rounded-xl border bg-card p-4">
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-sm font-semibold">Filters</h2>
-
-            <p className="text-xs text-muted-foreground">
-              Filter sales by date, category, payment and more
-            </p>
-          </div>
-
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Reset filters
-            </button>
-          )}
-        </div>
-
+        <FilterDisclosure active={hasActiveFilters} onReset={clearDraftFilters} onOpen={syncDraftFromApplied} onCancel={syncDraftFromApplied} onApply={applyDraftFilters}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {/* Search */}
           <div className="relative sm:col-span-2 lg:col-span-2">
@@ -495,8 +510,8 @@ export default function SalesTable() {
 
             <input
               type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              value={draftFilters.search}
+              onChange={(e) => editDraft("search", e.target.value, setSearch)}
               placeholder="Search invoice, item or category..."
               className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm outline-none transition focus:border-primary focus:ring-1 focus:ring-primary"
             />
@@ -504,8 +519,8 @@ export default function SalesTable() {
 
           {/* Category */}
           <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
+            value={draftFilters.category}
+            onChange={(e) => editDraft("category", e.target.value, setCategoryFilter)}
             className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus:border-primary"
           >
             <option value="all">All Categories</option>
@@ -519,8 +534,8 @@ export default function SalesTable() {
 
           {/* Payment */}
           <select
-            value={paymentFilter}
-            onChange={(e) => setPaymentFilter(e.target.value)}
+            value={draftFilters.payment}
+            onChange={(e) => editDraft("payment", e.target.value, setPaymentFilter)}
             className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus:border-primary"
           >
             <option value="all">All Payment Methods</option>
@@ -535,8 +550,8 @@ export default function SalesTable() {
 
           {/* Status */}
           <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
+            value={draftFilters.status}
+            onChange={(e) => editDraft("status", e.target.value, setStatusFilter)}
             className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus:border-primary"
           >
             <option value="all">All Statuses</option>
@@ -550,14 +565,16 @@ export default function SalesTable() {
 
           {/* Sort */}
           <select
-            value={sortOrder}
+            value={draftFilters.sort}
             onChange={(e) =>
-              setSortOrder(
+              editDraft(
+                "sort",
                 e.target.value as
                   | "newest"
                   | "oldest"
                   | "highest"
-                  | "lowest"
+                  | "lowest",
+                setSortOrder,
               )
             }
             className="h-10 rounded-md border bg-background px-3 text-sm outline-none focus:border-primary"
@@ -574,8 +591,8 @@ export default function SalesTable() {
 
             <input
               type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
+              value={draftFilters.dateFrom}
+              onChange={(e) => editDraft("dateFrom", e.target.value, setDateFrom)}
               className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary"
               aria-label="From date"
             />
@@ -587,13 +604,14 @@ export default function SalesTable() {
 
             <input
               type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
+              value={draftFilters.dateTo}
+              onChange={(e) => editDraft("dateTo", e.target.value, setDateTo)}
               className="h-10 w-full rounded-md border bg-background pl-9 pr-3 text-sm outline-none focus:border-primary"
               aria-label="To date"
             />
           </div>
         </div>
+        </FilterDisclosure>
 
         {/* Filter result + Add Sale */}
         <div className="mt-4 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
@@ -609,10 +627,6 @@ export default function SalesTable() {
             sales
           </p>
 
-          <SaleDialog
-            showTrigger={true}
-            onSaved={loadSales}
-          />
         </div>
       </div>
 
@@ -783,7 +797,7 @@ export default function SalesTable() {
                           <button
                             type="button"
                             onClick={() => handleEdit(sale)}
-                            className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs hover:bg-muted"
+                            className="admin-row-action"
                           >
                             <Pencil className="h-3.5 w-3.5" />
                             Edit
@@ -794,7 +808,7 @@ export default function SalesTable() {
                             onClick={() =>
                               handleDelete(sale)
                             }
-                            className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"
+                            className="admin-row-action admin-row-action--delete"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
                             Delete

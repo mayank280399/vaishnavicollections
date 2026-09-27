@@ -285,7 +285,7 @@ export default function CustomerDialog({
     bg-white
   "
 >
-        <DialogHeader className="border-b px-5 py-4 sm:px-6">
+        <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
               <UserRound className="h-4 w-4" />
