@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 
@@ -29,6 +29,23 @@ export default function LoginPage() {
   const [resetLoading, setResetLoading] = useState(false);
 
   const isRegister = mode === "register";
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const authError = params.get("error");
+
+    if (authError === "oauth") {
+      setError("Google sign-in could not be completed. Please try again.");
+    } else if (authError === "profile") {
+      setError("Your account was authenticated, but its profile could not be set up. Please contact support.");
+    }
+
+    if (authError) {
+      params.delete("error");
+      const query = params.toString();
+      window.history.replaceState({}, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
+    }
+  }, []);
 
   function switchMode(nextMode: Mode) {
     setMode(nextMode);
@@ -63,7 +80,6 @@ export default function LoginPage() {
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-debugger;
     setError("");
     setMessage("");
     setLoading(true);
@@ -93,6 +109,9 @@ debugger;
       }
 
       router.refresh();
+    } catch (loginError) {
+      console.error("Sign-in error:", loginError);
+      setError("Unable to sign in right now. Check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -191,6 +210,9 @@ debugger;
     setConfirmPassword("");
     setShowPassword(false);
     setShowConfirmPassword(false);
+  } catch (registerError) {
+    console.error("Registration error:", registerError);
+    setError("Unable to create your account right now. Please try again.");
   } finally {
     setLoading(false);
   }
@@ -247,6 +269,9 @@ debugger;
       setMessage(
         "If an account exists for this email, you will receive a password reset link shortly."
       );
+    } catch (resetError) {
+      console.error("Password reset request error:", resetError);
+      setError("Unable to send a reset link right now. Please try again.");
     } finally {
       setResetLoading(false);
     }

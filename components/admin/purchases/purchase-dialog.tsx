@@ -1685,8 +1685,8 @@ export function PurchaseDialog({
           sm:!w-[calc(100vw-2rem)]
         "
       >
-        <DialogHeader className="border-b px-4 py-4 sm:px-6">
-          <DialogTitle className="text-lg font-semibold">
+        <DialogHeader>
+          <DialogTitle>
             {isEditMode
               ? "Edit Purchase"
               : "Add Purchase"}

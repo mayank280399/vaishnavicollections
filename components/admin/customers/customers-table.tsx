@@ -24,6 +24,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { createClient } from "@/lib/supabase/client";
 
 import CustomerDialog from "./customer-dialog";
+import { FilterDisclosure } from "@/components/admin/filter-disclosure";
 
 type Customer = {
   id: string;
@@ -368,6 +369,10 @@ export default function CustomersTable() {
 
       {/* Filters */}
       <div className="rounded-2xl border bg-card p-4 shadow-sm">
+        <FilterDisclosure
+          active={Boolean(search || sourceFilter !== "ALL" || segmentFilter !== "ALL")}
+          onReset={resetFilters}
+        >
         <div className="flex flex-col gap-3 xl:flex-row xl:items-center">
           <div className="relative min-w-0 flex-1">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -416,7 +421,7 @@ export default function CustomersTable() {
 
             <Button
               variant="outline"
-              className="h-11 rounded-xl"
+              className="hidden h-11 rounded-xl lg:inline-flex"
               onClick={resetFilters}
             >
               <RotateCcw className="mr-2 h-4 w-4" />
@@ -424,6 +429,7 @@ export default function CustomersTable() {
             </Button>
           </div>
         </div>
+        </FilterDisclosure>
 
         <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
           <span>
@@ -587,7 +593,7 @@ export default function CustomersTable() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-9 w-9 rounded-lg"
+                          className="h-10 w-10 rounded-xl border border-[#dfe1ea] bg-white text-brand-navy shadow-none hover:bg-[#fbf9f4]"
                           title="View customer"
                           onClick={() => setViewingCustomer(customer)}
                         >
@@ -597,7 +603,7 @@ export default function CustomersTable() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-9 w-9 rounded-lg"
+                          className="h-10 w-10 rounded-xl border border-[#dfe1ea] bg-white text-brand-navy shadow-none hover:bg-[#fbf9f4]"
                           title="Edit customer"
                           onClick={() => setEditingCustomer(customer)}
                         >
@@ -607,7 +613,7 @@ export default function CustomersTable() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-9 w-9 rounded-lg text-destructive hover:text-destructive"
+                          className="h-10 w-10 rounded-xl border border-red-100 bg-white text-red-700 shadow-none hover:bg-red-50 hover:text-red-700"
                           title="Delete customer"
                           disabled={deletingId === customer.id}
                           onClick={() => deleteCustomer(customer)}
@@ -714,7 +720,7 @@ function CustomerDetailsDialog({
     text-slate-900
   "
 >
-        <DialogHeader className="border-b px-5 py-4 sm:px-6">
+        <DialogHeader>
           <DialogTitle className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
               {customer.display_name.charAt(0).toUpperCase()}

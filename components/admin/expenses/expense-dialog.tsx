@@ -22,6 +22,7 @@ import { createClient } from "@/lib/supabase/client";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -763,17 +764,7 @@ if (isEditMode && editExpense) {
         "
       >
         <DialogHeader
-          className="
-            border-b
-            bg-gradient-to-br
-            from-background
-            via-background
-            to-primary/[0.04]
-            px-5
-            py-5
-            sm:px-7
-            sm:py-6
-          "
+          className="bg-gradient-to-br from-background via-background to-primary/[0.04]"
         >
           <div className="flex items-start gap-3 pr-8">
             <div
@@ -798,17 +789,17 @@ if (isEditMode && editExpense) {
             </div>
 
             <div>
-              <DialogTitle className="text-lg">
+              <DialogTitle>
                 {isEditMode
                   ? "Edit Expense"
                   : "Add Expense"}
               </DialogTitle>
 
-              <p className="mt-1 text-sm text-muted-foreground">
+              <DialogDescription>
                 {isEditMode
                   ? "Update the expense details below."
                   : "Record a new shop expense."}
-              </p>
+              </DialogDescription>
             </div>
           </div>
         </DialogHeader>

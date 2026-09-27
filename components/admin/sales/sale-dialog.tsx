@@ -21,6 +21,7 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -1174,24 +1175,24 @@ export function SaleDialog({
           sm:rounded-3xl
         "
       >
-        <DialogHeader className="border-b bg-gradient-to-br from-background via-background to-primary/[0.04] px-5 py-5 sm:px-7 sm:py-6">
+        <DialogHeader className="bg-gradient-to-br from-background via-background to-primary/[0.04]">
           <div className="flex items-start gap-3 pr-8">
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
               <ReceiptText className="h-5 w-5" />
             </div>
 
             <div>
-              <DialogTitle className="text-xl font-bold tracking-tight sm:text-2xl">
+              <DialogTitle>
                 {isEditMode
                   ? `Edit Sale • ${editSale?.invoice_number}`
                   : "Add Sale"}
               </DialogTitle>
 
-              <p className="mt-1 text-sm text-muted-foreground">
+              <DialogDescription>
                 {isEditMode
                   ? "Update the details of this sale."
                   : "Record a customer sale quickly."}
-              </p>
+              </DialogDescription>
             </div>
           </div>
         </DialogHeader>

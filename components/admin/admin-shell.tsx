@@ -222,7 +222,7 @@ export function AdminShell({
                 className={[
                   "relative flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all duration-200",
                   active
-                    ? "bg-brand-navy text-brand-white shadow-sm before:absolute before:left-0 before:top-2 before:h-[calc(100%-1rem)] before:w-1 before:rounded-r-full before:bg-brand-gold"
+                    ? "bg-white/10 text-brand-white shadow-sm before:absolute before:left-0 before:top-2 before:h-[calc(100%-1rem)] before:w-1 before:rounded-r-full before:bg-brand-gold"
                     : "text-brand-gold hover:bg-white/5 hover:text-brand-white",
                 ].join(" ")}
               >
@@ -384,7 +384,7 @@ export function AdminShell({
                     className={[
                       "relative flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-all duration-200",
                       active
-                        ? "bg-brand-navy text-brand-white before:absolute before:left-0 before:top-2 before:h-[calc(100%-1rem)] before:w-1 before:rounded-r-full before:bg-brand-gold"
+                        ? "bg-white/10 text-brand-white before:absolute before:left-0 before:top-2 before:h-[calc(100%-1rem)] before:w-1 before:rounded-r-full before:bg-brand-gold"
                         : "text-brand-gold hover:bg-white/5 hover:text-brand-white",
                     ].join(" ")}
                   >
@@ -524,8 +524,8 @@ export function AdminShell({
         </header>
 
         {/* Page Content */}
-        <main className="min-h-screen w-full bg-background pb-20 lg:pb-0">
-          <div className="mx-auto w-full px-4 py-5 sm:px-5 sm:py-6 md:px-6 lg:px-8">
+        <main className="admin-page min-h-screen w-full bg-[#F7F7FA] pb-24 lg:pb-0">
+          <div className="mx-auto w-full max-w-[1680px] px-3 py-4 sm:px-5 sm:py-6 md:px-7 lg:px-9 lg:py-8">
             {children}
           </div>
         </main>
@@ -534,7 +534,7 @@ export function AdminShell({
       {/* =========================================
           Mobile Bottom Navigation
           ========================================= */}
-      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-brand-navy px-2 pb-[env(safe-area-inset-bottom)] lg:hidden">
+      <nav className="fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-brand-navy px-2 pb-[max(env(safe-area-inset-bottom),0.4rem)] shadow-[0_-8px_24px_rgba(23,27,77,0.16)] lg:hidden">
         <div className="mx-auto flex max-w-lg items-center justify-around py-2">
           {navigation.slice(0, 5).map((item) => {
             const Icon = item.icon;

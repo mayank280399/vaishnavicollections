@@ -17,6 +17,7 @@ import { createClient } from "@/lib/supabase/client";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FilterDisclosure } from "@/components/admin/filter-disclosure";
 
 import {
   PurchaseDialog,
@@ -994,6 +995,10 @@ export default function PurchasesTable() {
       {/* Filters */}
 
       <div className="rounded-2xl border bg-card p-4 shadow-sm">
+        <FilterDisclosure
+          active={Boolean(search || paymentFilter !== "all" || statusFilter !== "all" || dateFrom || dateTo || sortOrder !== "newest")}
+          onReset={resetFilters}
+        >
         <div className="grid gap-3 lg:grid-cols-[minmax(240px,1fr)_180px_180px_150px_150px_auto]">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -1092,7 +1097,7 @@ export default function PurchasesTable() {
 
           <Button
             variant="outline"
-            className="h-10 gap-2"
+            className="hidden h-10 gap-2 lg:inline-flex"
             onClick={resetFilters}
           >
             <RotateCcw className="h-4 w-4" />
@@ -1143,6 +1148,7 @@ export default function PurchasesTable() {
             </select>
           </label>
         </div>
+        </FilterDisclosure>
       </div>
 
       {/* Purchase History */}
@@ -1306,6 +1312,7 @@ export default function PurchasesTable() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="admin-row-action h-10 w-10 p-0"
                             title="Edit purchase"
                             onClick={() =>
                               openEdit(
@@ -1319,6 +1326,7 @@ export default function PurchasesTable() {
                           <Button
                             variant="ghost"
                             size="icon"
+                            className="admin-row-action admin-row-action--delete h-10 w-10 p-0"
                             title="Delete purchase"
                             disabled={
                               deletingId ===

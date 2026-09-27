@@ -10,6 +10,7 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { FilterDisclosure } from "@/components/admin/filter-disclosure";
 
 import type {
   InventoryCategory,
@@ -62,6 +63,7 @@ export function InventoryFilters({
 
   return (
     <div className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4">
+      <FilterDisclosure active={hasFilters} onReset={clearFilters}>
       <div className="flex flex-col gap-3">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
@@ -182,13 +184,14 @@ export function InventoryFilters({
               variant="ghost"
               size="sm"
               onClick={clearFilters}
-              className="h-8 text-xs"
+              className="hidden h-8 text-xs lg:inline-flex"
             >
               Clear filters
             </Button>
           </div>
         )}
       </div>
+      </FilterDisclosure>
     </div>
   );
 }

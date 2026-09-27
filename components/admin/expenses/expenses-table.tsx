@@ -15,6 +15,7 @@ import {
 
 import { createClient } from "@/lib/supabase/client";
 import { ExpenseDialog } from "@/components/admin/expenses/expense-dialog";
+import { FilterDisclosure } from "@/components/admin/filter-disclosure";
 
 type ExpenseRow = {
   id: string;
@@ -302,7 +303,8 @@ export default function ExpensesTable() {
     subcategoryFilter !== "all" ||
     paymentFilter !== "all" ||
     dateFrom !== "" ||
-    dateTo !== "";
+    dateTo !== "" ||
+    sortOrder !== "newest";
 
   /* -----------------------------------------
      Delete
@@ -354,17 +356,15 @@ export default function ExpensesTable() {
   ----------------------------------------- */
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
+    <div className="space-y-5">
 
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Expenses
-        </h1>
-
-        <p className="text-sm text-muted-foreground">
-          View and manage all shop expenses
-        </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Expenses</h1>
+          <p className="text-sm text-muted-foreground">View and manage all shop expenses</p>
+        </div>
+        <ExpenseDialog showTrigger onSaved={loadExpenses} />
       </div>
 
       {/* Error */}
@@ -438,29 +438,7 @@ export default function ExpensesTable() {
       {/* Filters */}
       <div className="rounded-xl border bg-card p-4">
 
-        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-sm font-semibold">
-              Filters
-            </h2>
-
-            <p className="text-xs text-muted-foreground">
-              Filter expenses by category, payment method and date
-            </p>
-          </div>
-
-          {hasActiveFilters && (
-            <button
-              type="button"
-              onClick={resetFilters}
-              className="inline-flex w-fit items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Reset filters
-            </button>
-          )}
-        </div>
-
+        <FilterDisclosure active={hasActiveFilters} onReset={resetFilters}>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
 
           {/* Search */}
@@ -605,6 +583,7 @@ export default function ExpensesTable() {
             />
           </div>
         </div>
+        </FilterDisclosure>
 
         {/* Results + Add */}
         <div className="mt-4 flex flex-col gap-3 border-t pt-4 sm:flex-row sm:items-center sm:justify-between">
@@ -621,10 +600,6 @@ export default function ExpensesTable() {
             expenses
           </p>
 
-          <ExpenseDialog
-            showTrigger={true}
-            onSaved={loadExpenses}
-          />
         </div>
       </div>
 
@@ -769,7 +744,7 @@ export default function ExpensesTable() {
                           onClick={() =>
                             handleEdit(expense)
                           }
-                          className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-xs hover:bg-muted"
+                          className="admin-row-action"
                         >
                           <Pencil className="h-3.5 w-3.5" />
                           Edit
@@ -780,7 +755,7 @@ export default function ExpensesTable() {
                           onClick={() =>
                             handleDelete(expense)
                           }
-                          className="inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50"
+                          className="admin-row-action admin-row-action--delete"
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                           Delete
