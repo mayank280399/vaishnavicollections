@@ -6,7 +6,7 @@ import {
   PackageX,
 } from "lucide-react";
 
-import type { InventoryAlert } from "@/lib/inventory/types";
+import { InventoryAlert } from "@/lib/inventory/types";
 
 interface InventoryAlertsProps {
   alerts: InventoryAlert[];

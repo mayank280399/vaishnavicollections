@@ -22,23 +22,33 @@ export type InventorySort =
   | "PRICE_LOW_HIGH"
   | "PRICE_HIGH_LOW";
 
+export type InventoryVariant = {
+  id: string;
+  name: string;
+  sku: string | null;
+  stockQuantity: number;
+  sellingPrice: number;
+};
+
 export type InventoryProduct = {
   id: string;
-  category_id: string | null;
+  categoryId: string | null;
+  categoryName: string | null;
   sku: string | null;
   name: string;
-  selling_price: number;
-  cost_price: number;
-  stock_quantity: number;
-  online_enabled: boolean;
-  online_price: number | null;
+  imageUrl: string | null;
+  sellingPrice: number;
+  costPrice: number;
+  stockQuantity: number;
+  onlineEnabled: boolean;
+  onlinePrice: number | null;
   visibility: string;
   featured: boolean;
-  created_at: string;
-  updated_at: string;
-  category_name: string | null;
-  stock_status: InventoryStockStatus;
-  inventory_value: number;
+  status: InventoryStockStatus;
+  variants: InventoryVariant[];
+  inventoryValue: number;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type InventoryCategory = {
@@ -52,6 +62,11 @@ export type InventoryFilters = {
   stockStatus: InventoryStockFilter;
   onlineStatus: InventoryOnlineFilter;
   sort: InventorySort;
+};
+
+export type InventoryAlert = {
+  type: "OUT_OF_STOCK" | "LOW_STOCK";
+  count: number;
 };
 
 export type InventorySummary = {

@@ -14,9 +14,11 @@ import { CategoriesStats } from "./categories-stats";
 import { CategoriesToolbar } from "./categories-toolbar";
 import { CategoryCard } from "./category-card";
 import { CategoryDialog } from "./category-dialog";
-import { CategoryFormData, ProductCategory } from "@/lib/categories/category-types";
 
-
+import {
+  CategoryFormData,
+  ProductCategory,
+} from "@/lib/categories/category-types";
 
 const supabase = createClient();
 
@@ -67,6 +69,9 @@ export function CategoriesPage() {
               active,
               category_type,
               parent_id,
+              is_top_collection,
+              image_url,
+              sort_order,
               created_at,
               updated_at
             `)
@@ -304,7 +309,7 @@ export function CategoriesPage() {
     ).length;
 
   /* ------------------------------------------------------------------------ */
-  /* Add / Edit                                                                */
+  /* Add / Edit                                                               */
   /* ------------------------------------------------------------------------ */
 
   function handleAddCategory() {
@@ -345,27 +350,44 @@ export function CategoriesPage() {
     formData: CategoryFormData
   ) {
     try {
+      const categoryData = {
+        name: formData.name,
+        slug: formData.slug,
+        description:
+          formData.description ||
+          null,
+        category_type:
+          formData.category_type,
+        parent_id:
+          formData.parent_id,
+        active:
+          formData.active,
+
+        /*
+         * Top Collection fields
+         */
+        is_top_collection:
+          formData.is_top_collection,
+
+        image_url:
+          formData.image_url,
+
+        sort_order:
+          formData.is_top_collection
+            ? formData.sort_order
+            : 0,
+
+        updated_at:
+          new Date().toISOString(),
+      };
+
       if (editingCategory) {
         const { error } =
           await supabase
             .from(
               "product_categories"
             )
-            .update({
-              name: formData.name,
-              slug: formData.slug,
-              description:
-                formData.description ||
-                null,
-              category_type:
-                formData.category_type,
-              parent_id:
-                formData.parent_id,
-              active:
-                formData.active,
-              updated_at:
-                new Date().toISOString(),
-            })
+            .update(categoryData)
             .eq(
               "id",
               editingCategory.id
@@ -380,19 +402,7 @@ export function CategoriesPage() {
             .from(
               "product_categories"
             )
-            .insert({
-              name: formData.name,
-              slug: formData.slug,
-              description:
-                formData.description ||
-                null,
-              category_type:
-                formData.category_type,
-              parent_id:
-                formData.parent_id,
-              active:
-                formData.active,
-            });
+            .insert(categoryData);
 
         if (error) {
           throw error;
@@ -474,146 +484,146 @@ export function CategoriesPage() {
   /* Delete Category                                                           */
   /* ------------------------------------------------------------------------ */
 
- async function handleDelete(
-  category: ProductCategory
-) {
-  /*
-   * Check direct products assigned to this category.
-   */
-  const directProductCount =
-    category.product_count ?? 0;
-
-  /*
-   * Check whether this category has
-   * any subcategories.
-   */
-  const childCategories =
-    categories.filter(
-      (item) =>
-        item.parent_id === category.id
-    );
-
-  /* ---------------------------------------------------------------------- */
-  /* Block if category has subcategories                                    */
-  /* ---------------------------------------------------------------------- */
-
-  if (
-    childCategories.length > 0
+  async function handleDelete(
+    category: ProductCategory
   ) {
-    alert(
-      `Cannot delete "${category.name}".\n\n` +
-        `It has ${childCategories.length} ` +
-        `${
-          childCategories.length === 1
-            ? "subcategory"
-            : "subcategories"
-        }.\n\n` +
-        `Remove or move the subcategories first, or deactivate this category instead.`
-    );
-
-    return;
-  }
-
-  /* ---------------------------------------------------------------------- */
-  /* Block if category has products                                         */
-  /* ---------------------------------------------------------------------- */
-
-  if (directProductCount > 0) {
-    alert(
-      `Cannot delete "${category.name}".\n\n` +
-        `It has ${directProductCount} ` +
-        `${
-          directProductCount === 1
-            ? "product"
-            : "products"
-        } assigned to it.\n\n` +
-        `Move those products to another category first, or deactivate this category instead.`
-    );
-
-    return;
-  }
-
-  /* ---------------------------------------------------------------------- */
-  /* Confirmation                                                           */
-  /* ---------------------------------------------------------------------- */
-
-  const confirmed =
-    window.confirm(
-      `Delete "${category.name}" permanently?\n\n` +
-        `This category has no products and no subcategories.\n\n` +
-        `This action cannot be undone.`
-    );
-
-  if (!confirmed) {
-    return;
-  }
-
-  /* ---------------------------------------------------------------------- */
-  /* Delete                                                                  */
-  /* ---------------------------------------------------------------------- */
-
-  try {
-    const { data, error } =
-      await supabase
-        .from("product_categories")
-        .delete()
-        .eq("id", category.id)
-        .select("id");
-
-    if (error) {
-      console.error(
-        "Supabase delete error:",
-        error
-      );
-
-      if (
-        error.code === "23503"
-      ) {
-        alert(
-          `This category cannot be deleted because it is still being used by other records.\n\n` +
-            `Please deactivate it instead.`
-        );
-
-        return;
-      }
-
-      throw error;
-    }
+    /*
+     * Check direct products assigned to this category.
+     */
+    const directProductCount =
+      category.product_count ?? 0;
 
     /*
-     * RLS can sometimes result in zero affected rows.
-     * Explicitly verify that something was deleted.
+     * Check whether this category has
+     * any subcategories.
      */
+    const childCategories =
+      categories.filter(
+        (item) =>
+          item.parent_id === category.id
+      );
+
+    /* ---------------------------------------------------------------------- */
+    /* Block if category has subcategories                                    */
+    /* ---------------------------------------------------------------------- */
+
     if (
-      !data ||
-      data.length === 0
+      childCategories.length > 0
     ) {
       alert(
-        `The category "${category.name}" was not deleted.\n\n` +
-          `You may not have permission to delete categories.`
+        `Cannot delete "${category.name}".\n\n` +
+          `It has ${childCategories.length} ` +
+          `${
+            childCategories.length === 1
+              ? "subcategory"
+              : "subcategories"
+          }.\n\n` +
+          `Remove or move the subcategories first, or deactivate this category instead.`
       );
 
       return;
     }
 
-    await loadCategories();
+    /* ---------------------------------------------------------------------- */
+    /* Block if category has products                                         */
+    /* ---------------------------------------------------------------------- */
 
-    alert(
-      `"${category.name}" was deleted successfully.`
-    );
-  } catch (error) {
-    console.error(
-      "Failed to delete category:",
-      error
-    );
+    if (directProductCount > 0) {
+      alert(
+        `Cannot delete "${category.name}".\n\n` +
+          `It has ${directProductCount} ` +
+          `${
+            directProductCount === 1
+              ? "product"
+              : "products"
+          } assigned to it.\n\n` +
+          `Move those products to another category first, or deactivate this category instead.`
+      );
 
-    alert(
-      error instanceof Error
-        ? error.message
-        : "Failed to delete category."
-    );
+      return;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* Confirmation                                                           */
+    /* ---------------------------------------------------------------------- */
+
+    const confirmed =
+      window.confirm(
+        `Delete "${category.name}" permanently?\n\n` +
+          `This category has no products and no subcategories.\n\n` +
+          `This action cannot be undone.`
+      );
+
+    if (!confirmed) {
+      return;
+    }
+
+    /* ---------------------------------------------------------------------- */
+    /* Delete                                                                  */
+    /* ---------------------------------------------------------------------- */
+
+    try {
+      const { data, error } =
+        await supabase
+          .from("product_categories")
+          .delete()
+          .eq("id", category.id)
+          .select("id");
+
+      if (error) {
+        console.error(
+          "Supabase delete error:",
+          error
+        );
+
+        if (
+          error.code === "23503"
+        ) {
+          alert(
+            `This category cannot be deleted because it is still being used by other records.\n\n` +
+              `Please deactivate it instead.`
+          );
+
+          return;
+        }
+
+        throw error;
+      }
+
+      /*
+       * RLS can sometimes result in zero affected rows.
+       */
+      if (
+        !data ||
+        data.length === 0
+      ) {
+        alert(
+          `The category "${category.name}" was not deleted.\n\n` +
+            `You may not have permission to delete categories.`
+        );
+
+        return;
+      }
+
+      await loadCategories();
+
+      alert(
+        `"${category.name}" was deleted successfully.`
+      );
+    } catch (error) {
+      console.error(
+        "Failed to delete category:",
+        error
+      );
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to delete category."
+      );
+    }
   }
-}
+
   /* ------------------------------------------------------------------------ */
   /* Render                                                                   */
   /* ------------------------------------------------------------------------ */

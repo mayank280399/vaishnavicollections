@@ -9,8 +9,6 @@ import {
 
 import {
   AlertTriangle,
-  ArrowDown,
-  ArrowUp,
   Boxes,
   CheckCircle2,
   Package,
@@ -24,17 +22,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-import {
-  getInventoryProducts,
-} from "@/lib/inventory/queries";
+import { getInventoryProducts } from "@/lib/inventory/queries";
 
 import type {
   InventoryCategory,
   InventoryFilters,
-  InventoryProduct,
-  InventoryStockFilter,
   InventoryOnlineFilter,
+  InventoryProduct,
   InventorySort,
+  InventoryStockFilter,
 } from "@/lib/inventory/types";
 
 const DEFAULT_FILTERS: InventoryFilters = {
@@ -46,165 +42,111 @@ const DEFAULT_FILTERS: InventoryFilters = {
 };
 
 export default function InventoryPage() {
-  const [products, setProducts] = useState<
-    InventoryProduct[]
-  >([]);
+  const [products, setProducts] = useState<InventoryProduct[]>([]);
 
-  const [loading, setLoading] =
-    useState(true);
+  const [loading, setLoading] = useState(true);
 
-  const [error, setError] =
-    useState("");
+  const [error, setError] = useState("");
 
   const [filters, setFilters] =
-    useState<InventoryFilters>(
-      DEFAULT_FILTERS
-    );
+    useState<InventoryFilters>(DEFAULT_FILTERS);
 
-  const loadInventory = useCallback(
-    async () => {
-      setLoading(true);
-      setError("");
+  const loadInventory = useCallback(async () => {
+    setLoading(true);
+    setError("");
 
-      const result =
-        await getInventoryProducts();
+    const result = await getInventoryProducts();
 
-      if (result.error) {
-        setError(result.error);
-        setProducts([]);
-      } else {
-        setProducts(result.products);
-      }
+    if (result.error) {
+      setError(result.error);
+      setProducts([]);
+    } else {
+      setProducts(result.products);
+    }
 
-      setLoading(false);
-    },
-    []
-  );
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
     loadInventory();
   }, [loadInventory]);
 
-  const categories =
-    useMemo<InventoryCategory[]>(() => {
-      const map = new Map<
-        string,
-        InventoryCategory
-      >();
+  const categories = useMemo<InventoryCategory[]>(() => {
+    const map = new Map<string, InventoryCategory>();
 
-      products.forEach((product) => {
-        if (
-          product.category_id &&
-          product.category_name
-        ) {
-          map.set(product.category_id, {
-            id: product.category_id,
-            name: product.category_name,
-          });
-        }
-      });
+    products.forEach((product) => {
+      if (product.categoryId && product.categoryName) {
+        map.set(product.categoryId, {
+          id: product.categoryId,
+          name: product.categoryName,
+        });
+      }
+    });
 
-      return Array.from(map.values()).sort(
-        (a, b) =>
-          a.name.localeCompare(b.name)
-      );
-    }, [products]);
+    return Array.from(map.values()).sort((a, b) =>
+      a.name.localeCompare(b.name)
+    );
+  }, [products]);
 
   const filteredProducts = useMemo(() => {
     let result = [...products];
 
-    const search =
-      filters.search.trim().toLowerCase();
+    const search = filters.search.trim().toLowerCase();
 
     if (search) {
       result = result.filter((product) => {
         return (
-          product.name
-            .toLowerCase()
-            .includes(search) ||
-          product.sku
-            ?.toLowerCase()
-            .includes(search) ||
-          product.category_name
-            ?.toLowerCase()
-            .includes(search)
+          product.name.toLowerCase().includes(search) ||
+          product.sku?.toLowerCase().includes(search) ||
+          product.categoryName?.toLowerCase().includes(search)
         );
       });
     }
 
     if (filters.categoryId !== "ALL") {
       result = result.filter(
-        (product) =>
-          product.category_id ===
-          filters.categoryId
+        (product) => product.categoryId === filters.categoryId
       );
     }
 
-    if (
-      filters.stockStatus !== "ALL"
-    ) {
+    if (filters.stockStatus !== "ALL") {
       result = result.filter(
-        (product) =>
-          product.stock_status ===
-          filters.stockStatus
+        (product) => product.status === filters.stockStatus
       );
     }
 
-    if (
-      filters.onlineStatus === "ONLINE"
-    ) {
+    if (filters.onlineStatus === "ONLINE") {
       result = result.filter(
-        (product) =>
-          product.online_enabled
+        (product) => product.onlineEnabled
       );
     }
 
-    if (
-      filters.onlineStatus === "OFFLINE"
-    ) {
+    if (filters.onlineStatus === "OFFLINE") {
       result = result.filter(
-        (product) =>
-          !product.online_enabled
+        (product) => !product.onlineEnabled
       );
     }
 
     result.sort((a, b) => {
       switch (filters.sort) {
         case "STOCK_LOW_HIGH":
-          return (
-            a.stock_quantity -
-            b.stock_quantity
-          );
+          return a.stockQuantity - b.stockQuantity;
 
         case "STOCK_HIGH_LOW":
-          return (
-            b.stock_quantity -
-            a.stock_quantity
-          );
+          return b.stockQuantity - a.stockQuantity;
 
         case "VALUE_HIGH_LOW":
-          return (
-            b.inventory_value -
-            a.inventory_value
-          );
+          return b.inventoryValue - a.inventoryValue;
 
         case "PRICE_LOW_HIGH":
-          return (
-            a.selling_price -
-            b.selling_price
-          );
+          return a.sellingPrice - b.sellingPrice;
 
         case "PRICE_HIGH_LOW":
-          return (
-            b.selling_price -
-            a.selling_price
-          );
+          return b.sellingPrice - a.sellingPrice;
 
         case "NAME_ASC":
         default:
-          return a.name.localeCompare(
-            b.name
-          );
+          return a.name.localeCompare(b.name);
       }
     });
 
@@ -216,30 +158,21 @@ export default function InventoryPage() {
       totalProducts: products.length,
 
       inStock: products.filter(
-        (product) =>
-          product.stock_status ===
-          "IN_STOCK"
+        (product) => product.status === "IN_STOCK"
       ).length,
 
       lowStock: products.filter(
-        (product) =>
-          product.stock_status ===
-          "LOW_STOCK"
+        (product) => product.status === "LOW_STOCK"
       ).length,
 
       outOfStock: products.filter(
-        (product) =>
-          product.stock_status ===
-          "OUT_OF_STOCK"
+        (product) => product.status === "OUT_OF_STOCK"
       ).length,
 
-      inventoryValue:
-        products.reduce(
-          (total, product) =>
-            total +
-            product.inventory_value,
-          0
-        ),
+      inventoryValue: products.reduce(
+        (total, product) => total + product.inventoryValue,
+        0
+      ),
     };
   }, [products]);
 
@@ -279,9 +212,7 @@ export default function InventoryPage() {
           onClick={loadInventory}
           disabled={loading}
         >
-          {loading
-            ? "Refreshing..."
-            : "Refresh"}
+          {loading ? "Refreshing..." : "Refresh"}
         </Button>
       </div>
 
@@ -295,9 +226,7 @@ export default function InventoryPage() {
               Unable to load inventory
             </p>
 
-            <p className="mt-1">
-              {error}
-            </p>
+            <p className="mt-1">{error}</p>
           </div>
         </div>
       )}
@@ -330,9 +259,7 @@ export default function InventoryPage() {
 
         <SummaryCard
           title="Inventory Value"
-          value={`₹${summary.inventoryValue.toLocaleString(
-            "en-IN"
-          )}`}
+          value={`₹${summary.inventoryValue.toLocaleString("en-IN")}`}
           icon={Boxes}
         />
       </div>
@@ -369,8 +296,7 @@ export default function InventoryPage() {
               onChange={(event) =>
                 setFilters((current) => ({
                   ...current,
-                  search:
-                    event.target.value,
+                  search: event.target.value,
                 }))
               }
               placeholder="Search product or SKU..."
@@ -384,21 +310,15 @@ export default function InventoryPage() {
             onChange={(event) =>
               setFilters((current) => ({
                 ...current,
-                categoryId:
-                  event.target.value,
+                categoryId: event.target.value,
               }))
             }
             className="h-10 rounded-md border bg-background px-3 text-sm"
           >
-            <option value="ALL">
-              All Categories
-            </option>
+            <option value="ALL">All Categories</option>
 
             {categories.map((category) => (
-              <option
-                key={category.id}
-                value={category.id}
-              >
+              <option key={category.id} value={category.id}>
                 {category.name}
               </option>
             ))}
@@ -411,23 +331,16 @@ export default function InventoryPage() {
               setFilters((current) => ({
                 ...current,
                 stockStatus:
-                  event.target
-                    .value as InventoryStockFilter,
+                  event.target.value as InventoryStockFilter,
               }))
             }
             className="h-10 rounded-md border bg-background px-3 text-sm"
           >
-            <option value="ALL">
-              All Stock
-            </option>
+            <option value="ALL">All Stock</option>
 
-            <option value="IN_STOCK">
-              In Stock
-            </option>
+            <option value="IN_STOCK">In Stock</option>
 
-            <option value="LOW_STOCK">
-              Low Stock
-            </option>
+            <option value="LOW_STOCK">Low Stock</option>
 
             <option value="OUT_OF_STOCK">
               Out of Stock
@@ -441,23 +354,18 @@ export default function InventoryPage() {
               setFilters((current) => ({
                 ...current,
                 onlineStatus:
-                  event.target
-                    .value as InventoryOnlineFilter,
+                  event.target.value as InventoryOnlineFilter,
               }))
             }
             className="h-10 rounded-md border bg-background px-3 text-sm"
           >
-            <option value="ALL">
-              All Products
-            </option>
+            <option value="ALL">All Products</option>
 
             <option value="ONLINE">
               Online Enabled
             </option>
 
-            <option value="OFFLINE">
-              Offline
-            </option>
+            <option value="OFFLINE">Offline</option>
           </select>
         </div>
 
@@ -467,8 +375,7 @@ export default function InventoryPage() {
             onChange={(event) =>
               setFilters((current) => ({
                 ...current,
-                sort: event.target
-                  .value as InventorySort,
+                sort: event.target.value as InventorySort,
               }))
             }
             className="h-10 w-full rounded-md border bg-background px-3 text-sm md:w-auto"
@@ -510,8 +417,7 @@ export default function InventoryPage() {
               onClick={() =>
                 setFilters((current) => ({
                   ...current,
-                  stockStatus:
-                    "OUT_OF_STOCK",
+                  stockStatus: "OUT_OF_STOCK",
                 }))
               }
               className="flex items-center gap-3 rounded-xl border border-destructive/20 bg-destructive/5 p-4 text-left transition hover:bg-destructive/10"
@@ -538,8 +444,7 @@ export default function InventoryPage() {
               onClick={() =>
                 setFilters((current) => ({
                   ...current,
-                  stockStatus:
-                    "LOW_STOCK",
+                  stockStatus: "LOW_STOCK",
                 }))
               }
               className="flex items-center gap-3 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-left transition hover:bg-amber-500/10"
@@ -619,8 +524,7 @@ export default function InventoryPage() {
             <tbody>
               {loading ? (
                 <LoadingRows />
-              ) : filteredProducts.length ===
-                0 ? (
+              ) : filteredProducts.length === 0 ? (
                 <tr>
                   <td
                     colSpan={8}
@@ -638,14 +542,12 @@ export default function InventoryPage() {
                   </td>
                 </tr>
               ) : (
-                filteredProducts.map(
-                  (product) => (
-                    <InventoryRow
-                      key={product.id}
-                      product={product}
-                    />
-                  )
-                )
+                filteredProducts.map((product) => (
+                  <InventoryRow
+                    key={product.id}
+                    product={product}
+                  />
+                ))
               )}
             </tbody>
           </table>
@@ -659,8 +561,7 @@ export default function InventoryPage() {
               <div className="h-24 animate-pulse rounded-lg bg-muted" />
               <div className="h-24 animate-pulse rounded-lg bg-muted" />
             </div>
-          ) : filteredProducts.length ===
-            0 ? (
+          ) : filteredProducts.length === 0 ? (
             <div className="px-4 py-12 text-center">
               <Package className="mx-auto h-8 w-8 text-muted-foreground" />
 
@@ -669,14 +570,12 @@ export default function InventoryPage() {
               </p>
             </div>
           ) : (
-            filteredProducts.map(
-              (product) => (
-                <MobileInventoryCard
-                  key={product.id}
-                  product={product}
-                />
-              )
-            )
+            filteredProducts.map((product) => (
+              <MobileInventoryCard
+                key={product.id}
+                product={product}
+              />
+            ))
           )}
         </div>
       </div>
@@ -732,36 +631,27 @@ function InventoryRow({
       </td>
 
       <td className="px-4 py-4 text-muted-foreground">
-        {product.category_name ?? "Uncategorized"}
+        {product.categoryName ?? "Uncategorized"}
       </td>
 
       <td className="px-4 py-4 text-right">
-        ₹
-        {product.cost_price.toLocaleString(
-          "en-IN"
-        )}
+        ₹{product.costPrice.toLocaleString("en-IN")}
       </td>
 
       <td className="px-4 py-4 text-right">
-        ₹
-        {product.selling_price.toLocaleString(
-          "en-IN"
-        )}
+        ₹{product.sellingPrice.toLocaleString("en-IN")}
       </td>
 
       <td className="px-4 py-4 text-right font-semibold">
-        {product.stock_quantity}
+        {product.stockQuantity}
       </td>
 
       <td className="px-4 py-4 text-right">
-        ₹
-        {product.inventory_value.toLocaleString(
-          "en-IN"
-        )}
+        ₹{product.inventoryValue.toLocaleString("en-IN")}
       </td>
 
       <td className="px-4 py-4 text-center">
-        {product.online_enabled ? (
+        {product.onlineEnabled ? (
           <Wifi className="mx-auto h-4 w-4 text-emerald-600" />
         ) : (
           <WifiOff className="mx-auto h-4 w-4 text-muted-foreground" />
@@ -769,9 +659,7 @@ function InventoryRow({
       </td>
 
       <td className="px-4 py-4">
-        <StockBadge
-          status={product.stock_status}
-        />
+        <StockBadge status={product.status} />
       </td>
     </tr>
   );
@@ -797,14 +685,11 @@ function MobileInventoryCard({
           </p>
 
           <p className="mt-1 text-xs text-muted-foreground">
-            {product.category_name ??
-              "Uncategorized"}
+            {product.categoryName ?? "Uncategorized"}
           </p>
         </div>
 
-        <StockBadge
-          status={product.stock_status}
-        />
+        <StockBadge status={product.status} />
       </div>
 
       <div className="mt-4 grid grid-cols-3 gap-3">
@@ -814,7 +699,7 @@ function MobileInventoryCard({
           </p>
 
           <p className="mt-1 font-semibold">
-            {product.stock_quantity}
+            {product.stockQuantity}
           </p>
         </div>
 
@@ -824,10 +709,7 @@ function MobileInventoryCard({
           </p>
 
           <p className="mt-1 font-semibold">
-            ₹
-            {product.selling_price.toLocaleString(
-              "en-IN"
-            )}
+            ₹{product.sellingPrice.toLocaleString("en-IN")}
           </p>
         </div>
 
@@ -837,16 +719,13 @@ function MobileInventoryCard({
           </p>
 
           <p className="mt-1 font-semibold">
-            ₹
-            {product.inventory_value.toLocaleString(
-              "en-IN"
-            )}
+            ₹{product.inventoryValue.toLocaleString("en-IN")}
           </p>
         </div>
       </div>
 
       <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
-        {product.online_enabled ? (
+        {product.onlineEnabled ? (
           <>
             <Wifi className="h-3.5 w-3.5 text-emerald-600" />
             Online enabled
@@ -865,7 +744,7 @@ function MobileInventoryCard({
 function StockBadge({
   status,
 }: {
-  status: InventoryProduct["stock_status"];
+  status: InventoryProduct["status"];
 }) {
   if (status === "OUT_OF_STOCK") {
     return (
@@ -896,25 +775,20 @@ function StockBadge({
 function LoadingRows() {
   return (
     <>
-      {Array.from({ length: 5 }).map(
-        (_, index) => (
-          <tr
-            key={index}
-            className="border-b"
-          >
-            {Array.from({ length: 8 }).map(
-              (_, cellIndex) => (
-                <td
-                  key={cellIndex}
-                  className="px-4 py-4"
-                >
-                  <div className="h-4 animate-pulse rounded bg-muted" />
-                </td>
-              )
-            )}
-          </tr>
-        )
-      )}
+      {Array.from({ length: 5 }).map((_, index) => (
+        <tr key={index} className="border-b">
+          {Array.from({ length: 8 }).map(
+            (_, cellIndex) => (
+              <td
+                key={cellIndex}
+                className="px-4 py-4"
+              >
+                <div className="h-4 animate-pulse rounded bg-muted" />
+              </td>
+            )
+          )}
+        </tr>
+      ))}
     </>
   );
 }
