@@ -117,17 +117,22 @@ export default function LoginPage() {
     }
   }
 
-  async function handleRegister(event: FormEvent<HTMLFormElement>) {
+async function handleRegister(event: FormEvent<HTMLFormElement>) {
   event.preventDefault();
 
   setError("");
   setMessage("");
 
   const trimmedName = name.trim();
-  const trimmedEmail = email.trim();
+  const trimmedEmail = email.trim().toLowerCase();
 
   if (!trimmedName) {
     setError("Please enter your name.");
+    return;
+  }
+
+  if (!trimmedEmail) {
+    setError("Please enter your email address.");
     return;
   }
 
@@ -158,6 +163,7 @@ export default function LoginPage() {
     });
 
     if (signUpError) {
+      console.error("Signup error:", signUpError);
       setError(signUpError.message);
       return;
     }
@@ -167,52 +173,50 @@ export default function LoginPage() {
       return;
     }
 
-    // Every new frontend registration is always CUSTOMER.
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .upsert(
-        {
-          id: user.id,
-          role: "CUSTOMER",
-          full_name: trimmedName,
-          email: trimmedEmail,
-        },
-        {
-          onConflict: "id",
-        }
+    // With email confirmation disabled, a session should be available.
+    if (!session) {
+      setError(
+        "Your account was created, but we could not sign you in. Please try signing in again.",
       );
-
-    if (profileError) {
-  console.error("Profile creation error:", profileError);
-
-  setError(
-    `Profile creation failed: ${profileError.message}`
-  );
-
-  return;
-}
-
-    // If email confirmation is disabled, the user is already signed in.
-    if (session) {
-      router.push("/");
-      router.refresh();
       return;
     }
 
-    // If email confirmation is enabled.
-    setMessage(
-      "Account created successfully. Please check your email to confirm your account before signing in."
-    );
+    // Profile is created automatically by the database trigger.
+    const { data: profile, error: profileError } = await supabase
+      .from("profiles")
+      .select("id, role")
+      .eq("id", user.id)
+      .maybeSingle();
 
-    setName("");
-    setEmail("");
-    setPassword("");
-    setConfirmPassword("");
-    setShowPassword(false);
-    setShowConfirmPassword(false);
+    if (profileError) {
+      console.error("Profile verification error:", profileError);
+
+      setError(
+        "Your account was created, but we could not verify your customer profile. Please try signing in again.",
+      );
+
+      return;
+    }
+
+    if (!profile) {
+      console.error("Profile missing after registration:", user.id);
+
+      setError(
+        "Your account was created, but your customer profile is still being set up. Please try signing in again.",
+      );
+
+      return;
+    }
+
+    // New registrations are customers.
+    router.push("/");
+    router.refresh();
   } catch (registerError) {
     console.error("Registration error:", registerError);
-    setError("Unable to create your account right now. Please try again.");
+
+    setError(
+      "Unable to create your account right now. Please try again.",
+    );
   } finally {
     setLoading(false);
   }

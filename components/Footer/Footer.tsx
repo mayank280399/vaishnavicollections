@@ -1,89 +1,128 @@
 "use client";
 
-import React from "react";
+import Image from "next/image";
 import Link from "next/link";
 import {
-  Aperture,
-  Send,
-  Users,
   ArrowRight,
-  Mail,
-  ShieldCheck,
   Truck,
-  RotateCcw,
-  LifeBuoy,
+  Sparkles,
+  ShieldCheck,
+  HeartHandshake,
+  MapPin,
+  Phone,
 } from "lucide-react";
-import Image from "next/image";
+import { FaInstagram } from "react-icons/fa";
 
 export default function Footer() {
   return (
-    <footer className="w-full bg-[#1B263B] text-white">
+    <footer className="w-full bg-[#071A35] text-white">
       {/* =========================================================
-          TOP FEATURES
-      ========================================================= */}
-      <div className="border-b border-white/10 bg-[#162033]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-8 sm:px-6 sm:py-10 lg:px-8">
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+          FEATURE STRIP
+      ========================================================== */}
+
+      <div className="border-b border-white/10 bg-[#0A2142]">
+        <div className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
+          <div className="grid grid-cols-2 gap-y-7 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
             {/* Feature 1 */}
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[#C88A3D]/25 bg-[#C88A3D]/10 text-[#C88A3D]">
-                <Truck size={30} strokeWidth={1.7} />
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div
+                className="
+                  flex h-11 w-11 shrink-0 items-center justify-center
+                  rounded-xl
+                  border border-[#D4AF37]/25
+                  bg-[#D4AF37]/10
+                  text-[#D4AF37]
+                  sm:h-12 sm:w-12
+                "
+              >
+                <Truck size={22} strokeWidth={1.7} />
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold text-white sm:text-base">
-                  Global Shipping
+                <h3 className="text-xs font-semibold text-white sm:text-sm">
+                  Pan India Shipping
                 </h3>
-                <p className="mt-1 text-xs text-white/55 sm:text-sm">
-                  Free on orders above $150
+
+                <p className="mt-1 text-[10px] leading-4 text-white/50 sm:text-xs">
+                  We deliver across India
                 </p>
               </div>
             </div>
 
             {/* Feature 2 */}
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[#C88A3D]/25 bg-[#C88A3D]/10 text-[#C88A3D]">
-                <RotateCcw size={30} strokeWidth={1.7} />
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div
+                className="
+                  flex h-11 w-11 shrink-0 items-center justify-center
+                  rounded-xl
+                  border border-[#D4AF37]/25
+                  bg-[#D4AF37]/10
+                  text-[#D4AF37]
+                  sm:h-12 sm:w-12
+                "
+              >
+                <Sparkles size={22} strokeWidth={1.7} />
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold text-white sm:text-base">
-                  Easy Returns
+                <h3 className="text-xs font-semibold text-white sm:text-sm">
+                  Made to Order
                 </h3>
-                <p className="mt-1 text-xs text-white/55 sm:text-sm">
-                  30-day hassle-free policy
+
+                <p className="mt-1 text-[10px] leading-4 text-white/50 sm:text-xs">
+                  Selected items prepared on request
                 </p>
               </div>
             </div>
 
             {/* Feature 3 */}
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[#C88A3D]/25 bg-[#C88A3D]/10 text-[#C88A3D]">
-                <ShieldCheck size={30} strokeWidth={1.7} />
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div
+                className="
+                  flex h-11 w-11 shrink-0 items-center justify-center
+                  rounded-xl
+                  border border-[#D4AF37]/25
+                  bg-[#D4AF37]/10
+                  text-[#D4AF37]
+                  sm:h-12 sm:w-12
+                "
+              >
+                <ShieldCheck size={22} strokeWidth={1.7} />
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold text-white sm:text-base">
-                  Secure Payment
+                <h3 className="text-xs font-semibold text-white sm:text-sm">
+                  Secure Payments
                 </h3>
-                <p className="mt-1 text-xs text-white/55 sm:text-sm">
-                  100% encrypted checkout
+
+                <p className="mt-1 text-[10px] leading-4 text-white/50 sm:text-xs">
+                  Safe & trusted checkout
                 </p>
               </div>
             </div>
 
             {/* Feature 4 */}
-            <div className="flex items-center gap-4">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-[#C88A3D]/25 bg-[#C88A3D]/10 text-[#C88A3D]">
-                <LifeBuoy size={30} strokeWidth={1.7} />
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div
+                className="
+                  flex h-11 w-11 shrink-0 items-center justify-center
+                  rounded-xl
+                  border border-[#D4AF37]/25
+                  bg-[#D4AF37]/10
+                  text-[#D4AF37]
+                  sm:h-12 sm:w-12
+                "
+              >
+                <HeartHandshake size={22} strokeWidth={1.7} />
               </div>
 
               <div>
-                <h3 className="text-sm font-semibold text-white sm:text-base">
-                  24/7 Support
+                <h3 className="text-xs font-semibold text-white sm:text-sm">
+                  Personal Assistance
                 </h3>
-                <p className="mt-1 text-xs text-white/55 sm:text-sm">
-                  Available all day
+
+                <p className="mt-1 text-[10px] leading-4 text-white/50 sm:text-xs">
+                  We're happy to help with orders
                 </p>
               </div>
             </div>
@@ -93,13 +132,28 @@ export default function Footer() {
 
       {/* =========================================================
           MAIN FOOTER
-      ========================================================= */}
-      <div className="bg-[#1B263B]">
-        <div className="mx-auto w-full max-w-7xl px-4 py-12 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
-          <div className="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-[1.5fr_1fr_1fr_1.3fr] lg:gap-12">
+      ========================================================== */}
+
+      <div className="bg-[#071A35]">
+        <div className="mx-auto w-full max-w-7xl px-4 py-11 sm:px-6 sm:py-14 lg:px-8 lg:py-16">
+          <div
+            className="
+              grid
+              grid-cols-1
+              gap-10
+
+              sm:grid-cols-2
+              sm:gap-x-10
+              sm:gap-y-12
+
+              lg:grid-cols-[1.45fr_1fr_1fr_1.25fr]
+              lg:gap-12
+            "
+          >
             {/* =====================================================
                 BRAND
-            ===================================================== */}
+            ====================================================== */}
+
             <div>
               <Link
                 href="/"
@@ -108,175 +162,288 @@ export default function Footer() {
               >
                 <Image
                   src="/vc_white_logo.png"
-                  alt="Vaishnavi Collections Logo"
+                  alt="Vaishnavi Collections"
                   width={220}
                   height={74}
                   loading="eager"
-                  className="h-auto w-[180px] object-contain sm:w-[210px]"
+                  className="h-auto w-[170px] object-contain sm:w-[195px]"
                 />
               </Link>
 
-              <p className="mt-5 max-w-sm text-sm leading-7 text-white/60">
-                Curating timeless objects and modern essentials for inspired
-                living. We believe in quality over quantity and craftsmanship
-                that lasts generations.
+              <p className="mt-5 max-w-sm text-sm leading-7 text-white/55">
+                Discover beautiful pieces for your home, your style and your
+                Kanha Ji. Vaishnavi Collections brings together home decor,
+                beauty essentials, accessories and Laddu Gopal poshak &
+                shringar — with selected products prepared on order.
               </p>
 
-              {/* Social Links */}
+              {/* Social / Contact */}
               <div className="mt-6 flex items-center gap-3">
+                <Link
+                  href="/contact"
+                  aria-label="Contact Vaishnavi Collections"
+                  className="
+                    flex h-10 w-10 items-center justify-center
+                    rounded-full
+                    border border-white/10
+                    bg-white/5
+                    text-white/65
+                    transition-all duration-300
+                    hover:border-[#D4AF37]/50
+                    hover:bg-[#D4AF37]
+                    hover:text-[#071A35]
+                  "
+                >
+                  <Phone size={17} />
+                </Link>
+
+                <Link
+                  href="/contact"
+                  aria-label="Find Vaishnavi Collections"
+                  className="
+                    flex h-10 w-10 items-center justify-center
+                    rounded-full
+                    border border-white/10
+                    bg-white/5
+                    text-white/65
+                    transition-all duration-300
+                    hover:border-[#D4AF37]/50
+                    hover:bg-[#D4AF37]
+                    hover:text-[#071A35]
+                  "
+                >
+                  <MapPin size={17} />
+                </Link>
+
+                {/* 
+                  Replace this href with your actual Instagram URL
+                  once the Instagram page URL is stored in settings.
+                */}
                 <Link
                   href="#"
                   aria-label="Instagram"
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition-all duration-300 hover:border-[#C88A3D]/50 hover:bg-[#C88A3D] hover:text-white"
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/65 transition-all duration-300 hover:border-[#D4AF37]/50 hover:bg-[#D4AF37] hover:text-[#071A35]"
                 >
-                  <Aperture size={19} />
-                </Link>
-
-                <Link
-                  href="#"
-                  aria-label="Twitter"
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition-all duration-300 hover:border-[#C88A3D]/50 hover:bg-[#C88A3D] hover:text-white"
-                >
-                  <Send size={19} />
-                </Link>
-
-                <Link
-                  href="#"
-                  aria-label="Facebook"
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/70 transition-all duration-300 hover:border-[#C88A3D]/50 hover:bg-[#C88A3D] hover:text-white"
-                >
-                  <Users size={19} />
+                  <FaInstagram size={18} />
                 </Link>
               </div>
             </div>
 
             {/* =====================================================
                 SHOP
-            ===================================================== */}
+            ====================================================== */}
+
             <div>
-              <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-[#C88A3D]">
+              <h3
+                className="
+                  text-xs
+                  font-semibold
+                  uppercase
+                  tracking-[0.16em]
+                  text-[#D4AF37]
+                "
+              >
                 Shop
               </h3>
 
               <nav className="mt-5 flex flex-col gap-3">
                 <Link
                   href="/products"
-                  className="text-sm text-white/60 transition-colors duration-200 hover:text-[#C88A3D]"
+                  className="group flex items-center gap-1.5 text-sm text-white/55 transition-colors duration-200 hover:text-[#D4AF37]"
                 >
                   All Products
+                  <ArrowRight
+                    size={12}
+                    className="opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100"
+                  />
                 </Link>
 
                 <Link
-                  href="/products?category=Lighting"
-                  className="text-sm text-white/60 transition-colors duration-200 hover:text-[#C88A3D]"
+                  href="/products?category=laddu-gopal"
+                  className="group flex items-center gap-1.5 text-sm text-white/55 transition-colors duration-200 hover:text-[#D4AF37]"
                 >
-                  Lighting
+                  Laddu Gopal
+                  <ArrowRight
+                    size={12}
+                    className="opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100"
+                  />
                 </Link>
 
                 <Link
-                  href="/products?category=Furniture"
-                  className="text-sm text-white/60 transition-colors duration-200 hover:text-[#C88A3D]"
+                  href="/products?category=home-decor"
+                  className="group flex items-center gap-1.5 text-sm text-white/55 transition-colors duration-200 hover:text-[#D4AF37]"
                 >
-                  Furniture
+                  Home Decor
+                  <ArrowRight
+                    size={12}
+                    className="opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100"
+                  />
                 </Link>
 
                 <Link
-                  href="/products?category=Decor"
-                  className="text-sm text-white/60 transition-colors duration-200 hover:text-[#C88A3D]"
+                  href="/products?category=hair-accessories"
+                  className="group flex items-center gap-1.5 text-sm text-white/55 transition-colors duration-200 hover:text-[#D4AF37]"
                 >
-                  Decor
+                  Hair Accessories
+                  <ArrowRight
+                    size={12}
+                    className="opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100"
+                  />
                 </Link>
 
                 <Link
-                  href="/products?category=Textiles"
-                  className="text-sm text-white/60 transition-colors duration-200 hover:text-[#C88A3D]"
+                  href="/products?category=cosmetics-beauty"
+                  className="group flex items-center gap-1.5 text-sm text-white/55 transition-colors duration-200 hover:text-[#D4AF37]"
                 >
-                  Textiles
+                  Cosmetics & Beauty
+                  <ArrowRight
+                    size={12}
+                    className="opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100"
+                  />
+                </Link>
+
+                <Link
+                  href="/products?category=artificial-jewellery"
+                  className="group flex items-center gap-1.5 text-sm text-white/55 transition-colors duration-200 hover:text-[#D4AF37]"
+                >
+                  Artificial Jewellery
+                  <ArrowRight
+                    size={12}
+                    className="opacity-0 transition-all group-hover:translate-x-1 group-hover:opacity-100"
+                  />
                 </Link>
               </nav>
             </div>
 
             {/* =====================================================
-                COMPANY
-            ===================================================== */}
+                INFORMATION
+            ====================================================== */}
+
             <div>
-              <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-[#C88A3D]">
-                Company
+              <h3
+                className="
+                  text-xs
+                  font-semibold
+                  uppercase
+                  tracking-[0.16em]
+                  text-[#D4AF37]
+                "
+              >
+                Information
               </h3>
 
               <nav className="mt-5 flex flex-col gap-3">
                 <Link
                   href="/about"
-                  className="text-sm text-white/60 transition-colors duration-200 hover:text-[#C88A3D]"
+                  className="text-sm text-white/55 transition-colors duration-200 hover:text-[#D4AF37]"
                 >
                   Our Story
                 </Link>
 
                 <Link
                   href="/contact"
-                  className="text-sm text-white/60 transition-colors duration-200 hover:text-[#C88A3D]"
+                  className="text-sm text-white/55 transition-colors duration-200 hover:text-[#D4AF37]"
                 >
                   Contact Us
                 </Link>
 
                 <Link
+                  href="/shipping"
+                  className="text-sm text-white/55 transition-colors duration-200 hover:text-[#D4AF37]"
+                >
+                  Shipping Information
+                </Link>
+
+                <Link
                   href="/terms"
-                  className="text-sm text-white/60 transition-colors duration-200 hover:text-[#C88A3D]"
+                  className="text-sm text-white/55 transition-colors duration-200 hover:text-[#D4AF37]"
                 >
                   Terms of Service
                 </Link>
 
                 <Link
                   href="/privacy-policy"
-                  className="text-sm text-white/60 transition-colors duration-200 hover:text-[#C88A3D]"
+                  className="text-sm text-white/55 transition-colors duration-200 hover:text-[#D4AF37]"
                 >
                   Privacy Policy
-                </Link>
-
-                <Link
-                  href="#"
-                  className="text-sm text-white/60 transition-colors duration-200 hover:text-[#C88A3D]"
-                >
-                  Shipping Info
                 </Link>
               </nav>
             </div>
 
             {/* =====================================================
-                NEWSLETTER
-            ===================================================== */}
+                CONTACT / MADE TO ORDER
+            ====================================================== */}
+
             <div>
-              <h3 className="text-sm font-semibold uppercase tracking-[0.12em] text-[#C88A3D]">
-                Join the Club
+              <h3
+                className="
+                  text-xs
+                  font-semibold
+                  uppercase
+                  tracking-[0.16em]
+                  text-[#D4AF37]
+                "
+              >
+                Need Help?
               </h3>
 
-              <p className="mt-5 text-sm leading-6 text-white/60">
-                Subscribe to receive early access to new drops and design
-                inspiration.
+              <p className="mt-5 text-sm leading-6 text-white/55">
+                Looking for something specific or interested in a
+                made-to-order item? Get in touch with us and we'll be happy
+                to assist.
               </p>
 
-              <form className="mt-5">
-                <div className="flex h-12 overflow-hidden rounded-xl border border-white/10 bg-white/5 transition-colors focus-within:border-[#C88A3D]/60">
-                  <div className="flex items-center pl-4 text-white/40">
-                    <Mail size={18} />
-                  </div>
+              <Link
+                href="/contact"
+                className="
+                  group
+                  mt-5
+                  inline-flex
+                  min-h-11
+                  items-center
+                  gap-2
+                  rounded-xl
+                  bg-[#D4AF37]
+                  px-5
+                  py-2.5
+                  text-xs
+                  font-semibold
+                  text-[#071A35]
+                  shadow-lg
+                  shadow-black/10
+                  transition-all
+                  duration-300
+                  hover:bg-[#E4C76A]
+                  hover:shadow-xl
+                "
+              >
+                Contact Us
 
-                  <input
-                    type="email"
-                    placeholder="Your email address"
-                    required
-                    className="min-w-0 flex-1 bg-transparent px-3 text-sm text-white outline-none placeholder:text-white/35"
+                <ArrowRight
+                  size={15}
+                  className="transition-transform duration-200 group-hover:translate-x-1"
+                />
+              </Link>
+
+              <div className="mt-6 rounded-xl border border-white/10 bg-white/[0.03] p-4">
+                <div className="flex items-start gap-3">
+                  <HeartHandshake
+                    size={18}
+                    className="mt-0.5 shrink-0 text-[#D4AF37]"
                   />
 
-                  <button
-                    type="submit"
-                    aria-label="Subscribe"
-                    className="flex w-12 shrink-0 items-center justify-center bg-[#C88A3D] text-white transition-colors duration-300 hover:bg-[#B77830]"
-                  >
-                    <ArrowRight size={19} />
-                  </button>
+                  <div>
+                    <p className="text-xs font-semibold text-white">
+                      Made with care
+                    </p>
+
+                    <p className="mt-1 text-[11px] leading-5 text-white/45">
+                      From everyday essentials to special pieces for your
+                      home and Kanha Ji.
+                    </p>
+                  </div>
                 </div>
-              </form>
+              </div>
             </div>
           </div>
         </div>
@@ -284,13 +451,18 @@ export default function Footer() {
 
       {/* =========================================================
           BOTTOM BAR
-      ========================================================= */}
-      <div className="border-t border-white/10 bg-[#162033]">
+      ========================================================== */}
+
+      <div className="border-t border-white/10 bg-[#06162D]">
         <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-center justify-between gap-3 text-center sm:flex-row sm:text-left">
-            <p className="text-xs text-white/45 sm:text-sm">
-              &copy; {new Date().getFullYear()} Vaishnavi Collections. All
-              rights reserved.
+          <div className="flex flex-col items-center justify-between gap-2 text-center sm:flex-row sm:text-left">
+            <p className="text-[11px] text-white/40 sm:text-xs">
+              © {new Date().getFullYear()} Vaishnavi Collections. All rights
+              reserved.
+            </p>
+
+            <p className="text-[10px] text-white/30 sm:text-xs">
+              Home • Beauty • Accessories • Devotional
             </p>
           </div>
         </div>

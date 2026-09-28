@@ -13,6 +13,9 @@ export async function GET(request: Request) {
 
   const supabase = await createClient();
 
+  /*
+   * Exchange the Google OAuth code for a Supabase session.
+   */
   const { error: exchangeError } =
     await supabase.auth.exchangeCodeForSession(code);
 
@@ -22,6 +25,9 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/login?error=oauth`);
   }
 
+  /*
+   * Get the authenticated user.
+   */
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -31,50 +37,47 @@ export async function GET(request: Request) {
   }
 
   /*
-   * Find the application profile.
+   * The database trigger creates the profile automatically
+   * when a new auth.users record is created.
+   *
+   * New users are always CUSTOMER.
+   *
+   * Therefore, the OAuth callback should NOT create or
+   * update profiles.
    */
   const { data: profile, error: profileError } =
     await supabase
       .from("profiles")
-      .select("id, display_name, role")
+      .select("id, full_name, role")
       .eq("id", user.id)
       .maybeSingle();
 
   if (profileError) {
     console.error("Profile lookup error:", profileError);
+
+    return NextResponse.redirect(
+      `${origin}/login?error=profile`
+    );
   }
 
   /*
-   * A first-time Google user should become a CUSTOMER.
+   * If the profile is missing, something went wrong with
+   * the database trigger/profile creation.
    */
   if (!profile) {
-    const displayName =
-      user.user_metadata?.display_name ??
-      user.user_metadata?.full_name ??
-      user.email?.split("@")[0] ??
-      "Customer";
+    console.error(
+      "Authenticated user has no application profile:",
+      user.id
+    );
 
-    const { error: createProfileError } =
-      await supabase.from("profiles").insert({
-        id: user.id,
-        display_name: displayName,
-        role: "CUSTOMER",
-      });
-
-    if (createProfileError) {
-      console.error(
-        "Google customer profile creation error:",
-        createProfileError
-      );
-
-      return NextResponse.redirect(
-        `${origin}/login?error=profile`
-      );
-    }
-
-    return NextResponse.redirect(`${origin}${next}`);
+    return NextResponse.redirect(
+      `${origin}/login?error=profile`
+    );
   }
 
+  /*
+   * Redirect staff/admin/owner users to the admin panel.
+   */
   const role = profile.role?.toUpperCase();
 
   if (
@@ -85,5 +88,8 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/admin`);
   }
 
+  /*
+   * Customers go to the requested destination.
+   */
   return NextResponse.redirect(`${origin}${next}`);
 }

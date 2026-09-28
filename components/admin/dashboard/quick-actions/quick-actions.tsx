@@ -5,27 +5,33 @@ import {
   ShoppingCart,
   Package,
   Receipt,
+  
 } from "lucide-react";
 
 import { DashboardCard } from "../dashboard-card";
+import Link from "next/link";
 
 export function QuickActions() {
   const actions = [
     {
       label: "Add Sale",
       icon: Plus,
+      href: "/admin/sales",
     },
     {
       label: "Add Purchase",
       icon: ShoppingCart,
+      href: "/admin/purchases",
     },
     {
       label: "Add Product",
       icon: Package,
+      href: "/admin/products",
     },
     {
       label: "Add Expense",
       icon: Receipt,
+      href: "/admin/expenses",
     },
   ];
 
@@ -40,7 +46,8 @@ export function QuickActions() {
           const Icon = action.icon;
 
           return (
-            <button
+            <Link
+            href={action.href}
               key={action.label}
               type="button"
               className="
@@ -55,7 +62,7 @@ export function QuickActions() {
               </span>
 
               <span>{action.label}</span>
-            </button>
+            </Link>
           );
         })}
       </div>

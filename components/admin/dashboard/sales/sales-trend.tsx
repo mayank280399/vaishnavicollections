@@ -117,6 +117,7 @@ export function SalesTrend({ data }: SalesTrendProps) {
               />
 
               <YAxis
+                domain={[0, "auto"]}
                 axisLine={false}
                 tickLine={false}
                 tick={{

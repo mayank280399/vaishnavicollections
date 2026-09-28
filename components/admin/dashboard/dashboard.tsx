@@ -39,8 +39,7 @@ export function Dashboard({ data }: DashboardProps) {
       {/* MAIN DASHBOARD + RIGHT RAIL */}
       <div
         className="
-          mt-5 grid min-w-0 grid-cols-1 gap-4
-          xl:grid-cols-[minmax(0,1fr)_220px]
+          mt-5 grid min-w-0 grid-cols-1 gap-4   
         "
       >
         {/* =========================================
@@ -120,26 +119,21 @@ export function Dashboard({ data }: DashboardProps) {
               <ProfitabilityOverview data={data} />
             </div>
           </section>
+          <section className="mt-4 grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-12">
+            <div className="min-w-0 lg:col-span-3">
+              <QuickActions />
+            </div>  
+            <div className="min-w-0 lg:col-span-3">
+              <AlertsActionRequired data={data} />
+            </div>
+            <div className="min-w-0 lg:col-span-3">
+            <RecentActivity data={data} />
+            </div>
+            <div className="min-w-0 lg:col-span-3">
+              <LoyaltyProgram data={data} />
+            </div>
+            </section>
         </main>
-
-        {/* =========================================
-            RIGHT RAIL
-        ========================================== */}
-        <aside
-          className="
-            grid min-w-0 grid-cols-1 gap-4
-            sm:grid-cols-2
-            xl:block xl:space-y-4
-          "
-        >
-          <QuickActions />
-
-          <AlertsActionRequired data={data} />
-
-          <RecentActivity data={data} />
-
-          <LoyaltyProgram data={data} />
-        </aside>
       </div>
     </div>
   );
