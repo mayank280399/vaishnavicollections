@@ -1,318 +1,115 @@
-"use client";
-
-import { useCallback, useEffect, useState } from "react";
+﻿import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { useInView } from "react-intersection-observer";
 import { ArrowRight } from "lucide-react";
 
-import { createClient } from "@/lib/supabase/client";
+import { createClient } from "@/lib/supabase/server";
 
-type TopCollection = {
+type Category = {
   id: string;
   name: string;
   slug: string;
   description: string | null;
   image_url: string | null;
-  sort_order: number;
-  product_count: number;
+  sort_order: number | null;
 };
 
-const supabase = createClient();
+async function getFeaturedCategories(): Promise<Category[]> {
+  const supabase = await createClient();
 
-export default function FeaturedCategories() {
-  const { ref, inView } = useInView({
-    triggerOnce: true,
-    threshold: 0.1,
-  });
+  const { data, error } = await supabase
+    .from("product_categories")
+    .select(`
+      id,
+      name,
+      slug,
+      description,
+      image_url,
+      sort_order
+    `)
+    .eq("category_type", "PRODUCT")
+    .eq("active", true)
+    .eq("is_top_collection", true)
+    .is("parent_id", null)
+    .not("image_url", "is", null)
+    .order("sort_order", {
+      ascending: true,
+      nullsFirst: false,
+    });
 
-  const [categories, setCategories] = useState<TopCollection[]>([]);
-  const [loading, setLoading] = useState(true);
+  if (error) {
+    console.error("Featured categories error:", error);
+    return [];
+  }
 
-  const loadTopCollections = useCallback(async () => {
-    try {
-      setLoading(true);
+  return data ?? [];
+}
 
-      const { data: categoryData, error: categoryError } =
-        await supabase
-          .from("product_categories")
-          .select(
-            `
-              id,
-              name,
-              slug,
-              description,
-              image_url,
-              sort_order
-            `
-          )
-          .eq("active", true)
-          .eq("is_top_collection", true)
-          .is("parent_id", null)
-          .order("sort_order", {
-            ascending: true,
-          })
-          .order("name", {
-            ascending: true,
-          });
+export default async function FeaturedCategories() {
+  const categories = await getFeaturedCategories();
 
-      if (categoryError) {
-        throw categoryError;
-      }
-
-      if (!categoryData || categoryData.length === 0) {
-        setCategories([]);
-        return;
-      }
-
-      const categoryIds = categoryData.map(
-        (category) => category.id
-      );
-
-      const { data: productsData, error: productsError } =
-        await supabase
-          .from("products")
-          .select("id, category_id")
-          .in("category_id", categoryIds);
-
-      if (productsError) {
-        throw productsError;
-      }
-
-      const productCounts = new Map<string, number>();
-
-      for (const product of productsData ?? []) {
-        if (!product.category_id) continue;
-
-        productCounts.set(
-          product.category_id,
-          (productCounts.get(product.category_id) ?? 0) + 1
-        );
-      }
-
-      const collections: TopCollection[] = categoryData
-        .filter((category) => category.image_url)
-        .map((category) => ({
-          id: category.id,
-          name: category.name,
-          slug: category.slug,
-          description: category.description,
-          image_url: category.image_url,
-          sort_order: category.sort_order,
-          product_count:
-            productCounts.get(category.id) ?? 0,
-        }));
-
-      setCategories(collections);
-    } catch (error) {
-      console.error(
-        "Failed to load top collections:",
-        error
-      );
-
-      setCategories([]);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadTopCollections();
-  }, [loadTopCollections]);
+  if (!categories.length) {
+    return null;
+  }
 
   return (
-    <section
-      ref={ref}
-      className="w-full bg-white px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-20"
-    >
-      <div className="mx-auto w-full max-w-7xl">
+    <section className="bg-[#fbfaf7] px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+      <div className="mx-auto max-w-6xl">
         {/* Section Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={
-            inView
-              ? {
-                  opacity: 1,
-                  y: 0,
-                }
-              : {}
-          }
-          transition={{
-            duration: 0.6,
-          }}
-          className="mb-10 text-center sm:mb-12 lg:mb-14"
-        >
-          {/* Badge */}
-          <span className="mb-4 inline-flex items-center rounded-full border border-[#D4AF37]/30 bg-[#D4AF37]/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#9A7617]">
-            Shop by Category
-          </span>
+        <header className="mb-7 text-center sm:mb-9">
+          <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#b18425] sm:text-xs">
+            Shop by category
+          </p>
 
-          {/* Heading */}
-          <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#071A35] sm:text-4xl lg:text-5xl">
+          <h2 className="mt-1.5 font-serif text-2xl font-semibold tracking-tight text-[#10233e] sm:text-3xl lg:text-4xl">
             Explore Our Collections
           </h2>
 
-          {/* Description */}
-          <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-gray-600 sm:text-base">
-            Discover thoughtfully selected products across our
-            most-loved categories.
+          <p className="mx-auto mt-2 max-w-xl text-xs leading-5 text-slate-600 sm:text-sm">
+            Discover beautiful pieces for your home, your style and your Kanha Ji.
           </p>
-        </motion.div>
+        </header>
 
-        {/* Loading State */}
-        {loading && (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:gap-6">
-            {[1, 2, 3].map((item) => (
-              <div
-                key={item}
-                className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
-              >
-                <div className="aspect-[4/3] animate-pulse bg-gray-100" />
+        {/* Categories */}
+        <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
+  {categories.map((category) => (
+    <Link
+      key={category.id}
+      href={`/products?category=${encodeURIComponent(category.slug)}`}
+      className="group w-[calc(50%-0.375rem)] overflow-hidden rounded-2xl border border-[#e9e1d4] bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#d7bd7b] hover:shadow-lg sm:w-[calc(33.333%-0.667rem)] lg:w-[calc(20%-0.8rem)]"
+    >
+      {/* Image */}
+      <div className="relative aspect-square overflow-hidden bg-[#f5f0e8]">
+        <Image
+          src={category.image_url!}
+          alt={category.name}
+          fill
+          sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 20vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+        />
 
-                <div className="space-y-3 p-5 sm:p-6">
-                  <div className="h-6 w-2/3 animate-pulse rounded bg-gray-100" />
-                  <div className="h-4 w-full animate-pulse rounded bg-gray-100" />
-                  <div className="h-4 w-4/5 animate-pulse rounded bg-gray-100" />
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-[#10233e]/20 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+      </div>
+
+      {/* Content */}
+      <div className="flex min-h-[82px] flex-col items-center justify-center px-2.5 py-3 text-center">
+        <h3 className="text-xs font-semibold leading-4 text-[#10233e] sm:text-sm">
+          {category.name}
+        </h3>
+
+        {category.description && (
+          <p className="mt-0.5 text-[10px] leading-4 text-slate-500 sm:text-xs">
+            {category.description}
+          </p>
         )}
 
-        {/* Categories Grid */}
-        {!loading && categories.length > 0 && (
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:gap-6">
-            {categories.map((cat, i) => (
-              <motion.div
-                key={cat.id}
-                initial={{
-                  opacity: 0,
-                  y: 32,
-                }}
-                animate={
-                  inView
-                    ? {
-                        opacity: 1,
-                        y: 0,
-                      }
-                    : {}
-                }
-                transition={{
-                  duration: 0.55,
-                  delay: i * 0.08,
-                }}
-              >
-                <Link
-                  href={`/products?category=${encodeURIComponent(
-                    cat.name
-                  )}`}
-                  className="group relative block overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
-                >
-                  {/* Image */}
-                  <div className="relative aspect-[4/3] overflow-hidden">
-                    <img
-                      src={cat.image_url ?? ""}
-                      alt={cat.name}
-                      loading={i < 3 ? "eager" : "lazy"}
-                      className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                    />
-
-                    {/* Image Overlay */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/10 to-transparent transition-opacity duration-300 group-hover:from-black/70" />
-
-                    {/* Product Count */}
-                    <span className="absolute bottom-4 left-4 rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-[#071A35] backdrop-blur-sm">
-                      {cat.product_count}{" "}
-                      {cat.product_count === 1
-                        ? "product"
-                        : "products"}
-                    </span>
-
-                    {/* Arrow */}
-                    <span className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-white/95 text-[#071A35] shadow-md transition-all duration-300 group-hover:bg-[#D4AF37] group-hover:text-[#071A35]">
-                      <ArrowRight
-                        size={17}
-                        className="transition-transform duration-300 group-hover:translate-x-0.5"
-                      />
-                    </span>
-                  </div>
-
-                  {/* Information */}
-                  <div className="p-5 sm:p-6">
-                    <h3 className="text-lg font-semibold text-[#071A35] transition-colors duration-300 group-hover:text-[#9A7617] sm:text-xl">
-                      {cat.name}
-                    </h3>
-
-                    {cat.description && (
-                      <p className="mt-2 line-clamp-2 text-sm leading-6 text-gray-600">
-                        {cat.description}
-                      </p>
-                    )}
-
-                    {/* Explore link */}
-                    <div className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-[#9A7617]">
-                      Explore Collection
-
-                      <ArrowRight
-                        size={15}
-                        className="transition-transform duration-300 group-hover:translate-x-1"
-                      />
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!loading && categories.length === 0 && (
-          <div className="rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-6 py-12 text-center">
-            <p className="text-sm font-medium text-[#071A35]">
-              No featured collections available yet.
-            </p>
-
-            <p className="mt-1 text-sm text-gray-500">
-              Top collections will appear here once they are
-              enabled from the admin panel.
-            </p>
-          </div>
-        )}
-
-        {/* View All */}
-        {!loading && categories.length > 0 && (
-          <motion.div
-            initial={{
-              opacity: 0,
-              y: 20,
-            }}
-            animate={
-              inView
-                ? {
-                    opacity: 1,
-                    y: 0,
-                  }
-                : {}
-            }
-            transition={{
-              duration: 0.5,
-              delay: categories.length * 0.08,
-            }}
-            className="mt-10 flex justify-center sm:mt-12"
-          >
-            <Link
-              href="/products"
-              className="group inline-flex items-center gap-2 rounded-xl border border-[#071A35] px-6 py-3 text-sm font-semibold text-[#071A35] transition-all duration-300 hover:bg-[#071A35] hover:text-white"
-            >
-              View All Collections
-
-              <ArrowRight
-                size={17}
-                className="transition-transform duration-300 group-hover:translate-x-1"
-              />
-            </Link>
-          </motion.div>
-        )}
+        <div className="mt-1.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-[#b18425] transition-transform duration-300 group-hover:translate-x-0.5">
+          Explore
+          <ArrowRight size={12} strokeWidth={2.2} />
+        </div>
+      </div>
+    </Link>
+  ))}
+</div>
       </div>
     </section>
   );

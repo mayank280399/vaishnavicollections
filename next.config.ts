@@ -1,11 +1,13 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
+const nextConfig = {
   images: {
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       {
-        protocol: 'https',
-        hostname: 'images.unsplash.com',
+        protocol: "https",
+        hostname: "rwwqpuyhnsgfiaflnquu.supabase.co",
+        pathname: "/storage/v1/object/public/**",
       },
     ],
   },

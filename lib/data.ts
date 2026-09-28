@@ -209,7 +209,6 @@ export const categories: Category[] = [
 ];
 
 // ─── Banner / Slider ─────────────────────────────────────────────────────────
-
 export type Slide = {
   id: number;
 
@@ -232,22 +231,21 @@ export type Slide = {
 export const slides: Slide[] = [
   {
     id: 1,
+    title: "Beautiful Poshak & Shringar\nfor Your Kanha Ji",
+    subtitle: "Laddu Gopal Collection",
 
-    title: "Laddu Gopal Ji\nPoshak & Shringar",
-    subtitle: "Beautifully Crafted for Your Kanha Ji",
-
-    mobileTitle: "Laddu Gopal Ji\nPoshak & Shringar",
-    mobileSubtitle: "Beautifully Crafted for Your Kanha Ji",
+    mobileTitle: "Beautiful Poshak & Shringar\nfor Your Kanha Ji",
+    mobileSubtitle: "Laddu Gopal Collection",
 
     description:
-      "Discover beautiful poshak, mukut, jewellery and shringar accessories for your Laddu Gopal Ji.",
+      "Discover beautiful poshak, mukuts, jewellery and shringar accessories for your Laddu Gopal Ji.",
 
-    cta: "Shop Collection",
+    cta: "Shop Laddu Gopal",
     ctaLink: "/products?category=Laddu%20Gopal",
 
     badge: "Laddu Gopal Collection",
 
-    bg: "linear-gradient(90deg, rgba(7, 26, 53, 0.82) 0%, rgba(7, 26, 53, 0.62) 28%, rgba(7, 26, 53, 0.25) 55%, rgba(7, 26, 53, 0) 78%)",
+    bg: "linear-gradient(90deg, rgba(7, 26, 53, 0.84) 0%, rgba(7, 26, 53, 0.64) 28%, rgba(7, 26, 53, 0.26) 55%, rgba(7, 26, 53, 0) 78%)",
 
     image: "/banner-image/banner-laddugopal.png",
   },
@@ -255,70 +253,69 @@ export const slides: Slide[] = [
   {
     id: 2,
 
+    title: "Little Details,\nMade by Hand",
+    subtitle: "Handmade Scrunchies & Hair Accessories",
+
+    mobileTitle: "Little Details,\nMade by Hand",
+    mobileSubtitle: "Handmade Scrunchies & Hair Accessories",
+
+    description:
+      "Handmade scrunchies, bows and hair accessories made to add a beautiful touch to every look.",
+
+    cta: "Shop Handmade",
+    ctaLink: "/products?category=Hair%20Accessories",
+
+    badge: "Handmade Collection",
+
+    bg: "linear-gradient(90deg, rgba(7, 26, 53, 0.84) 0%, rgba(7, 26, 53, 0.64) 28%, rgba(7, 26, 53, 0.26) 55%, rgba(7, 26, 53, 0) 78%)",
+
+    image: "/banner-image/banner-scrunchies.png",
+  },
+
+  {
+    id: 3,
+
     title: "Beautiful Details\nfor Your Home",
     subtitle: "Home Décor Collection",
 
     mobileTitle: "Beautiful Details\nfor Your Home",
-    mobileSubtitle: "Elegant Décor for Every Corner",
+    mobileSubtitle: "Home Décor Collection",
 
     description:
-      "Discover elegant décor, textiles and accessories to add warmth and personality to your home.",
+      "Discover elegant décor, furnishings and accessories to add warmth and personality to your home.",
 
     cta: "Explore Home Décor",
     ctaLink: "/products?category=Decor",
 
     badge: "Home Collection",
 
-    bg: "linear-gradient(90deg, rgba(7, 26, 53, 0.82) 0%, rgba(7, 26, 53, 0.62) 28%, rgba(7, 26, 53, 0.25) 55%, rgba(7, 26, 53, 0) 78%)",
+    bg: "linear-gradient(90deg, rgba(7, 26, 53, 0.84) 0%, rgba(7, 26, 53, 0.64) 28%, rgba(7, 26, 53, 0.26) 55%, rgba(7, 26, 53, 0) 78%)",
 
     image: "/banner-image/Banner-homedecor.png",
   },
 
   {
-    id: 3,
-
-    title: "Beauty Essentials,\nYour Way",
-    subtitle: "Cosmetics & Beauty",
-
-    mobileTitle: "Beauty Essentials,\nYour Way",
-    mobileSubtitle: "Everyday Beauty, Your Way",
-
-    description:
-      "Explore cosmetics and everyday beauty essentials selected for your personal style.",
-
-    cta: "Shop Cosmetics",
-    ctaLink: "/products?category=Cosmetics",
-
-    badge: "Beauty Collection",
-
-    bg: "linear-gradient(90deg, rgba(7, 26, 53, 0.82) 0%, rgba(7, 26, 53, 0.62) 28%, rgba(7, 26, 53, 0.25) 55%, rgba(7, 26, 53, 0) 78%)",
-
-    image: "/banner-image/banner-cosmetics.png",
-  },
-
-  {
     id: 4,
 
-    title: "Cute Details,\nMade by Hand",
-    subtitle: "Scrunchies & Hair Bows",
+    title: "Made Especially\nfor You",
+    subtitle: "Made-to-Order Collection",
 
-    mobileTitle: "Cute Details,\nMade by Hand",
-    mobileSubtitle: "Handmade Scrunchies & Bows",
+    mobileTitle: "Made Especially\nfor You",
+    mobileSubtitle: "Made to Order",
 
     description:
-      "Add a playful touch to your everyday style with handmade scrunchies, bows and hair accessories.",
+      "Looking for something specific? We prepare selected products on order with care and attention to detail.",
 
-    cta: "Shop Hair Accessories",
-    ctaLink: "/products?category=Hair%20Accessories",
+    cta: "Request a Custom Order",
+    ctaLink: "/contact",
 
-    badge: "Handmade Collection",
+    badge: "Made to Order",
 
-    bg: "linear-gradient(90deg, rgba(7, 26, 53, 0.82) 0%, rgba(7, 26, 53, 0.62) 28%, rgba(7, 26, 53, 0.25) 55%, rgba(7, 26, 53, 0) 78%)",
+    bg: "linear-gradient(90deg, rgba(7, 26, 53, 0.84) 0%, rgba(7, 26, 53, 0.64) 28%, rgba(7, 26, 53, 0.26) 55%, rgba(7, 26, 53, 0) 78%)",
 
-    image: "/banner-image/banner-scrunchies.png",
+    image: "/banner-image/banner-made-to-order.png",
   },
 ];
-
 // ─── Testimonials ─────────────────────────────────────────────────────────────
 
 export type Testimonial = {

@@ -1,10 +1,10 @@
-"use client";
+﻿"use client";
+
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Heart, ShoppingBag, Star, Eye } from "lucide-react";
+import { Heart, ShoppingBag, Star } from "lucide-react";
 import { useState } from "react";
 import type { Product } from "@/lib/data";
-import styles from "./ProductCard.module.css";
 
 interface ProductCardProps {
   product: Product;
@@ -16,15 +16,9 @@ export default function ProductCard({ product, index = 0, inView = true }: Produ
   const [wishlisted, setWishlisted] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
 
-  const handleCart = (e: React.MouseEvent) => {
-    e.preventDefault();
+  const handleCart = () => {
     setAddedToCart(true);
     setTimeout(() => setAddedToCart(false), 1800);
-  };
-
-  const handleWishlist = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setWishlisted((w) => !w);
   };
 
   const discount = product.originalPrice
@@ -32,115 +26,42 @@ export default function ProductCard({ product, index = 0, inView = true }: Produ
     : null;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 24 }}
+    <motion.article
+      initial={{ opacity: 0, y: 20 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.5, delay: index * 0.07 }}
+      transition={{ duration: 0.45, delay: index * 0.05 }}
+      className="group relative h-full overflow-hidden rounded-xl border border-[#ece8e0] bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg"
     >
-      <Link href={`/products/${product.id}`} className={styles.card}>
-        {/* Image */}
-        <div className={styles.imageWrap}>
-          <div className={styles.imageBg} />
-          <div className={styles.productVisual}>
-            <img 
-              src={product.image} 
-              alt={product.name} 
-              className={styles.productImage}
-            />
-          </div>
-
-          {/* Badges */}
-          <div className={styles.badges}>
-            {product.badge && (
-              <span
-                className={`${styles.badge} ${
-                  product.badge === "Sale"
-                    ? styles.badgeSale
-                    : product.badge === "New"
-                    ? styles.badgeNew
-                    : styles.badgeBest
-                }`}
-              >
-                {product.badge === "Sale" && discount ? `-${discount}%` : product.badge}
-              </span>
-            )}
-          </div>
-
-          {/* Quick actions */}
-          <div className={styles.quickActions}>
-            <motion.button
-              className={`${styles.actionBtn} ${wishlisted ? styles.wishlisted : ""}`}
-              onClick={handleWishlist}
-              aria-label="Wishlist"
-              whileTap={{ scale: 0.85 }}
-            >
-              <Heart size={16} fill={wishlisted ? "currentColor" : "none"} />
-            </motion.button>
-            <motion.button
-              className={styles.actionBtn}
-              aria-label="Quick view"
-              whileTap={{ scale: 0.85 }}
-            >
-              <Eye size={16} />
-            </motion.button>
-          </div>
-
-          {/* Add to cart overlay */}
-          <motion.button
-            className={styles.cartOverlay}
-            onClick={handleCart}
-            whileTap={{ scale: 0.97 }}
-          >
-            <ShoppingBag size={15} />
-            <span>{addedToCart ? "Added!" : "Add to Cart"}</span>
-          </motion.button>
+      <Link href={`/products/${product.id}`} className="block">
+        <div className="relative aspect-[1.2] overflow-hidden bg-[#f4f0e9] sm:aspect-[1.25]">
+          <img src={product.image} alt={product.name} loading={index < 4 ? "eager" : "lazy"} className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
+          {product.badge && (
+            <span className={`absolute left-2 top-2 rounded px-2 py-1 text-[9px] font-bold uppercase tracking-wide text-white sm:left-3 sm:top-3 ${product.badge === "Sale" ? "bg-[#d0a83f]" : product.badge === "New" ? "bg-[#10233e]" : "bg-[#b18425]"}`}>
+              {product.badge === "Sale" && discount ? `-${discount}%` : product.badge}
+            </span>
+          )}
         </div>
-
-        {/* Info */}
-        <div className={styles.info}>
-          <div className={styles.meta}>
-            <span className={styles.category}>{product.category}</span>
-            <div className={styles.rating}>
-              <Star size={11} fill="var(--accent)" stroke="none" />
-              <span>{product.rating}</span>
-              <span className={styles.reviews}>({product.reviewCount})</span>
-            </div>
+        <div className="p-3 sm:p-4">
+          <div className="flex items-center justify-between gap-2">
+            <span className="truncate text-[9px] font-semibold uppercase tracking-wider text-slate-500">{product.category}</span>
+            <span className="flex shrink-0 items-center gap-1 text-[10px] text-[#10233e]"><Star size={11} fill="#e2b657" stroke="none" /> {product.rating} <span className="text-slate-400">({product.reviewCount})</span></span>
           </div>
-
-          <h3 className={styles.name}>{product.name}</h3>
-
-          <p className={styles.description}>{product.description}</p>
-
-          {/* Colors */}
-          <div className={styles.colors}>
-            {product.colors.map((color) => (
-              <span
-                key={color}
-                className={styles.colorDot}
-                style={{ background: color }}
-                title={color}
-              />
-            ))}
-          </div>
-
-          {/* Price row */}
-          <div className={styles.priceRow}>
-            <div className={styles.prices}>
-              <span className={styles.price}>${product.price}</span>
-              {product.originalPrice && (
-                <span className="price-original">${product.originalPrice}</span>
-              )}
+          <h3 className="mt-1.5 line-clamp-2 min-h-8 text-xs font-semibold leading-4 text-[#10233e] sm:text-sm">{product.name}</h3>
+          <div className="mt-2 flex items-center justify-between border-t border-[#f0ede7] pt-2">
+            <div className="flex items-baseline gap-2">
+              <span className="text-sm font-bold text-[#10233e] sm:text-base">₹{product.price}</span>
+              {product.originalPrice && <span className="text-[10px] text-slate-400 line-through">₹{product.originalPrice}</span>}
             </div>
-            <button
-              className={styles.buyBtn}
-              onClick={handleCart}
-              aria-label="Buy now"
-            >
-              <ShoppingBag size={14} />
-            </button>
+            <span className="text-[10px] font-medium text-[#b18425]">View item</span>
           </div>
         </div>
       </Link>
-    </motion.div>
+      <button type="button" onClick={() => setWishlisted((value) => !value)} aria-label={wishlisted ? "Remove from wishlist" : "Add to wishlist"} className={`absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-white/95 shadow-sm transition hover:bg-white sm:right-3 sm:top-3 ${wishlisted ? "text-rose-500" : "text-[#10233e]"}`}>
+        <Heart size={15} fill={wishlisted ? "currentColor" : "none"} />
+      </button>
+      <button type="button" onClick={handleCart} className="absolute inset-x-0 bottom-[5.1rem] hidden translate-y-2 items-center justify-center gap-2 bg-[#10233e]/90 py-2.5 text-xs font-semibold text-white opacity-0 transition group-hover:translate-y-0 group-hover:opacity-100 sm:flex">
+        <ShoppingBag size={14} /> {addedToCart ? "Added!" : "Add to bag"}
+      </button>
+    </motion.article>
   );
 }

@@ -1,23 +1,27 @@
-import Navbar from '@/components/Navbar/Navbar';
+﻿import Navbar from '@/components/Navbar/Navbar';
 import HeroBanner from '@/components/HeroBanner/HeroBanner';
-import LogoCloud from '@/components/LogoCloud/LogoCloud';
 import FeaturedCategories from '@/components/FeaturedCategories/FeaturedCategories';
 import FeaturedProducts from '@/components/FeaturedProducts/FeaturedProducts';
-import OffersBento from '@/components/OffersBento/OffersBento';
+import CustomOrderBanner from '@/components/CustomOrderBanner/CustomOrderBanner';
+import ShopByNeed from '@/components/ShopByNeed/ShopByNeed';
+import LoyaltyBenefits from '@/components/LoyaltyBenefits/LoyaltyBenefits';
 import Testimonials from '@/components/Testimonials/Testimonials';
+import InstagramGallery from '@/components/InstagramGallery/InstagramGallery';
 import CallToAction from '@/components/CallToAction/CallToAction';
 import Footer from '@/components/Footer/Footer';
 
 export default function Home() {
   return (
-    <main>
+    <main className="overflow-hidden bg-[#fbfaf7]">
       <Navbar />
       <HeroBanner />
-      {/* <LogoCloud /> */}
       <FeaturedCategories />
+      <CustomOrderBanner />
       <FeaturedProducts />
-      <OffersBento />
+      <ShopByNeed />
+      <LoyaltyBenefits />
       <Testimonials />
+      <InstagramGallery />
       <CallToAction />
       <Footer />
     </main>

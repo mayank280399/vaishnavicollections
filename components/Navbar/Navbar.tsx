@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -16,30 +16,21 @@ import {
 import Image from "next/image";
 
 const navLinks = [
+  { label: "Home", href: "/" },
   {
-    label: "Home",
-    href: "/",
-  },
-  {
-    label: "Products",
+    label: "Shop",
     href: "/products",
     sub: [
       { label: "All Products", href: "/products" },
-      { label: "Lighting", href: "/products?category=Lighting" },
-      { label: "Furniture", href: "/products?category=Furniture" },
-      { label: "Decor", href: "/products?category=Decor" },
-      { label: "Textiles", href: "/products?category=Textiles" },
-      { label: "Storage", href: "/products?category=Storage" },
+      { label: "Laddu Gopal", href: "/products?category=Laddu%20Gopal" },
+      { label: "Jewellery", href: "/products?category=Jewellery" },
+      { label: "Beauty", href: "/products?category=Beauty" },
+      { label: "Home Decor", href: "/products?category=Decor" },
+      { label: "Made to Order", href: "/contact" },
     ],
   },
-  {
-    label: "About",
-    href: "/about",
-  },
-  {
-    label: "Contact",
-    href: "/contact",
-  },
+  { label: "About", href: "/about" },
+  { label: "Contact", href: "/contact" },
 ];
 
 export default function Navbar() {
@@ -89,13 +80,7 @@ export default function Navbar() {
           className="hidden shrink-0 sm:block"
         />
 
-        <span>
-          Free shipping on orders over $150 · Use code{" "}
-          <strong className="font-semibold">
-            Vaishnavi Collections
-          </strong>{" "}
-          for 10% off
-        </span>
+        <span>Free Shipping Pan India on Orders Above ₹999 <strong className="font-semibold">· 10% OFF on First Order</strong></span>
 
         <Sparkles
           size={14}
