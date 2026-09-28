@@ -16,8 +16,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { products, type Product } from "@/lib/data";
-import Navbar from "@/components/Navbar/Navbar";
-import Footer from "@/components/Footer/Footer";
+
 import ProductCard, {
   type StorefrontProduct,
 } from "@/components/ProductCard/ProductCard";
@@ -64,8 +63,7 @@ export default function ProductPage({
 
   if (!product) {
     return (
-      <>
-        <Navbar />
+
 
         <main className="min-h-[70vh] bg-[#F8F7F4] px-4 py-32 sm:px-6 lg:px-8">
           <div className="mx-auto flex max-w-7xl flex-col items-center justify-center text-center">
@@ -92,8 +90,7 @@ export default function ProductPage({
           </div>
         </main>
 
-        <Footer />
-      </>
+      
     );
   }
 
@@ -110,8 +107,7 @@ export default function ProductPage({
   const galleryImages = [product.image];
 
   return (
-    <>
-      <Navbar />
+   
 
       <main className="bg-white">
         {/* ==================== PRODUCT SECTION ==================== */}
@@ -619,8 +615,5 @@ export default function ProductPage({
           </section>
         )}
       </main>
-
-      <Footer />
-    </>
   );
 }

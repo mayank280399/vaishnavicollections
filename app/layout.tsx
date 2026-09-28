@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import Footer from "@/components/Footer/Footer";
+import Navbar from "@/components/Navbar/Navbar";
 
 export const metadata: Metadata = {
   title: "Vaishnavi Collections | Modern Essentials for Inspired Living",
@@ -13,7 +15,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
+      <Navbar />
       <body>{children}</body>
+      <Footer />
     </html>
   );
 }
