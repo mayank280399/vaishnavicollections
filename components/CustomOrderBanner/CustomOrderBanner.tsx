@@ -9,7 +9,7 @@ export default function CustomOrderBanner() {
     <section className="bg-[#fbfaf7] px-4 py-7 sm:px-6 lg:px-8">
       <div className="mx-auto grid max-w-6xl overflow-hidden rounded-2xl bg-[#f5f0e8] shadow-sm md:grid-cols-[0.9fr_1.1fr]">
         <div className="relative min-h-56 sm:min-h-72">
-          <Image src="/banner-image/banner-chair.jpg" alt="Handcrafted festive embroidery" fill sizes="(max-width: 768px) 100vw, 40vw" className="object-cover" />
+          <Image src="/brands/handmade-design.png" alt="Handcrafted festive embroidery" fill sizes="(max-width: 768px) 100vw, 40vw" className="object-cover" />
         </div>
         <div className="flex flex-col justify-center gap-4 p-6 sm:p-9 lg:flex-row lg:items-center lg:justify-between lg:gap-8">
           <div className="max-w-md">

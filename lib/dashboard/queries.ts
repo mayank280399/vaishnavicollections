@@ -525,15 +525,29 @@ console.log(
     );
   }
 
-  const revenueTrend: RevenuePoint[] =
-    Array.from(revenueMap.entries())
-      .sort(([a], [b]) =>
-        a.localeCompare(b),
-      )
-      .map(([date, revenue]) => ({
+  const revenueTrend: RevenuePoint[] = [];
+  const saleDates = Array.from(revenueMap.keys()).sort();
+
+  if (saleDates.length > 0) {
+    const startDate = range.startDate ?? saleDates[0];
+    const today = formatDate(new Date());
+    const selectedEndDate =
+      range.endDate ?? saleDates[saleDates.length - 1];
+    const endDate =
+      selectedEndDate > today ? today : selectedEndDate;
+
+    const cursor = new Date(startDate + "T00:00:00");
+    const lastDate = new Date(endDate + "T00:00:00");
+
+    while (cursor <= lastDate) {
+      const date = formatDate(cursor);
+      revenueTrend.push({
         date,
-        revenue,
-      }));
+        revenue: revenueMap.get(date) ?? 0,
+      });
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  }
 
   /* ------------------------------------------------------------------------ */
   /* SALES VS EXPENSES                                                         */

@@ -1,102 +1,121 @@
-"use client";
+import { createClient } from "@/lib/supabase/server";
+import FeaturedProductsClient from "./FeaturedProductsClient";
 
-import { motion } from "framer-motion";
-import { useInView } from "react-intersection-observer";
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { products } from "@/lib/data";
-import ProductCard from "@/components/ProductCard/ProductCard";
+type DbProduct = {
+  id: string;
+  name: string;
+  slug: string;
+  selling_price: number | null;
+  online_price: number | null;
+  stock_quantity: number | null;
+  online_enabled: boolean;
+  featured: boolean;
+  visibility: string;
 
-export default function FeaturedProducts() {
-  const { ref, inView } = useInView({
-    triggerOnce: true,
-    threshold: 0.05,
-  });
+  product_categories:
+    | {
+        name: string;
+        slug: string;
+      }[]
+    | null;
 
-  const featured = products
-    .filter((p) => p.isBestSeller || p.isNew)
-    .slice(0, 8);
+  product_images:
+    | {
+        image_url: string;
+        alt_text: string | null;
+        is_primary: boolean;
+        sort_order: number | null;
+      }[]
+    | null;
+};
+
+async function getFeaturedProducts(): Promise<DbProduct[]> {
+  const supabase = await createClient();
+
+  const { data, error } = await supabase
+    .from("products")
+    .select(`
+      id,
+      name,
+      slug,
+      selling_price,
+      online_price,
+      stock_quantity,
+      online_enabled,
+      featured,
+      visibility,
+      product_categories (
+        name,
+        slug
+      ),
+      product_images (
+        image_url,
+        alt_text,
+        is_primary,
+        sort_order
+      )
+    `)
+    .eq("featured", true)
+    .eq("online_enabled", true)
+    .eq("visibility", "PUBLISHED")
+    .order("created_at", { ascending: false })
+    .limit(8);
+
+  if (error) {
+    console.error("Featured products error:", error);
+    return [];
+  }
+
+  return (data ?? []) as DbProduct[];
+}
+
+function getPrimaryImage(product: DbProduct) {
+  const images = [...(product.product_images ?? [])].sort(
+    (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0),
+  );
 
   return (
-    <section
-      ref={ref}
-      className="w-full bg-[#F8F7F4] px-4 py-14 sm:px-6 sm:py-16 lg:px-8 lg:py-20"
-    >
-      <div className="mx-auto w-full max-w-7xl">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6 }}
-          className="mb-10 flex flex-col gap-6 sm:mb-12 lg:mb-14 lg:flex-row lg:items-end lg:justify-between"
-        >
-          {/* Header Content */}
-          <div className="max-w-2xl">
-            {/* Badge */}
-            <span className="mb-4 inline-flex items-center rounded-full border border-[#C88A3D]/25 bg-[#C88A3D]/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-[#C88A3D]">
-              Handpicked for You
-            </span>
-
-            {/* Heading */}
-            <h2 className="mt-3 text-3xl font-bold tracking-tight text-[#1B263B] sm:text-4xl lg:text-5xl">
-              Featured Products
-            </h2>
-
-            {/* Description */}
-            <p className="mt-3 text-sm leading-6 text-gray-600 sm:text-base">
-              Our most-loved pieces, chosen by our editorial team.
-            </p>
-          </div>
-
-          {/* View All Button */}
-          <Link
-            href="/products"
-            className="group inline-flex w-fit items-center gap-2 rounded-xl border border-[#1B263B] bg-white px-5 py-3 text-sm font-semibold text-[#1B263B] shadow-sm transition-all duration-300 hover:bg-[#1B263B] hover:text-white sm:px-6"
-          >
-            View All Products
-
-            <ArrowRight
-              size={16}
-              className="transition-transform duration-300 group-hover:translate-x-1"
-            />
-          </Link>
-        </motion.div>
-
-        {/* Products Grid */}
-        <div className="grid grid-cols-2 gap-x-3 gap-y-8 sm:grid-cols-2 sm:gap-5 lg:grid-cols-4 lg:gap-6">
-          {featured.map((product, i) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              index={i}
-              inView={inView}
-            />
-          ))}
-        </div>
-
-        {/* Mobile / Bottom View All */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{
-            duration: 0.5,
-            delay: featured.length * 0.06,
-          }}
-          className="mt-10 flex justify-center lg:hidden"
-        >
-          <Link
-            href="/products"
-            className="group inline-flex items-center gap-2 rounded-xl bg-[#1B263B] px-6 py-3 text-sm font-semibold text-white transition-all duration-300 hover:bg-[#263852]"
-          >
-            View All Products
-
-            <ArrowRight
-              size={16}
-              className="transition-transform duration-300 group-hover:translate-x-1"
-            />
-          </Link>
-        </motion.div>
-      </div>
-    </section>
+    images.find((image) => image.is_primary) ??
+    images[0] ??
+    null
   );
+}
+
+export default async function FeaturedProducts() {
+  const products = await getFeaturedProducts();
+
+  const featured = products
+    .map((product) => {
+      const primaryImage = getPrimaryImage(product);
+
+      if (!primaryImage?.image_url) {
+        return null;
+      }
+
+      const price =
+        product.online_price ?? product.selling_price ?? 0;
+
+      const category = product.product_categories?.[0];
+
+      return {
+        id: product.id,
+        name: product.name,
+        image: primaryImage.image_url,
+        price,
+        originalPrice: null,
+        category: category?.name ?? "Products",
+        stockQuantity: product.stock_quantity,
+        badge: null,
+      };
+    })
+    .filter(
+      (product): product is NonNullable<typeof product> =>
+        product !== null,
+    );
+
+  if (!featured.length) {
+    return null;
+  }
+
+  return <FeaturedProductsClient products={featured} />;
 }

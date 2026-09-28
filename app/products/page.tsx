@@ -1,9 +1,12 @@
+
 "use client";
 
 import React, { useMemo, useState } from "react";
 import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
-import ProductCard from "@/components/ProductCard/ProductCard";
+import ProductCard, {
+  type StorefrontProduct,
+} from "@/components/ProductCard/ProductCard";
 import { products, categories, filterColors } from "@/lib/data";
 import {
   SlidersHorizontal,
@@ -14,14 +17,46 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
+/**
+ * Converts the legacy Product type from lib/data
+ * into the StorefrontProduct type expected by ProductCard.
+ */
+function toStorefrontProduct(
+  product: (typeof products)[number],
+): StorefrontProduct {
+  return {
+    id: String(product.id),
+    name: product.name,
+    image: product.image,
+    price: product.price,
+    originalPrice: product.originalPrice ?? null,
+    category: product.category ?? null,
+    badge: product.badge ?? null,
+    stockQuantity: null,
+  };
+}
+
 export default function ProductsPage() {
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
-  const [selectedColor, setSelectedColor] = useState<string | null>(null);
-  const [priceRange, setPriceRange] = useState<number>(500);
-  const [minRating, setMinRating] = useState<number>(0);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [sortBy, setSortBy] = useState("Newest");
+  const [selectedCategory, setSelectedCategory] =
+    useState<string>("All");
+
+  const [selectedColor, setSelectedColor] =
+    useState<string | null>(null);
+
+  const [priceRange, setPriceRange] =
+    useState<number>(500);
+
+  const [minRating, setMinRating] =
+    useState<number>(0);
+
+  const [searchQuery, setSearchQuery] =
+    useState("");
+
+  const [isSidebarOpen, setIsSidebarOpen] =
+    useState(false);
+
+  const [sortBy, setSortBy] =
+    useState("Newest");
 
   const filteredProducts = useMemo(() => {
     return products
@@ -31,15 +66,19 @@ export default function ProductsPage() {
           product.category === selectedCategory;
 
         const matchesColor =
-          !selectedColor || product.colors.includes(selectedColor);
+          !selectedColor ||
+          product.colors.includes(selectedColor);
 
-        const matchesPrice = product.price <= priceRange;
+        const matchesPrice =
+          product.price <= priceRange;
 
-        const matchesRating = product.rating >= minRating;
+        const matchesRating =
+          product.rating >= minRating;
 
-        const matchesSearch = product.name
-          .toLowerCase()
-          .includes(searchQuery.toLowerCase());
+        const matchesSearch =
+          product.name
+            .toLowerCase()
+            .includes(searchQuery.toLowerCase());
 
         return (
           matchesCategory &&
@@ -106,8 +145,8 @@ export default function ProductsPage() {
               </h1>
 
               <p className="mt-4 max-w-xl text-sm leading-6 text-white/65 sm:text-base sm:leading-7">
-                Explore our carefully curated selection of premium home
-                essentials.
+                Explore our carefully curated selection
+                of premium home essentials.
               </p>
             </motion.div>
           </div>
@@ -129,7 +168,9 @@ export default function ProductsPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    onClick={() => setIsSidebarOpen(false)}
+                    onClick={() =>
+                      setIsSidebarOpen(false)
+                    }
                   />
                 )}
               </AnimatePresence>
@@ -161,7 +202,9 @@ export default function ProductsPage() {
 
                   <button
                     type="button"
-                    onClick={() => setIsSidebarOpen(false)}
+                    onClick={() =>
+                      setIsSidebarOpen(false)
+                    }
                     className="flex h-9 w-9 items-center justify-center rounded-lg text-[#1B263B]/60 transition hover:bg-[#F8F7F4] hover:text-[#1B263B] lg:hidden"
                     aria-label="Close filters"
                   >
@@ -186,7 +229,9 @@ export default function ProductsPage() {
                         type="text"
                         placeholder="Search products..."
                         value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
+                        onChange={(e) =>
+                          setSearchQuery(e.target.value)
+                        }
                         className="min-w-0 flex-1 bg-transparent text-sm text-[#1B263B] outline-none placeholder:text-[#1B263B]/35"
                       />
                     </div>
@@ -201,7 +246,9 @@ export default function ProductsPage() {
                     <div className="space-y-1">
                       <button
                         type="button"
-                        onClick={() => setSelectedCategory("All")}
+                        onClick={() =>
+                          setSelectedCategory("All")
+                        }
                         className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition ${
                           selectedCategory === "All"
                             ? "bg-[#C88A3D]/10 font-semibold text-[#C88A3D]"
@@ -215,7 +262,9 @@ export default function ProductsPage() {
                         <button
                           key={cat.id}
                           type="button"
-                          onClick={() => setSelectedCategory(cat.name)}
+                          onClick={() =>
+                            setSelectedCategory(cat.name)
+                          }
                           className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm transition ${
                             selectedCategory === cat.name
                               ? "bg-[#C88A3D]/10 font-semibold text-[#C88A3D]"
@@ -245,7 +294,9 @@ export default function ProductsPage() {
                       step="10"
                       value={priceRange}
                       onChange={(e) =>
-                        setPriceRange(parseInt(e.target.value))
+                        setPriceRange(
+                          parseInt(e.target.value, 10),
+                        )
                       }
                       className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-[#1B263B]/15 accent-[#C88A3D]"
                     />
@@ -267,7 +318,8 @@ export default function ProductsPage() {
 
                     <div className="flex flex-wrap gap-3">
                       {filterColors.map((color) => {
-                        const isActive = selectedColor === color.hex;
+                        const isActive =
+                          selectedColor === color.hex;
 
                         return (
                           <button
@@ -277,7 +329,9 @@ export default function ProductsPage() {
                             aria-label={`Filter by ${color.name}`}
                             onClick={() =>
                               setSelectedColor(
-                                isActive ? null : color.hex
+                                isActive
+                                  ? null
+                                  : color.hex,
                               )
                             }
                             className={`relative h-8 w-8 rounded-full border-2 transition ${
@@ -302,14 +356,17 @@ export default function ProductsPage() {
 
                     <div className="space-y-1">
                       {[4, 3, 2, 1].map((rating) => {
-                        const isActive = minRating === rating;
+                        const isActive =
+                          minRating === rating;
 
                         return (
                           <button
                             key={rating}
                             type="button"
                             onClick={() =>
-                              setMinRating(isActive ? 0 : rating)
+                              setMinRating(
+                                isActive ? 0 : rating,
+                              )
                             }
                             className={`flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-sm transition ${
                               isActive
@@ -318,12 +375,16 @@ export default function ProductsPage() {
                             }`}
                           >
                             <div className="flex">
-                              {Array.from({ length: 5 }).map((_, i) => (
+                              {Array.from({
+                                length: 5,
+                              }).map((_, i) => (
                                 <Star
                                   key={i}
                                   size={14}
                                   fill={
-                                    i < rating ? "#C88A3D" : "none"
+                                    i < rating
+                                      ? "#C88A3D"
+                                      : "none"
                                   }
                                   stroke={
                                     i < rating
@@ -375,7 +436,9 @@ export default function ProductsPage() {
                     {/* Mobile Filters */}
                     <button
                       type="button"
-                      onClick={() => setIsSidebarOpen(true)}
+                      onClick={() =>
+                        setIsSidebarOpen(true)
+                      }
                       className="inline-flex h-10 items-center gap-2 rounded-lg border border-[#1B263B]/15 px-3 text-sm font-medium text-[#1B263B] transition hover:border-[#C88A3D] hover:text-[#C88A3D] lg:hidden"
                     >
                       <SlidersHorizontal size={17} />
@@ -386,12 +449,18 @@ export default function ProductsPage() {
                     <div className="relative">
                       <select
                         value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value)}
+                        onChange={(e) =>
+                          setSortBy(e.target.value)
+                        }
                         className="h-10 appearance-none rounded-lg border border-[#1B263B]/15 bg-white pl-3 pr-9 text-sm text-[#1B263B] outline-none transition focus:border-[#C88A3D] focus:ring-2 focus:ring-[#C88A3D]/10"
                       >
                         <option>Newest</option>
-                        <option>Price: Low to High</option>
-                        <option>Price: High to Low</option>
+                        <option>
+                          Price: Low to High
+                        </option>
+                        <option>
+                          Price: High to Low
+                        </option>
                         <option>Rating</option>
                       </select>
 
@@ -407,20 +476,30 @@ export default function ProductsPage() {
                 {filteredProducts.length > 0 ? (
                   <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
                     <AnimatePresence mode="popLayout">
-                      {filteredProducts.map((product, index) => (
-                        <ProductCard
-                          key={product.id}
-                          product={product}
-                          index={index % 8}
-                        />
-                      ))}
+                      {filteredProducts.map(
+                        (product, index) => (
+                          <ProductCard
+                            key={product.id}
+                            product={toStorefrontProduct(
+                              product,
+                            )}
+                            index={index % 8}
+                          />
+                        ),
+                      )}
                     </AnimatePresence>
                   </div>
                 ) : (
                   <motion.div
                     className="flex min-h-[360px] flex-col items-center justify-center rounded-3xl border border-[#1B263B]/10 bg-white px-6 text-center"
-                    initial={{ opacity: 0, y: 15 }}
-                    animate={{ opacity: 1, y: 0 }}
+                    initial={{
+                      opacity: 0,
+                      y: 15,
+                    }}
+                    animate={{
+                      opacity: 1,
+                      y: 0,
+                    }}
                   >
                     <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-[#C88A3D]/10 text-[#C88A3D]">
                       <Search size={28} />
@@ -431,7 +510,8 @@ export default function ProductsPage() {
                     </h3>
 
                     <p className="mt-2 max-w-sm text-sm leading-6 text-[#1B263B]/55">
-                      Try adjusting your filters or search terms.
+                      Try adjusting your filters or
+                      search terms.
                     </p>
 
                     <button

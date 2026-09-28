@@ -127,14 +127,14 @@ export function FinancialKpiCard({
           </div>
         </div>
 
-        <div
+        {/* <div
           className={[
             "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
             toneStyle.iconBg,
           ].join(" ")}
         >
           <Icon className={`h-5 w-5 ${toneStyle.icon}`} strokeWidth={2} />
-        </div>
+        </div> */}
       </div>
 
       <div className="mt-3 flex items-center gap-1.5">

@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, use } from "react";
@@ -14,10 +15,31 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 
-import { products } from "@/lib/data";
+import { products, type Product } from "@/lib/data";
 import Navbar from "@/components/Navbar/Navbar";
 import Footer from "@/components/Footer/Footer";
-import ProductCard from "@/components/ProductCard/ProductCard";
+import ProductCard, {
+  type StorefrontProduct,
+} from "@/components/ProductCard/ProductCard";
+
+/**
+ * Converts the legacy Product type from lib/data
+ * into the StorefrontProduct type expected by ProductCard.
+ */
+function toStorefrontProduct(
+  product: Product,
+): StorefrontProduct {
+  return {
+    id: String(product.id),
+    name: product.name,
+    image: product.image,
+    price: product.price,
+    originalPrice: product.originalPrice ?? null,
+    category: product.category ?? null,
+    stockQuantity: null,
+    badge: product.badge ?? null,
+  };
+}
 
 export default function ProductPage({
   params,
@@ -25,13 +47,20 @@ export default function ProductPage({
   params: Promise<{ id: string }>;
 }) {
   const resolvedParams = use(params);
-  const productId = parseInt(resolvedParams.id);
-  const product = products.find((p) => p.id === productId);
+  const productId = parseInt(resolvedParams.id, 10);
+
+  const product = products.find(
+    (p) => p.id === productId,
+  );
 
   const [quantity, setQuantity] = useState(1);
-  const [selectedColor, setSelectedColor] = useState(product?.colors[0]);
+  const [selectedColor, setSelectedColor] = useState(
+    product?.colors?.[0],
+  );
   const [activeTab, setActiveTab] = useState("details");
-  const [activeImage, setActiveImage] = useState(product?.image || "");
+  const [activeImage, setActiveImage] = useState(
+    product?.image || "",
+  );
 
   if (!product) {
     return (
@@ -49,8 +78,8 @@ export default function ProductPage({
             </h1>
 
             <p className="mt-3 max-w-md text-sm leading-6 text-gray-500 sm:text-base">
-              The product you are looking for may have been removed or is no
-              longer available.
+              The product you are looking for may have
+              been removed or is no longer available.
             </p>
 
             <Link
@@ -68,9 +97,15 @@ export default function ProductPage({
     );
   }
 
-  const relatedProducts = products
-    .filter((p) => p.category === product.category && p.id !== product.id)
-    .slice(0, 4);
+  const relatedProducts: StorefrontProduct[] =
+    products
+      .filter(
+        (p) =>
+          p.category === product.category &&
+          p.id !== product.id,
+      )
+      .slice(0, 4)
+      .map(toStorefrontProduct);
 
   const galleryImages = [product.image];
 
@@ -79,7 +114,7 @@ export default function ProductPage({
       <Navbar />
 
       <main className="bg-white">
-        {/* Product Section */}
+        {/* ==================== PRODUCT SECTION ==================== */}
         <section className="bg-[#F8F7F4] px-4 py-8 sm:px-6 sm:py-12 lg:px-8 lg:py-16">
           <div className="mx-auto max-w-7xl">
             <div className="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] lg:gap-12 xl:gap-16">
@@ -90,7 +125,6 @@ export default function ProductPage({
                 transition={{ duration: 0.6 }}
                 className="min-w-0"
               >
-                {/* Main Image */}
                 <div className="relative aspect-square overflow-hidden rounded-2xl bg-white shadow-sm sm:rounded-3xl">
                   <AnimatePresence mode="wait">
                     <motion.div
@@ -112,7 +146,6 @@ export default function ProductPage({
                     </motion.div>
                   </AnimatePresence>
 
-                  {/* Product Badge */}
                   {product.badge && (
                     <span className="absolute left-4 top-4 z-10 rounded-full bg-[#C88A3D] px-4 py-2 text-xs font-bold uppercase tracking-wide text-white shadow-sm sm:left-5 sm:top-5">
                       {product.badge}
@@ -120,27 +153,33 @@ export default function ProductPage({
                   )}
                 </div>
 
-                {/* Thumbnails */}
                 {galleryImages.length > 0 && (
                   <div className="mt-4 flex gap-3 overflow-x-auto">
                     {galleryImages.map((img, i) => {
-                      const isActive = activeImage === img;
+                      const isActive =
+                        activeImage === img;
 
                       return (
                         <button
                           key={`${img}-${i}`}
                           type="button"
-                          onClick={() => setActiveImage(img)}
+                          onClick={() =>
+                            setActiveImage(img)
+                          }
                           className={`relative h-20 w-20 shrink-0 overflow-hidden rounded-xl border-2 bg-white transition-all sm:h-24 sm:w-24 ${
                             isActive
                               ? "border-[#C88A3D] ring-2 ring-[#C88A3D]/20"
                               : "border-transparent hover:border-[#1B263B]/20"
                           }`}
-                          aria-label={`View ${product.name} image ${i + 1}`}
+                          aria-label={`View ${product.name} image ${
+                            i + 1
+                          }`}
                         >
                           <Image
                             src={img}
-                            alt={`${product.name} view ${i + 1}`}
+                            alt={`${product.name} view ${
+                              i + 1
+                            }`}
                             fill
                             sizes="96px"
                             className="object-cover"
@@ -159,7 +198,6 @@ export default function ProductPage({
                 transition={{ duration: 0.6 }}
                 className="min-w-0"
               >
-                {/* Header */}
                 <div className="border-b border-gray-200 pb-6">
                   <span className="text-xs font-bold uppercase tracking-[0.18em] text-[#C88A3D]">
                     {product.category}
@@ -176,13 +214,15 @@ export default function ProductPage({
                         fill="#C88A3D"
                         stroke="none"
                       />
+
                       <span className="text-sm font-bold text-[#1B263B]">
                         {product.rating}
                       </span>
                     </div>
 
                     <span className="text-sm text-gray-500">
-                      ({product.reviewCount} customer reviews)
+                      ({product.reviewCount} customer
+                      reviews)
                     </span>
                   </div>
                 </div>
@@ -207,7 +247,6 @@ export default function ProductPage({
 
                 {/* Options */}
                 <div className="mt-8 space-y-7">
-                  {/* Colors */}
                   {product.colors?.length > 0 && (
                     <div>
                       <span className="text-sm font-bold text-[#1B263B]">
@@ -215,29 +254,39 @@ export default function ProductPage({
                       </span>
 
                       <div className="mt-3 flex flex-wrap gap-3">
-                        {product.colors.map((color, i) => {
-                          const isSelected = selectedColor === color;
+                        {product.colors.map(
+                          (color, i) => {
+                            const isSelected =
+                              selectedColor === color;
 
-                          return (
-                            <button
-                              key={`${color}-${i}`}
-                              type="button"
-                              onClick={() => setSelectedColor(color)}
-                              title={color}
-                              aria-label={`Select ${color}`}
-                              className={`flex h-11 w-11 items-center justify-center rounded-full border-2 transition-all ${
-                                isSelected
-                                  ? "border-[#C88A3D] ring-2 ring-[#C88A3D]/20"
-                                  : "border-gray-200 hover:border-[#1B263B]/40"
-                              }`}
-                            >
-                              <span
-                                className="h-7 w-7 rounded-full border border-black/10"
-                                style={{ backgroundColor: color }}
-                              />
-                            </button>
-                          );
-                        })}
+                            return (
+                              <button
+                                key={`${color}-${i}`}
+                                type="button"
+                                onClick={() =>
+                                  setSelectedColor(
+                                    color,
+                                  )
+                                }
+                                title={color}
+                                aria-label={`Select ${color}`}
+                                className={`flex h-11 w-11 items-center justify-center rounded-full border-2 transition-all ${
+                                  isSelected
+                                    ? "border-[#C88A3D] ring-2 ring-[#C88A3D]/20"
+                                    : "border-gray-200 hover:border-[#1B263B]/40"
+                                }`}
+                              >
+                                <span
+                                  className="h-7 w-7 rounded-full border border-black/10"
+                                  style={{
+                                    backgroundColor:
+                                      color,
+                                  }}
+                                />
+                              </button>
+                            );
+                          },
+                        )}
                       </div>
                     </div>
                   )}
@@ -248,7 +297,12 @@ export default function ProductPage({
                       <button
                         type="button"
                         onClick={() =>
-                          setQuantity(Math.max(1, quantity - 1))
+                          setQuantity(
+                            Math.max(
+                              1,
+                              quantity - 1,
+                            ),
+                          )
                         }
                         className="flex h-full w-12 items-center justify-center text-[#1B263B] transition-colors hover:bg-gray-50"
                         aria-label="Decrease quantity"
@@ -262,7 +316,9 @@ export default function ProductPage({
 
                       <button
                         type="button"
-                        onClick={() => setQuantity(quantity + 1)}
+                        onClick={() =>
+                          setQuantity(quantity + 1)
+                        }
                         className="flex h-full w-12 items-center justify-center text-[#1B263B] transition-colors hover:bg-gray-50"
                         aria-label="Increase quantity"
                       >
@@ -313,15 +369,24 @@ export default function ProductPage({
                 {/* ==================== TABS ==================== */}
                 <div className="mt-8">
                   <div className="flex overflow-x-auto border-b border-gray-200">
-                    {["Details", "Specifications", "Shipping"].map((tab) => {
-                      const tabKey = tab.toLowerCase();
-                      const isActive = activeTab === tabKey;
+                    {[
+                      "Details",
+                      "Specifications",
+                      "Shipping",
+                    ].map((tab) => {
+                      const tabKey =
+                        tab.toLowerCase();
+
+                      const isActive =
+                        activeTab === tabKey;
 
                       return (
                         <button
                           key={tab}
                           type="button"
-                          onClick={() => setActiveTab(tabKey)}
+                          onClick={() =>
+                            setActiveTab(tabKey)
+                          }
                           className={`relative shrink-0 px-4 py-3 text-sm font-semibold transition-colors first:pl-0 ${
                             isActive
                               ? "text-[#1B263B]"
@@ -347,15 +412,29 @@ export default function ProductPage({
                       {activeTab === "details" && (
                         <motion.div
                           key="details"
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          transition={{ duration: 0.2 }}
+                          initial={{
+                            opacity: 0,
+                            y: 10,
+                          }}
+                          animate={{
+                            opacity: 1,
+                            y: 0,
+                          }}
+                          exit={{
+                            opacity: 0,
+                            y: -10,
+                          }}
+                          transition={{
+                            duration: 0.2,
+                          }}
                         >
                           <p className="text-sm leading-7 text-gray-600">
-                            Crafted with the finest materials and an unwavering
-                            commitment to quality. Every Vaishnavi Collections
-                            piece is a testament to timeless design and modern
+                            Crafted with the finest
+                            materials and an unwavering
+                            commitment to quality. Every
+                            Vaishnavi Collections piece
+                            is a testament to timeless
+                            design and modern
                             functionality.
                           </p>
 
@@ -368,8 +447,12 @@ export default function ProductPage({
                                 <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#C88A3D]" />
 
                                 <span>
-                                  {tag.charAt(0).toUpperCase() + tag.slice(1)}{" "}
-                                  quality construction
+                                  {tag
+                                    .charAt(0)
+                                    .toUpperCase() +
+                                    tag.slice(1)}{" "}
+                                  quality
+                                  construction
                                 </span>
                               </li>
                             ))}
@@ -378,21 +461,35 @@ export default function ProductPage({
                       )}
 
                       {/* Specifications */}
-                      {activeTab === "specifications" && (
+                      {activeTab ===
+                        "specifications" && (
                         <motion.div
                           key="specifications"
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          transition={{ duration: 0.2 }}
+                          initial={{
+                            opacity: 0,
+                            y: 10,
+                          }}
+                          animate={{
+                            opacity: 1,
+                            y: 0,
+                          }}
+                          exit={{
+                            opacity: 0,
+                            y: -10,
+                          }}
+                          transition={{
+                            duration: 0.2,
+                          }}
                           className="grid grid-cols-1 gap-3 sm:grid-cols-2"
                         >
                           <div className="rounded-xl bg-[#F8F7F4] p-4">
                             <span className="block text-xs font-semibold uppercase tracking-wide text-gray-400">
                               Materials
                             </span>
+
                             <span className="mt-1 block text-sm font-semibold text-[#1B263B]">
-                              Premium grade materials
+                              Premium grade
+                              materials
                             </span>
                           </div>
 
@@ -400,8 +497,10 @@ export default function ProductPage({
                             <span className="block text-xs font-semibold uppercase tracking-wide text-gray-400">
                               Dimensions
                             </span>
+
                             <span className="mt-1 block text-sm font-semibold text-[#1B263B]">
-                              H: 120cm, W: 60cm, D: 60cm
+                              H: 120cm, W: 60cm,
+                              D: 60cm
                             </span>
                           </div>
 
@@ -409,6 +508,7 @@ export default function ProductPage({
                             <span className="block text-xs font-semibold uppercase tracking-wide text-gray-400">
                               Weight
                             </span>
+
                             <span className="mt-1 block text-sm font-semibold text-[#1B263B]">
                               12.5 kg
                             </span>
@@ -418,8 +518,10 @@ export default function ProductPage({
                             <span className="block text-xs font-semibold uppercase tracking-wide text-gray-400">
                               Assembly
                             </span>
+
                             <span className="mt-1 block text-sm font-semibold text-[#1B263B]">
-                              Minimal assembly required
+                              Minimal assembly
+                              required
                             </span>
                           </div>
                         </motion.div>
@@ -429,10 +531,21 @@ export default function ProductPage({
                       {activeTab === "shipping" && (
                         <motion.div
                           key="shipping"
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -10 }}
-                          transition={{ duration: 0.2 }}
+                          initial={{
+                            opacity: 0,
+                            y: 10,
+                          }}
+                          animate={{
+                            opacity: 1,
+                            y: 0,
+                          }}
+                          exit={{
+                            opacity: 0,
+                            y: -10,
+                          }}
+                          transition={{
+                            duration: 0.2,
+                          }}
                           className="space-y-4 text-sm leading-7 text-gray-600"
                         >
                           <div className="rounded-xl bg-[#F8F7F4] p-5">
@@ -441,9 +554,13 @@ export default function ProductPage({
                             </h3>
 
                             <p className="mt-2">
-                              We offer convenient delivery options for your
-                              order. Delivery availability and timelines may
-                              vary depending on your location.
+                              We offer convenient
+                              delivery options for
+                              your order. Delivery
+                              availability and
+                              timelines may vary
+                              depending on your
+                              location.
                             </p>
                           </div>
 
@@ -453,8 +570,10 @@ export default function ProductPage({
                             </h3>
 
                             <p className="mt-2">
-                              Please check the product-specific return
-                              conditions before placing your order.
+                              Please check the
+                              product-specific return
+                              conditions before placing
+                              your order.
                             </p>
                           </div>
                         </motion.div>
@@ -481,17 +600,20 @@ export default function ProductPage({
                 </h2>
 
                 <p className="mt-2 text-sm text-gray-500 sm:text-base">
-                  Designed to pair perfectly with your selection.
+                  Designed to pair perfectly with your
+                  selection.
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4 sm:grid-cols-2 sm:gap-6 lg:grid-cols-4">
-                {relatedProducts.map((relatedProduct) => (
-                  <ProductCard
-                    key={relatedProduct.id}
-                    product={relatedProduct}
-                  />
-                ))}
+                {relatedProducts.map(
+                  (relatedProduct) => (
+                    <ProductCard
+                      key={relatedProduct.id}
+                      product={relatedProduct}
+                    />
+                  ),
+                )}
               </div>
             </div>
           </section>
