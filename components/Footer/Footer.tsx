@@ -1,5 +1,3 @@
-"use client";
-
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -11,11 +9,56 @@ import {
   MapPin,
   Phone,
 } from "lucide-react";
-import { FaInstagram } from "react-icons/fa";
+import { FaInstagram, FaWhatsapp } from "react-icons/fa";
+import { createClient } from "@/lib/supabase/server";
+import FloatingWhatsApp from "../FloatingWhatsApp/FloatingWhatsApp";
 
-export default function Footer() {
+export default async function Footer() {
+  const supabase = await createClient();
+
+  const { data: settings, error } = await supabase
+    .from("public_store_settings")
+    .select("*")
+    .maybeSingle();
+
+  if (error) {
+    console.error("Footer settings error:", error);
+  }
+
+  const fullAddress = [
+    settings?.address_line_1,
+    settings?.city,
+    settings?.state,
+    settings?.postal_code,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+  const phone = settings?.primary_phone || "";
+  const whatsapp =
+    settings?.whatsapp_number ||
+    settings?.primary_phone ||
+    "";
+
+  const instagram =
+    settings?.instagram_enabled
+      ? settings?.instagram_url || ""
+      : "";
+
+  const mapsUrl = settings?.google_business_url || "";
+
+  const madeToOrderEnabled =
+    settings?.order_preparation_enabled ?? false;
+
+  const panIndiaShipping =
+    settings?.pan_india_shipping_enabled ?? false;
+
+  const shopName =
+    settings?.shop_name || "Vaishnavi Collections";
+
   return (
     <footer className="w-full bg-[#071A35] text-white">
+        <FloatingWhatsApp phone={whatsapp} />
       {/* =========================================================
           FEATURE STRIP
       ========================================================== */}
@@ -24,6 +67,7 @@ export default function Footer() {
         <div className="mx-auto w-full max-w-7xl px-4 py-7 sm:px-6 sm:py-9 lg:px-8">
           <div className="grid grid-cols-2 gap-y-7 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
             {/* Feature 1 */}
+            {panIndiaShipping && (
             <div className="flex items-center gap-3 sm:gap-4">
               <div
                 className="
@@ -48,8 +92,10 @@ export default function Footer() {
                 </p>
               </div>
             </div>
-
+            )}
+            
             {/* Feature 2 */}
+            {madeToOrderEnabled && (
             <div className="flex items-center gap-3 sm:gap-4">
               <div
                 className="
@@ -74,8 +120,9 @@ export default function Footer() {
                 </p>
               </div>
             </div>
-
+            )}
             {/* Feature 3 */}
+
             <div className="flex items-center gap-3 sm:gap-4">
               <div
                 className="
@@ -179,9 +226,10 @@ export default function Footer() {
 
               {/* Social / Contact */}
               <div className="mt-6 flex items-center gap-3">
+                {phone && (
                 <Link
-                  href="/contact"
-                  aria-label="Contact Vaishnavi Collections"
+                   href={`tel:${phone}`}
+                   aria-label={`Call ${shopName}`}
                   className="
                     flex h-10 w-10 items-center justify-center
                     rounded-full
@@ -196,10 +244,13 @@ export default function Footer() {
                 >
                   <Phone size={17} />
                 </Link>
-
+                )}
+                {mapsUrl && (
                 <Link
-                  href="/contact"
-                  aria-label="Find Vaishnavi Collections"
+                  href={mapsUrl}
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label={`Find ${shopName}`}
                   className="
                     flex h-10 w-10 items-center justify-center
                     rounded-full
@@ -214,18 +265,40 @@ export default function Footer() {
                 >
                   <MapPin size={17} />
                 </Link>
-
-                {/* 
-                  Replace this href with your actual Instagram URL
-                  once the Instagram page URL is stored in settings.
-                */}
-                <Link
-                  href="#"
-                  aria-label="Instagram"
+)}
+               {whatsapp && (
+  <a
+    href={`https://wa.me/91${whatsapp.replace(/\D/g, "")}`}
+    target="_blank"
+    rel="noopener noreferrer"
+    aria-label={`WhatsApp ${shopName}`}
+    className="
+      flex h-10 w-10 items-center justify-center
+      rounded-full
+      border border-white/10
+      bg-white/5
+      text-white/65
+      transition-all duration-300
+      hover:border-[#D4AF37]/50
+      hover:bg-[#D4AF37]
+      hover:text-[#071A35]
+    "
+  >
+    <FaWhatsapp size={18} />
+  </a>
+)}
+                {instagram && (
+                   <Link
+                  href={instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`${shopName} on Instagram`}
                   className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/65 transition-all duration-300 hover:border-[#D4AF37]/50 hover:bg-[#D4AF37] hover:text-[#071A35]"
                 >
                   <FaInstagram size={18} />
                 </Link>
+                )}
+               
               </div>
             </div>
 

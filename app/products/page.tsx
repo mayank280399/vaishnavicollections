@@ -121,8 +121,7 @@ export default function ProductsPage() {
   };
 
   return (
-    <>
-      <Navbar />
+
 
       <main className="w-full overflow-hidden bg-[#F8F7F4]">
         {/* =========================================================
@@ -529,7 +528,5 @@ export default function ProductsPage() {
         </section>
       </main>
 
-      <Footer />
-    </>
   );
 }

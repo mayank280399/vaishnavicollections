@@ -1,5 +1,4 @@
-﻿import Navbar from '@/components/Navbar/Navbar';
-import HeroBanner from '@/components/HeroBanner/HeroBanner';
+﻿import HeroBanner from '@/components/HeroBanner/HeroBanner';
 import FeaturedCategories from '@/components/FeaturedCategories/FeaturedCategories';
 import FeaturedProducts from '@/components/FeaturedProducts/FeaturedProducts';
 import CustomOrderBanner from '@/components/CustomOrderBanner/CustomOrderBanner';
@@ -13,7 +12,6 @@ import Footer from '@/components/Footer/Footer';
 export default function Home() {
   return (
     <main className="overflow-hidden bg-[#fbfaf7]">
-      <Navbar />
       <HeroBanner />
       <FeaturedCategories />
       <CustomOrderBanner />
@@ -23,7 +21,6 @@ export default function Home() {
       <Testimonials />
       <InstagramGallery />
       <CallToAction />
-      <Footer />
     </main>
   );
 }

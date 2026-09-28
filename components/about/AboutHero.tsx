@@ -44,7 +44,7 @@ export default function AboutHero() {
 
             <div className="flex items-center gap-2 text-sm text-white/60">
               <MapPin size={16} className="text-[#C9A227]" />
-              Indira Park, New Delhi
+              Indra Park, New Delhi
             </div>
           </div>
         </div>
@@ -55,7 +55,7 @@ export default function AboutHero() {
           <div className="relative overflow-hidden rounded-[1.75rem] bg-white/5 p-3">
             <div className="relative aspect-[4/3] overflow-hidden rounded-[1.25rem] bg-[#102846]">
               <Image
-                src="/shop-exterior.jpg"
+                src="/brands/vc exterior.png"
                 alt="Vaishnavi Collections store"
                 fill
                 priority
@@ -71,7 +71,7 @@ export default function AboutHero() {
                     Our Store
                   </p>
                   <p className="mt-1 text-sm font-medium text-white">
-                    Indira Park · New Delhi
+                    Indra Park · New Delhi
                   </p>
                 </div>
 

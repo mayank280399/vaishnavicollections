@@ -23,7 +23,7 @@ export default function AboutNewBeginning() {
               <div className="mx-auto mt-7 h-px w-20 bg-[#C9A227]" />
 
               <p className="mt-6 text-sm text-white/60">
-                Indira Park · New Delhi
+                Indra Park · New Delhi
               </p>
             </div>
           </div>
@@ -42,7 +42,7 @@ export default function AboutNewBeginning() {
           <p className="mt-6 text-base leading-8 text-[#0B1F3A]/65 sm:text-lg">
             In February 2026, we opened our physical shop at{" "}
             <strong className="font-semibold text-[#0B1F3A]">
-              Indira Park
+              Indra Park
             </strong>
             .
           </p>
@@ -64,7 +64,7 @@ export default function AboutNewBeginning() {
 
           <div className="mt-8 inline-flex items-center gap-2 rounded-full border border-[#0B1F3A]/10 bg-[#F8F6F1] px-4 py-2.5 text-sm text-[#0B1F3A]/70">
             <MapPin size={16} className="text-[#C9A227]" />
-            Indira Park, New Delhi
+            Indra Park, New Delhi
           </div>
         </div>
       </div>

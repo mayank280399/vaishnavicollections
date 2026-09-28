@@ -1,10 +1,9 @@
-import Navbar from "@/components/Navbar/Navbar";
-import Footer from "@/components/Footer/Footer";
+
 import Link from "next/link";
 
 export default function PrivacyPolicyPage() {
     return (
-        <><Navbar />
+        
             <main className="min-h-screen bg-slate-50">
                 <div className="mx-auto max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
                     <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10">
@@ -209,6 +208,6 @@ export default function PrivacyPolicyPage() {
                     </div>
                 </div>
             </main>
-            <Footer /></>
+           
     );
 }
