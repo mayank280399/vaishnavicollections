@@ -32,6 +32,7 @@ export type Product = {
   category_id: string | null;
   sku: string | null;
   name: string;
+  product_title: string | null;
   short_description: string | null;
   selling_price: number | null;
   cost_price: number | null;
@@ -220,6 +221,10 @@ export function ProductsTable({
           const matchesSearch =
             !query ||
             product.name
+              .toLowerCase()
+              .includes(query) ||
+            (product.product_title ??
+              "")
               .toLowerCase()
               .includes(query) ||
             (product.sku ?? "")
@@ -728,6 +733,10 @@ export function ProductsTable({
                           0
                       );
 
+                    const customerTitle =
+                      product.product_title?.trim() ||
+                      product.name;
+
                     return (
                       <tr
                         key={
@@ -745,7 +754,7 @@ export function ProductsTable({
                                     product.primary_image_url
                                   }
                                   alt={
-                                    product.name
+                                    customerTitle
                                   }
                                   className="h-full w-full object-cover"
                                 />
@@ -759,9 +768,21 @@ export function ProductsTable({
                             <div className="min-w-0">
                               <div className="font-medium">
                                 {
-                                  product.name
+                                  customerTitle
                                 }
                               </div>
+
+                              {product.product_title &&
+                                product.product_title.trim() &&
+                                product.product_title.trim() !==
+                                  product.name && (
+                                  <div className="mt-0.5 max-w-[260px] truncate text-xs text-muted-foreground">
+                                    Internal name:{" "}
+                                    {
+                                      product.name
+                                    }
+                                  </div>
+                                )}
 
                               {product.short_description && (
                                 <div className="mt-1 max-w-[240px] truncate text-xs text-muted-foreground">
@@ -994,6 +1015,10 @@ function DeleteProductDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const customerTitle =
+    product.product_title?.trim() ||
+    product.name;
+
   return (
     <div
       className={
@@ -1016,7 +1041,7 @@ function DeleteProductDialog({
 
           <div className="rounded-lg border border-destructive/20 bg-destructive/5 p-4">
             <p className="font-medium">
-              {product.name}
+              {customerTitle}
             </p>
 
             {product.sku && (

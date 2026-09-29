@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -45,6 +46,7 @@ type Product = {
   category_id: string | null;
   sku: string | null;
   name: string;
+  product_title: string | null;
   short_description: string | null;
   selling_price: number | null;
   cost_price: number | null;
@@ -123,6 +125,9 @@ export function ProductDialog({
   const [name, setName] =
     useState("");
 
+  const [productTitle, setProductTitle] =
+    useState("");
+
   const [categoryId, setCategoryId] =
     useState("");
 
@@ -193,6 +198,7 @@ export function ProductDialog({
 
   function resetForm() {
     setName("");
+    setProductTitle("");
     setCategoryId("");
     setParentCategoryId("");
     setSku("");
@@ -313,6 +319,10 @@ export function ProductDialog({
 
     setName(
       product.name ?? ""
+    );
+
+    setProductTitle(
+      product.product_title ?? ""
     );
 
     setCategoryId(
@@ -869,6 +879,9 @@ export function ProductDialog({
     const trimmedName =
       name.trim();
 
+    const trimmedProductTitle =
+      productTitle.trim();
+
     if (!trimmedName) {
       setError(
         "Product name is required."
@@ -945,6 +958,10 @@ export function ProductDialog({
     try {
       const payload = {
         name: trimmedName,
+
+        product_title:
+          trimmedProductTitle ||
+          null,
 
         slug:
           generateSlug(
@@ -1126,6 +1143,7 @@ export function ProductDialog({
               </p>
             </div>
 
+            {/* PRODUCT NAME */}
             <div className="space-y-2">
               <Label htmlFor="product-name">
                 Product Name *
@@ -1139,8 +1157,38 @@ export function ProductDialog({
                     event.target.value
                   )
                 }
-                placeholder="e.g. Designer Laddu Gopal Poshak"
+                placeholder="e.g. Pink Satin Scrunchie"
               />
+
+              <p className="text-xs text-muted-foreground">
+                Internal product name used for your catalogue and
+                backend.
+              </p>
+            </div>
+
+            {/* CUSTOMER-FACING PRODUCT TITLE */}
+            <div className="space-y-2">
+              <Label htmlFor="product-title">
+                Product Title
+              </Label>
+
+              <Input
+                id="product-title"
+                value={
+                  productTitle
+                }
+                onChange={(event) =>
+                  setProductTitle(
+                    event.target.value
+                  )
+                }
+                placeholder="e.g. Pink Satin Scrunchie – Soft Hair Tie for Women & Girls"
+              />
+
+              <p className="text-xs text-muted-foreground">
+                Customer-facing title shown on your online store.
+                Leave blank to use the Product Name.
+              </p>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">

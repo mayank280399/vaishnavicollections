@@ -52,7 +52,10 @@ export default async function FeaturedCategories() {
   }
 
   return (
-    <section className="bg-[#fbfaf7] px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+    <section
+      aria-labelledby="featured-collections-heading"
+      className="bg-[#fbfaf7] px-4 py-10 sm:px-6 sm:py-14 lg:px-8"
+    >
       <div className="mx-auto max-w-6xl">
         {/* Section Header */}
         <header className="mb-7 text-center sm:mb-9">
@@ -60,7 +63,10 @@ export default async function FeaturedCategories() {
             Shop by category
           </p>
 
-          <h2 className="mt-1.5 font-serif text-2xl font-semibold tracking-tight text-[#10233e] sm:text-3xl lg:text-4xl">
+          <h2
+            id="featured-collections-heading"
+            className="mt-1.5 font-serif text-2xl font-semibold tracking-tight text-[#10233e] sm:text-3xl lg:text-4xl"
+          >
             Explore Our Collections
           </h2>
 
@@ -71,45 +77,46 @@ export default async function FeaturedCategories() {
 
         {/* Categories */}
         <div className="flex flex-wrap justify-center gap-3 sm:gap-4">
-  {categories.map((category) => (
-    <Link
-      key={category.id}
-      href={`/products?category=${encodeURIComponent(category.slug)}`}
-      className="group w-[calc(50%-0.375rem)] overflow-hidden rounded-2xl border border-[#e9e1d4] bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#d7bd7b] hover:shadow-lg sm:w-[calc(33.333%-0.667rem)] lg:w-[calc(20%-0.8rem)]"
-    >
-      {/* Image */}
-      <div className="relative aspect-square overflow-hidden bg-[#f5f0e8]">
-        <Image
-          src={category.image_url!}
-          alt={category.name}
-          fill
-          sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 20vw"
-          className="object-cover transition-transform duration-500 group-hover:scale-105"
-        />
+          {categories.map((category) => (
+            <Link
+              key={category.id}
+              href={`/collections/${encodeURIComponent(category.slug)}`}
+              aria-label={`Explore ${category.name}`}
+              className="group w-[calc(50%-0.375rem)] overflow-hidden rounded-2xl border border-[#e9e1d4] bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#d7bd7b] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#b18425]/40 focus:ring-offset-2 sm:w-[calc(33.333%-0.667rem)] lg:w-[calc(20%-0.8rem)]"
+            >
+              {/* Image */}
+              <div className="relative aspect-square overflow-hidden bg-[#f5f0e8]">
+                <Image
+                  src={category.image_url!}
+                  alt={`${category.name} collection at Vaishnavi Collections`}
+                  fill
+                  sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 20vw"
+                  className="object-cover transition-transform duration-500 group-hover:scale-105"
+                />
 
-        <div className="absolute inset-0 bg-gradient-to-t from-[#10233e]/20 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
-      </div>
+                <div className="absolute inset-0 bg-gradient-to-t from-[#10233e]/20 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+              </div>
 
-      {/* Content */}
-      <div className="flex min-h-[82px] flex-col items-center justify-center px-2.5 py-3 text-center">
-        <h3 className="text-xs font-semibold leading-4 text-[#10233e] sm:text-sm">
-          {category.name}
-        </h3>
+              {/* Content */}
+              <div className="flex min-h-[82px] flex-col items-center justify-center px-2.5 py-3 text-center">
+                <h3 className="text-xs font-semibold leading-4 text-[#10233e] sm:text-sm">
+                  {category.name}
+                </h3>
 
-        {category.description && (
-          <p className="mt-0.5 text-[10px] leading-4 text-slate-500 sm:text-xs">
-            {category.description}
-          </p>
-        )}
+                {category.description && (
+                  <p className="mt-0.5 line-clamp-2 text-[10px] leading-4 text-slate-500 sm:text-xs">
+                    {category.description}
+                  </p>
+                )}
 
-        <div className="mt-1.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-[#b18425] transition-transform duration-300 group-hover:translate-x-0.5">
-          Explore
-          <ArrowRight size={12} strokeWidth={2.2} />
+                <div className="mt-1.5 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-[#b18425] transition-transform duration-300 group-hover:translate-x-0.5">
+                  Explore
+                  <ArrowRight size={12} strokeWidth={2.2} />
+                </div>
+              </div>
+            </Link>
+          ))}
         </div>
-      </div>
-    </Link>
-  ))}
-</div>
       </div>
     </section>
   );

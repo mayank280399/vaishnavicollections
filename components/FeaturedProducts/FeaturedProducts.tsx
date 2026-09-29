@@ -37,6 +37,7 @@ async function getFeaturedProducts(): Promise<DbProduct[]> {
     .select(`
       id,
       name,
+      product_title,
       slug,
       selling_price,
       online_price,
@@ -99,6 +100,7 @@ export default async function FeaturedProducts() {
 
       return {
         id: product.id,
+        slug:product.slug,
         name: product.name,
         image: primaryImage.image_url,
         price,
@@ -116,6 +118,7 @@ export default async function FeaturedProducts() {
   if (!featured.length) {
     return null;
   }
+  console.log("Featured Products",featured);
 
   return <FeaturedProductsClient products={featured} />;
 }
