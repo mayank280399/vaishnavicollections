@@ -55,7 +55,7 @@ export default function AboutHero() {
           <div className="relative overflow-hidden rounded-[1.75rem] bg-white/5 p-3">
             <div className="relative aspect-[4/3] overflow-hidden rounded-[1.25rem] bg-[#102846]">
               <Image
-                src="/brands/vc exterior.png"
+                src="/brands/vc-exterior.png"
                 alt="Vaishnavi Collections store"
                 fill
                 priority
