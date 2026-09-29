@@ -43,16 +43,20 @@ export default function CollectionProductGrid({
   }
 
   return (
-    <div className="grid grid-cols-2 gap-4 sm:gap-5 lg:grid-cols-3 xl:grid-cols-4">
-      <AnimatePresence mode="popLayout">
-        {products.map((product, index) => (
-          <ProductCard
-            key={product.id}
-            product={product}
-            index={index % 8}
-          />
-        ))}
-      </AnimatePresence>
-    </div>
+   <div className="flex flex-wrap justify-center gap-4 sm:gap-5">
+  <AnimatePresence mode="popLayout">
+    {products.map((product, index) => (
+      <div
+        key={product.id}
+        className="w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)]"
+      >
+        <ProductCard
+          product={product}
+          index={index % 8}
+        />
+      </div>
+    ))}
+  </AnimatePresence>
+</div>
   );
 }

@@ -6,6 +6,8 @@ import ProductGallery from "@/components/ProductGallery/ProductGallery";
 import type { StorefrontProduct } from "@/components/ProductCard/ProductCard";
 import SimilarProducts from "@/components/SimilarProducts/page";
 import RelatedProducts from "@/components/RelatedProducts/page";
+import Navbar from "@/components/Navbar/Navbar";
+import Footer from "@/components/Footer/Footer";
 
 interface ProductImage {
   id: string;
@@ -473,11 +475,11 @@ export default async function ProductPage({ params }: PageProps) {
   ======================================================= */
 
   return (
-    <main className="min-w-0 bg-white">
+    <><Navbar /><main className="min-w-0 bg-white">
       <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
         {/* =================================================
-            BREADCRUMBS
-        ================================================= */}
+        BREADCRUMBS
+    ================================================= */}
 
         <nav
           aria-label="Breadcrumb"
@@ -524,34 +526,31 @@ export default async function ProductPage({ params }: PageProps) {
         </nav>
 
         {/* =================================================
-            PRODUCT
-        ================================================= */}
+        PRODUCT
+    ================================================= */}
 
         <div className="grid min-w-0 grid-cols-1 gap-8 lg:grid-cols-2 lg:gap-12">
           {/* ===============================================
-              GALLERY
-          ================================================ */}
+        GALLERY
+    ================================================ */}
 
           <div className="min-w-0">
             <ProductGallery
               images={images}
-              productName={product.product_title || product.name}
-            />
+              productName={product.product_title || product.name} />
           </div>
 
           {/* ===============================================
-              PRODUCT INFORMATION
-          ================================================ */}
+        PRODUCT INFORMATION
+    ================================================ */}
 
           <div className="min-w-0">
             {/* Category */}
             {category && (
               <Link
-                href={
-                  parentCategory && category.id !== parentCategory.id
-                    ? `/collections/${parentCategory.slug}/${category.slug}`
-                    : `/collections/${category.slug}`
-                }
+                href={parentCategory && category.id !== parentCategory.id
+                  ? `/collections/${parentCategory.slug}/${category.slug}`
+                  : `/collections/${category.slug}`}
                 className="text-xs font-medium uppercase tracking-[0.15em] text-[#b18b17] transition hover:text-[#8f7110]"
               >
                 {category.name}
@@ -606,9 +605,7 @@ export default async function ProductPage({ params }: PageProps) {
 
               <p className="mt-2 text-sm leading-6 text-slate-600">
                 {product.description ||
-                  `Discover this beautiful ${
-                    product.product_title || product.name
-                  } from Vaishnavi Collections. Each product is carefully selected for quality, style, and everyday use.`}
+                  `Discover this beautiful ${product.product_title || product.name} from Vaishnavi Collections. Each product is carefully selected for quality, style, and everyday use.`}
               </p>
             </div>
 
@@ -623,17 +620,16 @@ export default async function ProductPage({ params }: PageProps) {
             )}
 
             {/* =============================================
-                PRODUCT ACTIONS
-            ============================================== */}
+        PRODUCT ACTIONS
+    ============================================== */}
 
             <ProductActions
               disabled={!isInStock}
-              productId={product.id}
-            />
+              productId={product.id} />
 
             {/* =============================================
-                TRUST INFO
-            ============================================== */}
+        TRUST INFO
+    ============================================== */}
 
             <div className="mt-8 grid grid-cols-1 gap-3 border-t border-slate-200 pt-6 sm:grid-cols-3">
               <div className="flex items-start gap-2.5">
@@ -679,18 +675,18 @@ export default async function ProductPage({ params }: PageProps) {
         </div>
 
         {/* =================================================
-            SIMILAR PRODUCTS
-        ================================================= */}
+        SIMILAR PRODUCTS
+    ================================================= */}
 
         <SimilarProducts products={similarProducts} />
 
         {/* =================================================
-            RELATED PRODUCTS
-        ================================================= */}
+        RELATED PRODUCTS
+    ================================================= */}
 
         <RelatedProducts products={relatedProducts} />
       </div>
-    </main>
+    </main> <Footer /></>
   );
 }
 

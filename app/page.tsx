@@ -8,10 +8,11 @@ import Testimonials from '@/components/Testimonials/Testimonials';
 import InstagramGallery from '@/components/InstagramGallery/InstagramGallery';
 import CallToAction from '@/components/CallToAction/CallToAction';
 import Footer from '@/components/Footer/Footer';
+import Navbar from '@/components/Navbar/Navbar';
 
 export default function Home() {
   return (
-    <main className="overflow-hidden bg-[#fbfaf7]">
+    <><Navbar /><main className="overflow-hidden bg-[#fbfaf7]">
       <HeroBanner />
       <FeaturedCategories />
       <CustomOrderBanner />
@@ -21,6 +22,6 @@ export default function Home() {
       <Testimonials />
       <InstagramGallery />
       <CallToAction />
-    </main>
+    </main><Footer/></>
   );
 }

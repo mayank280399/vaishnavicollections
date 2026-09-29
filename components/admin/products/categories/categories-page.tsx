@@ -67,6 +67,7 @@ export function CategoriesPage() {
               slug,
               description,
               active,
+              show_subcategory,
               category_type,
               parent_id,
               is_top_collection,
@@ -118,6 +119,19 @@ export function CategoriesPage() {
           categoriesResult.data ?? []
         ).map((category) => ({
           ...category,
+
+          /*
+           * Existing rows are expected to have
+           * show_subcategory = true because the
+           * database column has a default.
+           *
+           * The fallback also keeps the UI safe
+           * if a null/undefined value is returned.
+           */
+          show_subcategory:
+            category.show_subcategory ??
+            true,
+
           product_count:
             productCounts.get(
               category.id
@@ -352,16 +366,33 @@ export function CategoriesPage() {
     try {
       const categoryData = {
         name: formData.name,
+
         slug: formData.slug,
+
         description:
           formData.description ||
           null,
+
         category_type:
           formData.category_type,
+
         parent_id:
           formData.parent_id,
+
         active:
           formData.active,
+
+        /*
+         * Show Subcategory
+         *
+         * This only has a meaningful effect
+         * for subcategories. Top-level categories
+         * are always stored as true.
+         */
+        show_subcategory:
+          formData.parent_id
+            ? formData.show_subcategory
+            : true,
 
         /*
          * Top Collection fields

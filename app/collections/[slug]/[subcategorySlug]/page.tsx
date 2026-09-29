@@ -13,6 +13,8 @@ import { createClient } from "@/lib/supabase/server";
 import ProductCard, {
   type StorefrontProduct,
 } from "@/components/ProductCard/ProductCard";
+import Navbar from "@/components/Navbar/Navbar";
+import Footer from "@/components/Footer/Footer";
 
 type PageProps = {
   params: Promise<{
@@ -108,6 +110,7 @@ async function getSubcategory(
     .eq("slug", subcategorySlug)
     .eq("parent_id", parentId)
     .eq("category_type", "PRODUCT")
+    .eq("show_subcategory",true)
     .eq("active", true)
     .maybeSingle();
 
@@ -378,10 +381,10 @@ export default async function SubcategoryPage({
     );
 
   return (
-    <main className="min-h-screen bg-[#F8F7F4]">
+    <><Navbar /><main className="min-h-screen bg-[#F8F7F4]">
       {/* ===================================================
-          BREADCRUMB
-      =================================================== */}
+        BREADCRUMB
+    =================================================== */}
 
       <nav
         aria-label="Breadcrumb"
@@ -414,8 +417,8 @@ export default async function SubcategoryPage({
       </nav>
 
       {/* ===================================================
-          HERO
-      =================================================== */}
+        HERO
+    =================================================== */}
 
       <section className="bg-[#10233e]">
         <div className="mx-auto grid max-w-7xl lg:grid-cols-2">
@@ -454,8 +457,7 @@ export default async function SubcategoryPage({
                 fill
                 priority
                 sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover"
-              />
+                className="object-cover" />
 
               <div className="absolute inset-0 bg-gradient-to-r from-[#10233e] via-transparent to-transparent" />
             </div>
@@ -464,8 +466,8 @@ export default async function SubcategoryPage({
       </section>
 
       {/* ===================================================
-          PRODUCTS
-      =================================================== */}
+        PRODUCTS
+    =================================================== */}
 
       <section className="px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
         <div className="mx-auto max-w-7xl">
@@ -487,26 +489,24 @@ export default async function SubcategoryPage({
           </div>
 
           {products.length > 0 ? (
-           <div className="flex flex-wrap justify-center gap-4 sm:gap-5">
-  {products.map((product, index) => (
-    <div
-      key={product.id}
-      className="w-full max-w-[220px] sm:w-[220px] lg:w-[240px]"
-    >
-      <ProductCard
-        product={product}
-        index={index}
-      />
-    </div>
-  ))}
-</div>
+            <div className="flex flex-wrap justify-center gap-4 sm:gap-5">
+              {products.map((product, index) => (
+                <div
+                  key={product.id}
+                  className="w-full max-w-[220px] sm:w-[220px] lg:w-[240px]"
+                >
+                  <ProductCard
+                    product={product}
+                    index={index} />
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="flex min-h-[300px] items-center justify-center rounded-2xl border border-[#10233e]/10 bg-white px-6 text-center">
               <div>
                 <ShoppingBag
                   size={32}
-                  className="mx-auto text-[#b18425]"
-                />
+                  className="mx-auto text-[#b18425]" />
 
                 <h3 className="mt-4 text-lg font-semibold text-[#10233e]">
                   Products coming soon
@@ -528,6 +528,6 @@ export default async function SubcategoryPage({
           )}
         </div>
       </section>
-    </main>
+    </main> <Footer /></>
   );
 }

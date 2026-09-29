@@ -63,6 +63,9 @@ export function CategoryDialog({
   const [active, setActive] =
     useState(true);
 
+  const [showSubcategory, setShowSubcategory] =
+    useState(true);
+
   const [isTopCollection, setIsTopCollection] =
     useState(false);
 
@@ -138,6 +141,15 @@ export function CategoryDialog({
 
       setActive(category.active);
 
+      /*
+       * Existing categories created before
+       * show_subcategory was added will default
+       * to true.
+       */
+      setShowSubcategory(
+        category.show_subcategory ?? true
+      );
+
       setIsTopCollection(
         category.is_top_collection ?? false
       );
@@ -167,6 +179,12 @@ export function CategoryDialog({
       );
 
       setActive(true);
+
+      /*
+       * New subcategories are visible by
+       * default unless the user turns this off.
+       */
+      setShowSubcategory(true);
 
       setIsTopCollection(false);
 
@@ -214,7 +232,9 @@ export function CategoryDialog({
      * Validate image type.
      */
     if (!file.type.startsWith("image/")) {
-      alert("Please select a valid image file.");
+      alert(
+        "Please select a valid image file."
+      );
       event.target.value = "";
       return;
     }
@@ -314,6 +334,19 @@ export function CategoryDialog({
         ? false
         : isTopCollection;
 
+    /*
+     * Show Subcategory only applies to
+     * subcategories.
+     *
+     * Top-level categories always get true
+     * because this field controls subcategory
+     * visibility, not category visibility.
+     */
+    const finalShowSubcategory =
+      parentId
+        ? showSubcategory
+        : true;
+
     setSaving(true);
 
     try {
@@ -340,6 +373,8 @@ export function CategoryDialog({
         parent_id:
           parentId || null,
         active,
+        show_subcategory:
+          finalShowSubcategory,
         is_top_collection:
           finalIsTopCollection,
         image_url:
@@ -734,6 +769,40 @@ export function CategoryDialog({
               </div>
             </label>
           </div>
+
+          {/* Show Subcategory */}
+          {isSubcategory && (
+            <div className="rounded-xl border p-4">
+              <label
+                htmlFor="category-show-subcategory"
+                className="flex cursor-pointer items-start gap-3"
+              >
+                <input
+                  id="category-show-subcategory"
+                  type="checkbox"
+                  checked={showSubcategory}
+                  onChange={(event) =>
+                    setShowSubcategory(
+                      event.target.checked
+                    )
+                  }
+                  disabled={saving}
+                  className="mt-0.5 h-4 w-4 rounded border"
+                />
+
+                <div>
+                  <p className="text-sm font-medium">
+                    Show Subcategory
+                  </p>
+
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Show this subcategory on the
+                    storefront category page.
+                  </p>
+                </div>
+              </label>
+            </div>
+          )}
 
           {/* Footer */}
           <DialogFooter className="gap-2 sm:gap-0">

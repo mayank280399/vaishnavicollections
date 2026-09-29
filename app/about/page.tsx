@@ -27,20 +27,19 @@ export default async function AboutPage() {
     .limit(5);
 
   return (
-  
-      <main className="overflow-hidden bg-[#F8F6F1] text-[#0B1F3A]">
-        <AboutHero />
-        <AboutStats />
-        <AboutJourney />
-        <AboutHomeBeginning />
-        <AboutNewBeginning />
-        <AboutGrowingWithCustomers categories={categories ?? []} />
-        <AboutMadeByUs />n
-        <AboutValues />
-        <AboutMoreThanStore />
-        <AboutCTA />
+  <><Navbar /><main className="overflow-hidden bg-[#F8F6F1] text-[#0B1F3A]">
+      <AboutHero />
+      <AboutStats />
+      <AboutJourney />
+      <AboutHomeBeginning />
+      <AboutNewBeginning />
+      <AboutGrowingWithCustomers categories={categories ?? []} />
+      <AboutMadeByUs />n
+      <AboutValues />
+      <AboutMoreThanStore />
+      <AboutCTA />
 
-      </main>
+    </main><Footer /></>
 
   );
 }

@@ -9,14 +9,12 @@ import {
 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
+import CollectionSubcategoryCard, { CollectionSubcategory } from "@/components/collection/CollectionSubcategoryCard";
+import CollectionProductGrid, { CollectionProduct } from "@/components/collection/CollectionProductGrid";
+import Footer from "@/components/Footer/Footer";
+import Navbar from "@/components/Navbar/Navbar";
 
-import CollectionProductGrid, {
-  type CollectionProduct,
-} from "@/components/Collection/CollectionProductGrid";
 
-import CollectionSubcategoryCard, {
-  type CollectionSubcategory,
-} from "@/components/Collection/CollectionSubcategoryCard";
 
 type PageProps = {
   params: Promise<{
@@ -114,6 +112,7 @@ async function getSubcategories(
     .eq("parent_id", parentId)
     .eq("category_type", "PRODUCT")
     .eq("active", true)
+      .eq("show_subcategory", true)
     .order("sort_order", {
       ascending: true,
       nullsFirst: false,
@@ -359,18 +358,17 @@ export default async function ParentCollectionPage({
   };
 
   return (
-    <main className="w-full overflow-hidden bg-[#F8F7F4]">
+    <><Navbar /><main className="w-full overflow-hidden bg-[#F8F7F4]">
       {/* Structured Data */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(breadcrumbSchema),
-        }}
-      />
+        }} />
 
       {/* =====================================================
-          BREADCRUMB
-      ====================================================== */}
+        BREADCRUMB
+    ====================================================== */}
       <nav
         aria-label="Breadcrumb"
         className="border-b border-[#1B263B]/10 bg-white px-4 py-3 sm:px-6 lg:px-8"
@@ -393,8 +391,8 @@ export default async function ParentCollectionPage({
       </nav>
 
       {/* =====================================================
-          HERO
-      ====================================================== */}
+        HERO
+    ====================================================== */}
       <section className="bg-[#10233e]">
         <div className="mx-auto grid max-w-7xl lg:grid-cols-[1.1fr_0.9fr]">
           <div className="flex items-center px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
@@ -432,8 +430,7 @@ export default async function ParentCollectionPage({
                 fill
                 priority
                 sizes="(max-width: 1024px) 100vw, 45vw"
-                className="object-cover"
-              />
+                className="object-cover" />
 
               <div className="absolute inset-0 bg-gradient-to-r from-[#10233e] via-transparent to-transparent lg:from-[#10233e]/60" />
             </div>
@@ -442,8 +439,8 @@ export default async function ParentCollectionPage({
       </section>
 
       {/* =====================================================
-          SUBCATEGORIES
-      ====================================================== */}
+        SUBCATEGORIES
+    ====================================================== */}
       {subcategories.length > 0 && (
         <section
           aria-labelledby="collection-categories-heading"
@@ -468,13 +465,16 @@ export default async function ParentCollectionPage({
               </p>
             </header>
 
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="flex flex-wrap justify-center gap-4">
               {subcategories.map((subcategory) => (
-                <CollectionSubcategoryCard
+                <div
                   key={subcategory.id}
-                  category={subcategory}
-                  parentSlug={category.slug}
-                />
+                  className="w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)]"
+                >
+                  <CollectionSubcategoryCard
+                    category={subcategory}
+                    parentSlug={category.slug} />
+                </div>
               ))}
             </div>
           </div>
@@ -482,8 +482,8 @@ export default async function ParentCollectionPage({
       )}
 
       {/* =====================================================
-          ALL PRODUCTS
-      ====================================================== */}
+        ALL PRODUCTS
+    ====================================================== */}
       <section
         aria-labelledby="collection-products-heading"
         className="px-4 pb-12 pt-3 sm:px-6 sm:pb-16 lg:px-8"
@@ -510,10 +510,9 @@ export default async function ParentCollectionPage({
                 : "items"}
             </span>
           </div>
-
           <CollectionProductGrid products={products} />
         </div>
       </section>
-    </main>
+    </main><Footer /></>
   );
 }
