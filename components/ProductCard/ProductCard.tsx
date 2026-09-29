@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Heart, ShoppingBag, Star } from "lucide-react";
+import { Heart, ShoppingBag } from "lucide-react";
 import { useState } from "react";
 
 export interface StorefrontProduct {
   id: string;
   name: string;
+   slug: string;
+  product_title?: string | null;
   image: string;
   price: number;
   originalPrice?: number | null;
@@ -35,6 +37,10 @@ export default function ProductCard({
 }: ProductCardProps) {
   const [wishlisted, setWishlisted] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
+
+  // Customer-facing title.
+  // Falls back to internal product name for older products.
+  const displayTitle = product.product_title?.trim() || product.name;
 
   const hasDiscount =
     typeof product.originalPrice === "number" &&
@@ -74,15 +80,15 @@ export default function ProductCard({
     >
       {/* Product Link */}
       <Link
-        href={`/products/${product.id}`}
+        href={`/products/${product.slug}`}
         className="block"
-        aria-label={`View ${product.name}`}
+        aria-label={`View ${displayTitle}`}
       >
         {/* Image */}
         <div className="relative aspect-[1.2] overflow-hidden bg-[#f4f0e9] sm:aspect-[1.25]">
           <img
             src={product.image}
-            alt={product.name}
+            alt={displayTitle}
             loading={index < 4 ? "eager" : "lazy"}
             className={`h-full w-full object-cover transition duration-500 group-hover:scale-105 ${
               isOutOfStock ? "opacity-70" : ""
@@ -124,8 +130,8 @@ export default function ProductCard({
             }}
             aria-label={
               wishlisted
-                ? `Remove ${product.name} from wishlist`
-                : `Add ${product.name} to wishlist`
+                ? `Remove ${displayTitle} from wishlist`
+                : `Add ${displayTitle} to wishlist`
             }
             className={`absolute right-2 top-2 grid size-8 place-items-center rounded-full bg-white/95 shadow-sm transition hover:bg-white sm:right-3 sm:top-3 ${
               wishlisted ? "text-rose-500" : "text-[#10233e]"
@@ -165,9 +171,9 @@ export default function ProductCard({
             </div>
           )}
 
-          {/* Product Name */}
+          {/* Customer-Facing Product Title */}
           <h3 className="line-clamp-2 min-h-8 text-xs font-semibold leading-4 text-[#10233e] sm:text-sm">
-            {product.name}
+            {displayTitle}
           </h3>
 
           {/* Price */}
