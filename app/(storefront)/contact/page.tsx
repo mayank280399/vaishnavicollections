@@ -5,8 +5,6 @@ import ContactHelp from "@/components/contact/ContactHelp";
 import ContactCTA from "@/components/contact/ContactCTA";
 
 import { createClient } from "@/lib/supabase/server";
-import Navbar from "@/components/Navbar/Navbar";
-import Footer from "@/components/Footer/Footer";
 
 
 export default async function ContactPage() {
@@ -88,7 +86,7 @@ console.log("Settings",settings);
   };
 
   return (
-    <><Navbar /><main className="overflow-hidden bg-[#F8F6F1] text-[#0B1F3A]">
+    <main className="overflow-hidden bg-[#F8F6F1] text-[#0B1F3A]">
       <ContactHero data={contactData} />
 
       <ContactChannels data={contactData} />
@@ -100,6 +98,6 @@ console.log("Settings",settings);
       )}
 
       <ContactCTA data={contactData} />
-    </main><Footer /></>
+    </main>
   );
 }

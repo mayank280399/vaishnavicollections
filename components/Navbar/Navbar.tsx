@@ -18,6 +18,7 @@ import Image from "next/image";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/client";
+import { useShopping } from "@/context/ShoppingContext";
 
 const supabase = createClient();
 
@@ -60,14 +61,10 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-
+  const { cartCount, wishlistCount } = useShopping();
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
-
-  // Temporary counts
-  const cartCount = 3;
-  const wishlistCount = 5;
 
   useEffect(() => {
     const handleScroll = () => {

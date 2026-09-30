@@ -11,8 +11,7 @@ import {
 import { createClient } from "@/lib/supabase/server";
 import CollectionSubcategoryCard, { CollectionSubcategory } from "@/components/collection/CollectionSubcategoryCard";
 import CollectionProductGrid, { CollectionProduct } from "@/components/collection/CollectionProductGrid";
-import Footer from "@/components/Footer/Footer";
-import Navbar from "@/components/Navbar/Navbar";
+
 
 
 
@@ -358,7 +357,7 @@ export default async function ParentCollectionPage({
   };
 
   return (
-    <><Navbar /><main className="w-full overflow-hidden bg-[#F8F7F4]">
+    <main className="w-full overflow-hidden bg-[#F8F7F4]">
       {/* Structured Data */}
       <script
         type="application/ld+json"
@@ -513,6 +512,6 @@ export default async function ParentCollectionPage({
           <CollectionProductGrid products={products} />
         </div>
       </section>
-    </main><Footer /></>
+    </main>
   );
 }

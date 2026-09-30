@@ -13,8 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 import ProductCard, {
   type StorefrontProduct,
 } from "@/components/ProductCard/ProductCard";
-import Navbar from "@/components/Navbar/Navbar";
-import Footer from "@/components/Footer/Footer";
+
 
 type PageProps = {
   params: Promise<{
@@ -381,7 +380,7 @@ export default async function SubcategoryPage({
     );
 
   return (
-    <><Navbar /><main className="min-h-screen bg-[#F8F7F4]">
+    <main className="min-h-screen bg-[#F8F7F4]">
       {/* ===================================================
         BREADCRUMB
     =================================================== */}
@@ -528,6 +527,6 @@ export default async function SubcategoryPage({
           )}
         </div>
       </section>
-    </main> <Footer /></>
+    </main>
   );
 }
