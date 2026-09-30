@@ -8,8 +8,6 @@ import AboutMoreThanStore from "@/components/about/AboutMoreThanStore";
 import AboutNewBeginning from "@/components/about/AboutNewBeginning";
 import AboutStats from "@/components/about/AboutStats";
 import AboutValues from "@/components/about/AboutValues";
-import Footer from "@/components/Footer/Footer";
-import Navbar from "@/components/Navbar/Navbar";
 import { createClient } from "@/lib/supabase/server";
 
 export default async function AboutPage() {
@@ -27,7 +25,7 @@ export default async function AboutPage() {
     .limit(5);
 
   return (
-  <><Navbar /><main className="overflow-hidden bg-[#F8F6F1] text-[#0B1F3A]">
+  <main className="overflow-hidden bg-[#F8F6F1] text-[#0B1F3A]">
       <AboutHero />
       <AboutStats />
       <AboutJourney />
@@ -39,7 +37,7 @@ export default async function AboutPage() {
       <AboutMoreThanStore />
       <AboutCTA />
 
-    </main><Footer /></>
+    </main>
 
   );
 }
