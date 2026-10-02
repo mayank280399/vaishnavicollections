@@ -421,10 +421,10 @@ export default async function Footer() {
                 </Link>
 
                 <Link
-                  href="/shipping"
+                  href="/shipping-policy"
                   className="text-sm text-white/55 transition-colors duration-200 hover:text-[#D4AF37]"
                 >
-                  Shipping Information
+                  Shipping Policy
                 </Link>
 
                 <Link
@@ -433,7 +433,10 @@ export default async function Footer() {
                 >
                   Terms of Service
                 </Link>
-
+                <Link href="/refund-returns"
+                  className="text-sm text-white/55 transition-colors duration-200 hover:text-[#D4AF37]"
+                > Refunds & Returns
+                </Link>
                 <Link
                   href="/privacy-policy"
                   className="text-sm text-white/55 transition-colors duration-200 hover:text-[#D4AF37]"

@@ -19,6 +19,7 @@ import {
   User,
   ShieldCheck,
   ChevronUp,
+  ShoppingBag,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -48,6 +49,11 @@ const navigation = [
     name: "Purchases",
     href: "/admin/purchases",
     icon: ShoppingCart,
+  },
+  {
+    name:"Orders",
+    href:"/admin/orders",
+    icon:ShoppingBag 
   },
   {
     name: "Customers",
