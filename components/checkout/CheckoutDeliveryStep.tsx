@@ -3,7 +3,7 @@
 import React from "react";
 import { ArrowLeft, MapPin } from "lucide-react";
 
-import { FormState } from "../types";
+import type { FormState } from "@/lib/checkout/types";
 
 import {
   Field,

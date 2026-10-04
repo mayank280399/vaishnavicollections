@@ -10,9 +10,11 @@ import {
   ShoppingBag,
 } from "lucide-react";
 
-import { CheckoutItem } from "../types";
+import type { CheckoutItem } from "@/lib/checkout/types";
 
 import { TrustItem } from "./CheckoutUI";
+
+type CheckoutPaymentMethod = "cod" | "razorpay";
 
 type CheckoutOrderSummaryProps = {
   items: CheckoutItem[];
@@ -26,6 +28,8 @@ type CheckoutOrderSummaryProps = {
   showOrderItems: boolean;
 
   checkoutComplete: boolean;
+
+  paymentMethod: CheckoutPaymentMethod;
 
   onToggleItems: () => void;
   onSubmit: (
@@ -64,9 +68,20 @@ export default function CheckoutOrderSummary({
   submitting,
   showOrderItems,
   checkoutComplete,
+  paymentMethod,
   onToggleItems,
   onSubmit,
 }: CheckoutOrderSummaryProps) {
+  const isCod = paymentMethod === "cod";
+
+  const buttonLabel = isCod
+    ? "Place My Order"
+    : `Pay ${formatPrice(total)}`;
+
+  const submittingLabel = isCod
+    ? "Placing Order..."
+    : "Opening Payment...";
+
   return (
     <aside className="lg:sticky lg:top-24 lg:self-start">
       <form onSubmit={onSubmit}>
@@ -175,6 +190,7 @@ export default function CheckoutOrderSummary({
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between text-slate-500">
                 <span>Subtotal</span>
+
                 <span className="font-medium text-slate-700">
                   {formatPrice(subtotal)}
                 </span>
@@ -182,6 +198,7 @@ export default function CheckoutOrderSummary({
 
               <div className="flex items-center justify-between text-slate-500">
                 <span>Delivery</span>
+
                 <span className="font-semibold text-green-600">
                   {shipping === 0
                     ? "Free"
@@ -200,6 +217,21 @@ export default function CheckoutOrderSummary({
               </div>
             </div>
 
+            {/* Selected payment method */}
+            <div className="mt-4 rounded-xl bg-slate-50 px-3.5 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-xs text-slate-500">
+                  Payment
+                </span>
+
+                <span className="text-xs font-semibold text-slate-800">
+                  {isCod
+                    ? "Cash on Delivery"
+                    : "Online Payment"}
+                </span>
+              </div>
+            </div>
+
             {/* Final CTA */}
             <button
               type="submit"
@@ -213,19 +245,20 @@ export default function CheckoutOrderSummary({
               {submitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Placing Order...
+                  {submittingLabel}
                 </>
               ) : (
                 <>
-                  Place My Order
+                  {buttonLabel}
                   <CheckCircle2 className="h-4 w-4" />
                 </>
               )}
             </button>
 
             <p className="mt-3 text-center text-[11px] leading-5 text-slate-400">
-              By placing this order, you confirm that
-              the delivery details provided are correct.
+              {isCod
+                ? "By placing this order, you confirm that the delivery details provided are correct."
+                : "You will be taken to Razorpay's secure payment window to complete your payment."}
             </p>
 
             <div className="mt-4 grid gap-2 sm:grid-cols-2">

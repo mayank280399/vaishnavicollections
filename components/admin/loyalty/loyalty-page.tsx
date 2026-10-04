@@ -7,7 +7,11 @@ import {
   Stamp,
 } from "lucide-react";
 
-import { useCallback, useEffect, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 
 import { LoyaltyStatCard } from "./loyalty-stat-card";
 import { LoyaltyTabs } from "./loyalty-tabs";
@@ -90,12 +94,21 @@ export function LoyaltyPage() {
       setCustomers(customersData);
       setRewards(rewardsData);
       setStats(statsData);
+
+      return {
+        settings: settingsData,
+        customers: customersData,
+        rewards: rewardsData,
+        stats: statsData,
+      };
     } catch (err) {
       setError(
         err instanceof Error
           ? err.message
           : "Failed to load loyalty data."
       );
+
+      return null;
     } finally {
       setLoading(false);
     }
@@ -123,20 +136,31 @@ export function LoyaltyPage() {
       description
     );
 
-    await loadData();
+    const refreshed = await loadData();
 
-    const updatedCustomer =
-      customers.find(
+    if (!refreshed) {
+      return;
+    }
+
+    const refreshedCustomer =
+      refreshed.customers.find(
         (customer) => customer.id === customerId
       );
 
-    if (updatedCustomer) {
-      setSelectedCustomer({
-        ...updatedCustomer,
-        points_balance:
-          updatedCustomer.points_balance + amount,
-      });
+    if (refreshedCustomer) {
+      setSelectedCustomer(refreshedCustomer);
     }
+  }
+
+  async function handleCreateReward(values: {
+    name: string;
+    points_required: number;
+    reward_value: number;
+    minimum_purchase: number;
+    expires_after_days: number | null;
+  }) {
+    await createReward(values);
+    await loadData();
   }
 
   async function handleSettingsSave(
@@ -178,7 +202,11 @@ export function LoyaltyPage() {
     rewardId: string,
     active: boolean
   ) {
-    await toggleReward(rewardId, active);
+    await toggleReward(
+      rewardId,
+      active
+    );
+
     await loadData();
   }
 
@@ -187,6 +215,7 @@ export function LoyaltyPage() {
       <div className="space-y-6">
         <div>
           <div className="h-7 w-40 animate-pulse rounded bg-muted" />
+
           <div className="mt-2 h-4 w-64 animate-pulse rounded bg-muted" />
         </div>
 
@@ -214,6 +243,14 @@ export function LoyaltyPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           {error}
         </p>
+
+        <button
+          type="button"
+          onClick={() => loadData()}
+          className="mt-4 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+        >
+          Try Again
+        </button>
       </div>
     );
   }
@@ -287,7 +324,7 @@ export function LoyaltyPage() {
       {/* CURRENT RULE */}
 
       <div className="rounded-2xl border bg-primary/5 p-4">
-        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="text-sm font-semibold">
               Current Loyalty Rule
@@ -299,7 +336,7 @@ export function LoyaltyPage() {
             </p>
           </div>
 
-          <div className="mt-2 rounded-xl bg-background px-4 py-2 text-sm font-bold sm:mt-0">
+          <div className="w-fit rounded-xl bg-background px-4 py-2 text-sm font-bold">
             ₹
             {settings.spend_per_stamp.toLocaleString(
               "en-IN"
@@ -316,7 +353,7 @@ export function LoyaltyPage() {
         onChange={setTab}
       />
 
-      {/* CONTENT */}
+      {/* OVERVIEW */}
 
       {tab === "overview" && (
         <div className="space-y-4">
@@ -332,7 +369,7 @@ export function LoyaltyPage() {
 
           <div className="rounded-2xl border bg-card p-5">
             <div className="flex items-start gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
                 <Stamp className="h-5 w-5" />
               </div>
 
@@ -354,18 +391,37 @@ export function LoyaltyPage() {
 
           {customers.length > 0 && (
             <div className="space-y-3">
-              <h2 className="font-semibold">
-                Customers
-              </h2>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="font-semibold">
+                    Customers
+                  </h2>
+
+                  <p className="text-xs text-muted-foreground">
+                    Recent loyalty customers
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setTab("customers")}
+                  className="text-sm font-semibold text-primary"
+                >
+                  View all
+                </button>
+              </div>
 
               <LoyaltyCustomerTable
-                customers={customers.slice(0, 10)}
-                onView={handleViewCustomer}
+                  customers={customers.slice(0, 10)}
+                  spendPerStamp={settings.spend_per_stamp}
+                  onView={handleViewCustomer}
               />
             </div>
           )}
         </div>
       )}
+
+      {/* CUSTOMERS */}
 
       {tab === "customers" && (
         <div className="space-y-4">
@@ -394,6 +450,8 @@ export function LoyaltyPage() {
             </div>
           ) : (
             <>
+              {/* MOBILE */}
+
               <div className="space-y-3 md:hidden">
                 {customers.map((customer) => (
                   <LoyaltyCustomerCard
@@ -407,14 +465,21 @@ export function LoyaltyPage() {
                 ))}
               </div>
 
-              <LoyaltyCustomerTable
-                customers={customers}
-                onView={handleViewCustomer}
-              />
+              {/* DESKTOP */}
+
+              <div className="hidden md:block">
+                <LoyaltyCustomerTable
+                  customers={customers}
+                    spendPerStamp={settings.spend_per_stamp}
+                  onView={handleViewCustomer}
+                />
+              </div>
             </>
           )}
         </div>
       )}
+
+      {/* REWARDS */}
 
       {tab === "rewards" && (
         <div className="space-y-4">
@@ -431,9 +496,12 @@ export function LoyaltyPage() {
           <LoyaltyRewards
             rewards={rewards}
             onToggle={handleToggleReward}
+            onCreate={handleCreateReward}
           />
         </div>
       )}
+
+      {/* SETTINGS */}
 
       {tab === "settings" && (
         <div className="space-y-4">
@@ -454,11 +522,16 @@ export function LoyaltyPage() {
         </div>
       )}
 
+      {/* CUSTOMER DIALOG */}
+
       <LoyaltyCustomerDialog
         customer={selectedCustomer}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onAdjust={handleAdjust}
+        spendPerStamp={
+          settings.spend_per_stamp
+        }
       />
     </div>
   );

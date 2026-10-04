@@ -32,6 +32,77 @@ import CheckoutDeliveryStep from "@/components/checkout/CheckoutDeliveryStep";
 import CheckoutPlaceOrderStep from "@/components/checkout/CheckoutPlaceOrderStep";
 import CheckoutOrderSummary from "@/components/checkout/CheckoutOrderSummary";
 
+/*
+ * --------------------------------------------------
+ * Payment method
+ * --------------------------------------------------
+ */
+
+export type PaymentMethod =
+  | "cod"
+  | "razorpay";
+
+/*
+ * --------------------------------------------------
+ * Razorpay browser types
+ * --------------------------------------------------
+ */
+
+type RazorpaySuccessResponse = {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+};
+
+type RazorpayOptions = {
+  key: string;
+  amount: number;
+  currency: string;
+  name: string;
+  description: string;
+  order_id: string;
+
+  prefill?: {
+    name?: string;
+    email?: string;
+    contact?: string;
+  };
+
+  notes?: Record<string, string>;
+
+  theme?: {
+    color?: string;
+  };
+
+  modal?: {
+    ondismiss?: () => void;
+  };
+
+  handler: (
+    response: RazorpaySuccessResponse,
+  ) => void;
+};
+
+type RazorpayInstance = {
+  open: () => void;
+};
+
+type RazorpayConstructor = new (
+  options: RazorpayOptions,
+) => RazorpayInstance;
+
+declare global {
+  interface Window {
+    Razorpay?: RazorpayConstructor;
+  }
+}
+
+/*
+ * --------------------------------------------------
+ * Helpers
+ * --------------------------------------------------
+ */
+
 function getProductPrice(
   product: CheckoutProduct,
 ) {
@@ -44,6 +115,63 @@ function getProductPrice(
   }
 
   return Number(product.selling_price);
+}
+
+/*
+ * --------------------------------------------------
+ * Load Razorpay Checkout.js only when needed.
+ * --------------------------------------------------
+ */
+
+async function loadRazorpayScript() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  if (window.Razorpay) {
+    return true;
+  }
+
+  return new Promise<boolean>((resolve) => {
+    const existingScript =
+      document.querySelector(
+        'script[src="https://checkout.razorpay.com/v1/checkout.js"]',
+      );
+
+    if (existingScript) {
+      existingScript.addEventListener(
+        "load",
+        () => resolve(!!window.Razorpay),
+        { once: true },
+      );
+
+      existingScript.addEventListener(
+        "error",
+        () => resolve(false),
+        { once: true },
+      );
+
+      return;
+    }
+
+    const script =
+      document.createElement("script");
+
+    script.src =
+      "https://checkout.razorpay.com/v1/checkout.js";
+
+    script.async = true;
+
+    script.onload = () => {
+      resolve(!!window.Razorpay);
+    };
+
+    script.onerror = () => {
+      resolve(false);
+    };
+
+    document.body.appendChild(script);
+  });
 }
 
 export default function CheckoutPage() {
@@ -71,15 +199,39 @@ export default function CheckoutPage() {
 
   /*
    * --------------------------------------------------
+   * Payment method
+   * --------------------------------------------------
+   *
+   * COD is the default so the customer is not
+   * unexpectedly pushed into Razorpay.
+   */
+
+  const [paymentMethod, setPaymentMethod] =
+    useState<PaymentMethod>("cod");
+
+  /*
+   * --------------------------------------------------
+   * Checkout steps
+   * --------------------------------------------------
+   *
    * 1 = Details
    * 2 = Delivery
-   * 3 = Place Order
+   * 3 = Payment
    * --------------------------------------------------
    */
-  const [currentStep, setCurrentStep] =  useState<1 | 2 | 3>(1);
-  const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState("");
+
+  const [currentStep, setCurrentStep] =
+    useState<1 | 2 | 3>(1);
+
+  const [loading, setLoading] =
+    useState(true);
+
+  const [submitting, setSubmitting] =
+    useState(false);
+
+  const [error, setError] =
+    useState("");
+
   const [showOrderItems, setShowOrderItems] =
     useState(false);
 
@@ -109,23 +261,40 @@ export default function CheckoutPage() {
         return;
       }
 
-      const supabase = createClient();
-
       setLoading(true);
       setError("");
 
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) {
-        router.replace(
-          "/login?redirect=/checkout",
-        );
-        return;
-      }
-
       try {
+        const supabase = createClient();
+
+        /*
+         * ------------------------------------------------
+         * Authenticated user
+         * ------------------------------------------------
+         */
+
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
+
+        if (authError) {
+          console.error(
+            "Checkout auth error:",
+            authError,
+          );
+
+          throw authError;
+        }
+
+        if (!user) {
+          router.replace(
+            "/login?redirect=/checkout",
+          );
+
+          return;
+        }
+
         /*
          * ------------------------------------------------
          * Customer
@@ -139,10 +308,16 @@ export default function CheckoutPage() {
           .from("customers")
           .select(
             `
+              id,
+              profile_id,
               display_name,
               phone,
               email,
-              city
+              address_line1,
+              address_line2,
+              city,
+              state,
+              postal_code
             `,
           )
           .eq("profile_id", user.id)
@@ -155,6 +330,73 @@ export default function CheckoutPage() {
           );
         }
 
+        if (cancelled) {
+          return;
+        }
+
+        setCustomer(
+          customerData ?? null,
+        );
+
+        /*
+         * ------------------------------------------------
+         * Prefill customer information
+         * ------------------------------------------------
+         */
+
+        setForm((current) => ({
+          ...current,
+
+          customerName:
+            customerData?.display_name ??
+            user.user_metadata?.display_name ??
+            user.user_metadata?.full_name ??
+            current.customerName,
+
+          customerPhone:
+            customerData?.phone ??
+            current.customerPhone,
+
+          addressLine1:
+            customerData?.address_line1 ??
+            current.addressLine1,
+
+          addressLine2:
+            customerData?.address_line2 ??
+            current.addressLine2,
+
+          city:
+            customerData?.city ??
+            current.city,
+
+          state:
+            customerData?.state ??
+            current.state,
+
+          postalCode:
+            customerData?.postal_code ??
+            current.postalCode,
+        }));
+
+        /*
+         * Automatically recognise that the customer
+         * already has saved checkout information.
+         */
+
+        const hasSavedDetails =
+          Boolean(
+            customerData?.display_name &&
+            customerData?.phone &&
+            customerData?.address_line1 &&
+            customerData?.city &&
+            customerData?.state &&
+            customerData?.postal_code,
+          );
+
+        setSaveCustomerDetails(
+          hasSavedDetails,
+        );
+
         /*
          * ------------------------------------------------
          * Empty cart
@@ -162,29 +404,21 @@ export default function CheckoutPage() {
          */
 
         if (!cartItems.length) {
-          if (!cancelled) {
-            setCustomer(
-              customerData ?? null,
-            );
-
-            setItems([]);
-
-            setLoading(false);
-          }
-
+          setItems([]);
+          setLoading(false);
           return;
         }
-
-        const productIds =
-          cartItems.map(
-            (item) => item.product_id,
-          );
 
         /*
          * ------------------------------------------------
          * Products
          * ------------------------------------------------
          */
+
+        const productIds =
+          cartItems.map(
+            (item) => item.product_id,
+          );
 
         const {
           data: products,
@@ -247,7 +481,7 @@ export default function CheckoutPage() {
           CheckoutProduct
         >(
           (products ?? []).map(
-            (product) => [
+            (product: CheckoutProduct) => [
               product.id,
               product as CheckoutProduct,
             ],
@@ -257,10 +491,6 @@ export default function CheckoutPage() {
         /*
          * ------------------------------------------------
          * Image map
-         *
-         * Because images are ordered by is_primary DESC,
-         * the first image stored for each product becomes
-         * the preferred image.
          * ------------------------------------------------
          */
 
@@ -304,7 +534,8 @@ export default function CheckoutPage() {
                 id: cartItem.id,
                 product_id:
                   cartItem.product_id,
-                quantity: cartItem.quantity,
+                quantity:
+                  cartItem.quantity,
                 product,
                 image:
                   imageMap.get(
@@ -316,38 +547,12 @@ export default function CheckoutPage() {
               Boolean,
             ) as CheckoutItem[];
 
-        if (!cancelled) {
-          setCustomer(
-            customerData ?? null,
-          );
-
-          setItems(checkoutItems);
-
-          /*
-           * Prefill known customer information.
-           */
-          setForm((current) => ({
-            ...current,
-
-            customerName:
-              customerData?.display_name ??
-              user.user_metadata
-                ?.display_name ??
-              user.user_metadata
-                ?.full_name ??
-              current.customerName,
-
-            customerPhone:
-              customerData?.phone ??
-              current.customerPhone,
-
-            city:
-              customerData?.city ??
-              current.city,
-          }));
-
-          setLoading(false);
+        if (cancelled) {
+          return;
         }
+
+        setItems(checkoutItems);
+        setLoading(false);
       } catch (error) {
         console.error(
           "Checkout loading error:",
@@ -398,6 +603,13 @@ export default function CheckoutPage() {
     );
   }, [items]);
 
+  /*
+   * Shipping is currently free.
+   *
+   * We can later replace this with the shipping
+   * calculation based on PIN code/order value.
+   */
+
   const shipping = 0;
 
   const total =
@@ -413,11 +625,8 @@ export default function CheckoutPage() {
 
   /*
    * --------------------------------------------------
-   * LIVE FORM VALIDATION
+   * Live validation
    * --------------------------------------------------
-   *
-   * These values update automatically while the user
-   * fills the form.
    */
 
   const detailsComplete = useMemo(() => {
@@ -489,10 +698,6 @@ export default function CheckoutPage() {
       [field]: value,
     }));
 
-    /*
-     * Clear old validation/server errors as the user
-     * starts correcting the form.
-     */
     setError("");
   }
 
@@ -504,17 +709,20 @@ export default function CheckoutPage() {
     setError("");
 
     /*
-     * If this is someone else's order, never allow
-     * customer master details to be saved.
+     * Never save another person's information
+     * into the logged-in customer's profile.
      */
+
     if (mode === "someone_else") {
       setSaveCustomerDetails(false);
+      return;
     }
 
     /*
-     * Switching back to "me" restores saved customer
-     * information where available.
+     * Restore saved customer details when
+     * switching back to "I'm receiving it".
      */
+
     if (
       mode === "me" &&
       customer
@@ -530,11 +738,54 @@ export default function CheckoutPage() {
           customer.phone ||
           current.customerPhone,
 
+        addressLine1:
+          customer.address_line1 ||
+          current.addressLine1,
+
+        addressLine2:
+          customer.address_line2 ||
+          current.addressLine2,
+
         city:
           customer.city ||
           current.city,
+
+        state:
+          customer.state ||
+          current.state,
+
+        postalCode:
+          customer.postal_code ||
+          current.postalCode,
       }));
+
+      const hasSavedDetails =
+        Boolean(
+          customer.display_name &&
+          customer.phone &&
+          customer.address_line1 &&
+          customer.city &&
+          customer.state &&
+          customer.postal_code,
+        );
+
+      setSaveCustomerDetails(
+        hasSavedDetails,
+      );
     }
+  }
+
+  /*
+   * --------------------------------------------------
+   * Payment method
+   * --------------------------------------------------
+   */
+
+  function handlePaymentMethodChange(
+    method: PaymentMethod,
+  ) {
+    setPaymentMethod(method);
+    setError("");
   }
 
   /*
@@ -628,10 +879,6 @@ export default function CheckoutPage() {
   function handleDetailsContinue() {
     setError("");
 
-    /*
-     * The button is already disabled when invalid,
-     * but we still validate here for safety.
-     */
     if (!detailsComplete) {
       validateDetails();
       return;
@@ -648,10 +895,6 @@ export default function CheckoutPage() {
   function handleDeliveryContinue() {
     setError("");
 
-    /*
-     * The button is already disabled when invalid,
-     * but validate again for safety.
-     */
     if (!deliveryComplete) {
       validateDelivery();
       return;
@@ -666,25 +909,255 @@ export default function CheckoutPage() {
   }
 
   function handleBack() {
-  setError("");
+    setError("");
 
-  setCurrentStep((step) => {
-    if (step === 1) {
-      return 1;
-    }
+    setCurrentStep((step) => {
+      if (step === 1) {
+        return 1;
+      }
 
-    return (step - 1) as 1 | 2 | 3;
-  });
+      return (step - 1) as 1 | 2 | 3;
+    });
 
-  window.scrollTo({
-    top: 0,
-    behavior: "smooth",
-  });
-}
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }
 
   /*
    * --------------------------------------------------
-   * Submit
+   * Razorpay payment verification
+   * --------------------------------------------------
+   */
+
+  async function verifyPayment(
+    orderId: string,
+    response: RazorpaySuccessResponse,
+  ) {
+    const verificationResponse =
+      await fetch(
+        "/api/razorpay/verify-payment",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            orderId,
+            razorpayOrderId:
+              response.razorpay_order_id,
+            razorpayPaymentId:
+              response.razorpay_payment_id,
+            razorpaySignature:
+              response.razorpay_signature,
+          }),
+        },
+      );
+
+    let verificationResult: {
+      success?: boolean;
+      error?: string;
+      orderId?: string;
+      orderNumber?: string;
+    } = {};
+
+    try {
+      verificationResult =
+        await verificationResponse.json();
+    } catch {
+      verificationResult = {};
+    }
+
+    if (
+      !verificationResponse.ok ||
+      !verificationResult.success
+    ) {
+      throw new Error(
+        verificationResult.error ||
+          "Payment verification failed.",
+      );
+    }
+
+    /*
+     * Server has verified payment,
+     * confirmed the order,
+     * reduced stock and cleared cart.
+     */
+
+    router.replace(
+      `/orders/${
+        verificationResult.orderId ||
+        orderId
+      }`,
+    );
+  }
+
+  /*
+   * --------------------------------------------------
+   * Open Razorpay
+   * --------------------------------------------------
+   */
+
+  async function openRazorpay(
+    orderId: string,
+  ) {
+    const razorpayLoaded =
+      await loadRazorpayScript();
+
+    if (
+      !razorpayLoaded ||
+      !window.Razorpay
+    ) {
+      throw new Error(
+        "Unable to load Razorpay Checkout. Please check your internet connection and try again.",
+      );
+    }
+
+    const createPaymentResponse =
+      await fetch(
+        "/api/razorpay/create-order",
+        {
+          method: "POST",
+
+          headers: {
+            "Content-Type":
+              "application/json",
+          },
+
+          body: JSON.stringify({
+            orderId,
+          }),
+        },
+      );
+
+    let paymentOrder: {
+      success?: boolean;
+      error?: string;
+      razorpayOrderId?: string;
+      amount?: number;
+      currency?: string;
+      orderId?: string;
+      orderNumber?: string;
+    } = {};
+
+    try {
+      paymentOrder =
+        await createPaymentResponse.json();
+    } catch {
+      paymentOrder = {};
+    }
+
+    if (
+      !createPaymentResponse.ok ||
+      !paymentOrder.success ||
+      !paymentOrder.razorpayOrderId
+    ) {
+      throw new Error(
+        paymentOrder.error ||
+          "Unable to prepare the payment.",
+      );
+    }
+
+    const razorpay =
+      new window.Razorpay({
+        key:
+          process.env
+            .NEXT_PUBLIC_RAZORPAY_KEY_ID || "",
+
+        amount:
+          Number(
+            paymentOrder.amount,
+          ),
+
+        currency:
+          paymentOrder.currency ||
+          "INR",
+
+        name:
+          "Vaishnavi Collections",
+
+        description:
+          `Order ${
+            paymentOrder.orderNumber ||
+            ""
+          }`,
+
+        order_id:
+          paymentOrder.razorpayOrderId,
+
+        prefill: {
+          name:
+            form.customerName.trim(),
+
+          contact:
+            form.customerPhone.trim(),
+
+          email:
+            customer?.email ||
+            undefined,
+        },
+
+        notes: {
+          vc_order_id:
+            orderId,
+
+          vc_order_number:
+            paymentOrder.orderNumber ||
+            "",
+        },
+
+        theme: {
+          color: "#0f1f3d",
+        },
+
+        modal: {
+          ondismiss: () => {
+            setSubmitting(false);
+
+            setError(
+              "Payment was not completed. Your order is still pending and you can try again.",
+            );
+          },
+        },
+
+        handler:
+          async (
+            response,
+          ) => {
+            try {
+              setError("");
+
+              await verifyPayment(
+                orderId,
+                response,
+              );
+            } catch (error) {
+              console.error(
+                "Payment verification error:",
+                error,
+              );
+
+              setError(
+                error instanceof Error
+                  ? error.message
+                  : "Payment verification failed. Please contact us if your account was charged.",
+              );
+
+              setSubmitting(false);
+            }
+          },
+      });
+
+    razorpay.open();
+  }
+
+  /*
+   * --------------------------------------------------
+   * Submit checkout
    * --------------------------------------------------
    */
 
@@ -695,16 +1168,10 @@ export default function CheckoutPage() {
 
     setError("");
 
-    /*
-     * Only Step 3 can submit the order.
-     */
     if (currentStep !== 3) {
       return;
     }
 
-    /*
-     * Cart must contain items.
-     */
     if (!items.length) {
       setError(
         "Your bag is empty.",
@@ -713,25 +1180,16 @@ export default function CheckoutPage() {
       return;
     }
 
-    /*
-     * Validate Step 1 again.
-     */
     if (!validateDetails()) {
       setCurrentStep(1);
       return;
     }
 
-    /*
-     * Validate Step 2 again.
-     */
     if (!validateDelivery()) {
       setCurrentStep(2);
       return;
     }
 
-    /*
-     * Final safety check.
-     */
     if (!checkoutComplete) {
       setError(
         "Please complete all required details before placing your order.",
@@ -743,35 +1201,100 @@ export default function CheckoutPage() {
     setSubmitting(true);
 
     try {
-      const result =
-        await createOrder({
-          customerName:
-            form.customerName.trim(),
+      /*
+       * ------------------------------------------------
+       * COD
+       * ------------------------------------------------
+       *
+       * COD does NOT go through Razorpay.
+       */
 
-          customerPhone:
-            form.customerPhone.trim(),
+      if (paymentMethod === "cod") {
+        const result =
+          await createOrder({
+            customerName:
+              form.customerName.trim(),
 
-          addressLine1:
-            form.addressLine1.trim(),
+            customerPhone:
+              form.customerPhone.trim(),
 
-          addressLine2:
-            form.addressLine2.trim(),
+            addressLine1:
+              form.addressLine1.trim(),
 
-          city:
-            form.city.trim(),
+            addressLine2:
+              form.addressLine2.trim(),
 
-          state:
-            form.state.trim(),
+            city:
+              form.city.trim(),
 
-          postalCode:
-            form.postalCode.trim(),
+            state:
+              form.state.trim(),
 
+            postalCode:
+              form.postalCode.trim(),
+
+            country: "India",
+
+            notes:
+              form.notes.trim(),
+
+            paymentMethod:
+              "CASH",
+
+            saveCustomerDetails:
+              recipientMode === "me" &&
+              saveCustomerDetails,
+          });
+
+        if (!result.success) {
+          setError(
+            result.error ||
+              "Unable to create your order.",
+          );
+
+          setSubmitting(false);
+
+          return;
+        }
+
+        /*
+         * COD order is complete from the customer's
+         * checkout perspective. No Razorpay step.
+         */
+
+        router.replace(
+          `/orders/${result.orderId}`,
+        );
+
+        return;
+      }
+
+      /*
+       * ------------------------------------------------
+       * ONLINE PAYMENT
+       * ------------------------------------------------
+       *
+       * Create our internal pending order first.
+       */
+
+      const result =  await createOrder({customerName:form.customerName.trim(),
+          customerPhone:form.customerPhone.trim(),
+          addressLine1:form.addressLine1.trim(),
+          addressLine2:form.addressLine2.trim(),
+          city:form.city.trim(),
+          state:form.state.trim(),
+          postalCode:form.postalCode.trim(),
           country: "India",
+           notes: form.notes.trim(),
 
-          notes:
-            form.notes.trim(),
+          /*
+           * Online payment is handled by Razorpay.
+           * Keep internal payment state pending until
+           * Razorpay verification succeeds.
+           */
 
-          paymentMethod: "CASH",
+          paymentMethod:
+              "RAZORPAY",
 
           saveCustomerDetails:
             recipientMode === "me" &&
@@ -781,18 +1304,30 @@ export default function CheckoutPage() {
       if (!result.success) {
         setError(
           result.error ||
-            "Unable to place your order.",
+            "Unable to create your order.",
         );
 
         setSubmitting(false);
 
         return;
       }
+if (!result.orderId) {
+  setError(
+    "Order was created, but the order ID is missing. Please try again.",
+  );
 
+  setSubmitting(false);
+
+  return;
+}
       /*
-       * Successful order.
+       * Now create the Razorpay payment order
+       * and open Razorpay.
        */
-      router.replace(`/orders/${result.orderId}`,);
+
+      await openRazorpay(
+        result.orderId,
+      );
     } catch (error) {
       console.error(
         "Checkout submission error:",
@@ -800,7 +1335,9 @@ export default function CheckoutPage() {
       );
 
       setError(
-        "Something went wrong while placing your order.",
+        error instanceof Error
+          ? error.message
+          : "Something went wrong while placing your order.",
       );
 
       setSubmitting(false);
@@ -871,6 +1408,7 @@ export default function CheckoutPage() {
     <main className="min-h-screen bg-[#f8f9fb] px-4 py-6 sm:px-6 sm:py-8">
       <div className="mx-auto max-w-6xl">
         {/* Header */}
+
         <div className="rounded-[2rem] bg-[#0f1f3d] px-5 py-6 text-white shadow-sm sm:px-7 sm:py-7">
           <div className="mb-6">
             <Link
@@ -887,36 +1425,34 @@ export default function CheckoutPage() {
             </h1>
 
             <p className="mt-2 text-sm text-white/60">
-              Complete your details and place your
-              order securely.
+              Complete your details, choose your
+              payment method, and place your order.
             </p>
           </div>
 
-          <CheckoutProgress currentStep={currentStep} />
+          <CheckoutProgress
+            currentStep={currentStep}
+          />
         </div>
 
         {/* Main content */}
+
         <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
           {/* Left */}
+
           <div>
-            {/* ---------------------------------------- */}
             {/* STEP 1 */}
-            {/* ---------------------------------------- */}
 
             {currentStep === 1 && (
               <CheckoutDetailsStep
                 form={form}
                 customer={customer}
-                recipientMode={
-                  recipientMode
-                }
+                recipientMode={recipientMode}
                 saveCustomerDetails={
                   saveCustomerDetails
                 }
                 error={error}
-                canContinue={
-                  detailsComplete
-                }
+                canContinue={detailsComplete}
                 onFieldChange={
                   updateField
                 }
@@ -932,9 +1468,7 @@ export default function CheckoutPage() {
               />
             )}
 
-            {/* ---------------------------------------- */}
             {/* STEP 2 */}
-            {/* ---------------------------------------- */}
 
             {currentStep === 2 && (
               <CheckoutDeliveryStep
@@ -953,16 +1487,19 @@ export default function CheckoutPage() {
               />
             )}
 
-            {/* ---------------------------------------- */}
             {/* STEP 3 */}
-            {/* ---------------------------------------- */}
 
             {currentStep === 3 && (
               <CheckoutPlaceOrderStep
                 form={form}
                 error={error}
-                submitting={
-                  submitting
+                submitting={submitting}
+                paymentMethod={
+                  paymentMethod
+                }
+                total={total}
+                onPaymentMethodChange={
+                  handlePaymentMethodChange
                 }
                 onFieldChange={
                   updateField
@@ -973,26 +1510,18 @@ export default function CheckoutPage() {
           </div>
 
           {/* Right / Order Summary */}
+
           <CheckoutOrderSummary
             items={items}
             subtotal={subtotal}
             shipping={shipping}
             total={total}
-            totalQuantity={
-              totalQuantity
-            }
-            currentStep={
-              currentStep
-            }
-            submitting={
-              submitting
-            }
-            showOrderItems={
-              showOrderItems
-            }
-            checkoutComplete={
-              checkoutComplete
-            }
+            totalQuantity={totalQuantity}
+            currentStep={currentStep}
+            submitting={submitting}
+            showOrderItems={showOrderItems}
+            paymentMethod={paymentMethod}
+            checkoutComplete={checkoutComplete}
             onToggleItems={() =>
               setShowOrderItems(
                 (value) => !value,

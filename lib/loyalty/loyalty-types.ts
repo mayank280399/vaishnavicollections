@@ -20,6 +20,14 @@ export type LoyaltyCustomer = {
   lifetime_points_earned: number;
   lifetime_points_redeemed: number;
 
+  /**
+   * Amount already spent toward the next stamp.
+   * Example:
+   * ₹300 here + ₹200 future spend = 1 new stamp
+   * when spend_per_stamp = ₹500.
+   */
+  eligible_spend_balance: number;
+
   total_spent: number;
   purchase_count: number;
 };

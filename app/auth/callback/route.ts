@@ -1,14 +1,35 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
+function getSafeNext(value: string | null) {
+  if (!value) {
+    return "/";
+  }
+
+  /*
+   * Only allow internal paths.
+   *
+   * Prevent:
+   * https://external-site.com
+   * //external-site.com
+   */
+  if (!value.startsWith("/") || value.startsWith("//")) {
+    return "/";
+  }
+
+  return value;
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
 
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/";
+  const next = getSafeNext(searchParams.get("next"));
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/login?error=oauth`);
+    return NextResponse.redirect(
+      `${origin}/login?error=oauth`,
+    );
   }
 
   const supabase = await createClient();
@@ -20,9 +41,14 @@ export async function GET(request: Request) {
     await supabase.auth.exchangeCodeForSession(code);
 
   if (exchangeError) {
-    console.error("OAuth callback error:", exchangeError);
+    console.error(
+      "OAuth callback error:",
+      exchangeError,
+    );
 
-    return NextResponse.redirect(`${origin}/login?error=oauth`);
+    return NextResponse.redirect(
+      `${origin}/login?error=oauth`,
+    );
   }
 
   /*
@@ -33,7 +59,9 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return NextResponse.redirect(`${origin}/login?error=oauth`);
+    return NextResponse.redirect(
+      `${origin}/login?error=oauth`,
+    );
   }
 
   /*
@@ -53,10 +81,13 @@ export async function GET(request: Request) {
       .maybeSingle();
 
   if (profileError) {
-    console.error("Profile lookup error:", profileError);
+    console.error(
+      "Profile lookup error:",
+      profileError,
+    );
 
     return NextResponse.redirect(
-      `${origin}/login?error=profile`
+      `${origin}/login?error=profile`,
     );
   }
 
@@ -67,11 +98,11 @@ export async function GET(request: Request) {
   if (!profile) {
     console.error(
       "Authenticated user has no application profile:",
-      user.id
+      user.id,
     );
 
     return NextResponse.redirect(
-      `${origin}/login?error=profile`
+      `${origin}/login?error=profile`,
     );
   }
 
@@ -85,11 +116,20 @@ export async function GET(request: Request) {
     role === "ADMIN" ||
     role === "OWNER"
   ) {
-    return NextResponse.redirect(`${origin}/admin`);
+    return NextResponse.redirect(
+      `${origin}/admin`,
+    );
   }
 
   /*
-   * Customers go to the requested destination.
+   * Customers go to the requested internal destination.
+   *
+   * Example:
+   * /auth/callback?next=/account
+   *
+   * → /account
    */
-  return NextResponse.redirect(`${origin}${next}`);
+  return NextResponse.redirect(
+    `${origin}${next}`,
+  );
 }

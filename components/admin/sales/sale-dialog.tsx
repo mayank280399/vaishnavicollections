@@ -545,13 +545,15 @@ export function SaleDialog({
       if (customerResult.error) {
         setError(customerResult.error.message);
       } else {
-        setCustomers(customerResult.data ?? []);
+        const loadedCustomers: Customer[] =
+          customerResult.data ?? [];
+
+        setCustomers(loadedCustomers);
 
         if (!isEditMode && !customerId) {
-          const walkIn = (
-            customerResult.data ?? []
-          ).find((customer) =>
-            /walk.?in/i.test(customer.display_name)
+          const walkIn = loadedCustomers.find(
+            (customer: Customer) =>
+              /walk.?in/i.test(customer.display_name)
           );
 
           if (walkIn) {

@@ -296,7 +296,7 @@ export function AddTransactionDialog() {
       } else {
         setCustomers(customerResult.data ?? []);
 
-        const walkIn = (customerResult.data ?? []).find((customer) =>
+        const walkIn = (customerResult.data ?? []).find((customer:Customer) =>
           /walk.?in/i.test(customer.display_name)
         );
 

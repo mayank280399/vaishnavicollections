@@ -146,7 +146,7 @@ export function ProgressStep({
 type TrustItemProps = {
   icon?: React.ReactNode;
   title: string;
-  description: string;
+  description?: string;
 };
 
 export function TrustItem({
@@ -165,9 +165,11 @@ export function TrustItem({
           {title}
         </p>
 
-        <p className="mt-0.5 text-xs leading-5 text-slate-500">
-          {description}
-        </p>
+          {description ? (
+            <p className="mt-0.5 text-xs leading-5 text-slate-500">
+              {description}
+            </p>
+          ) : null}
       </div>
     </div>
   );

@@ -30,6 +30,7 @@ type Props = {
     amount: number,
     description: string
   ) => Promise<void>;
+  spendPerStamp?: number;
 };
 
 export function LoyaltyCustomerDialog({
@@ -37,29 +38,55 @@ export function LoyaltyCustomerDialog({
   open,
   onOpenChange,
   onAdjust,
+  spendPerStamp = 500,
 }: Props) {
   const [amount, setAmount] = useState("");
   const [reason, setReason] = useState("");
   const [saving, setSaving] = useState(false);
 
-  if (!customer) return null;
+  if (!customer) {
+    return null;
+  }
+
+  const customerId = customer.id;
+
+  const carry = Number(
+    customer.eligible_spend_balance ?? 0
+  );
+
+  const progress =
+    spendPerStamp > 0
+      ? Math.min(
+          100,
+          Math.round(
+            (carry / spendPerStamp) * 100
+          )
+        )
+      : 0;
+
+  const remaining = Math.max(
+    0,
+    spendPerStamp - carry
+  );
 
   async function handleAdjust(value: number) {
     const points = Number(amount);
 
-    if (!Number.isFinite(points) || points <= 0) {
+    if (
+      !Number.isInteger(points) ||
+      points <= 0
+    ) {
       return;
     }
 
     setSaving(true);
-if (!customer) {
-  return;
-}
+
     try {
       await onAdjust(
-        customer.id,
+        customerId,
         value * points,
-        reason.trim() || "Manual loyalty adjustment"
+        reason.trim() ||
+          "Manual loyalty adjustment"
       );
 
       setAmount("");
@@ -71,7 +98,10 @@ if (!customer) {
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={onOpenChange}
+    >
       <DialogContent className="w-[calc(100%-1.5rem)] max-w-md rounded-2xl bg-white">
         <DialogHeader>
           <DialogTitle>
@@ -80,6 +110,7 @@ if (!customer) {
         </DialogHeader>
 
         <div className="space-y-4">
+          {/* Current stamps */}
           <div className="rounded-2xl bg-primary/10 p-4">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Stamp className="h-4 w-4" />
@@ -91,6 +122,7 @@ if (!customer) {
             </p>
           </div>
 
+          {/* Lifetime stats */}
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-xl border p-3">
               <p className="text-xs text-muted-foreground">
@@ -113,12 +145,50 @@ if (!customer) {
             </div>
           </div>
 
+          {/* Next stamp */}
+          <div className="rounded-2xl border bg-card p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold">
+                  Progress to next stamp
+                </p>
+
+                <p className="mt-1 text-xs text-muted-foreground">
+                  ₹{carry.toLocaleString("en-IN")} of ₹
+                  {spendPerStamp.toLocaleString(
+                    "en-IN"
+                  )}
+                </p>
+              </div>
+
+              <span className="text-sm font-bold text-primary">
+                {progress}%
+              </span>
+            </div>
+
+            <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+              <div
+                className="h-full rounded-full bg-primary transition-all"
+                style={{
+                  width: `${progress}%`,
+                }}
+              />
+            </div>
+
+            <p className="mt-2 text-xs text-muted-foreground">
+              ₹{remaining.toLocaleString("en-IN")} more
+              eligible spend for the next stamp.
+            </p>
+          </div>
+
+          {/* Adjustment */}
           <div>
             <Label>Stamp amount</Label>
 
             <Input
               type="number"
               min="1"
+              step="1"
               value={amount}
               onChange={(event) =>
                 setAmount(event.target.value)

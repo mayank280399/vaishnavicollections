@@ -12,7 +12,7 @@ import type {
   Customer,
   Reward,
   RewardAccount,
-} from "@/app/account/page";
+} from "@/app/(storefront)/account/page";
 
 type Props = {
   customer: Customer;

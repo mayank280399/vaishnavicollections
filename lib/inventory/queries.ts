@@ -9,6 +9,66 @@ import type {
 
 const LOW_STOCK_THRESHOLD = 5;
 
+/*
+ * --------------------------------------------------
+ * Supabase row types
+ * --------------------------------------------------
+ *
+ * These describe the exact fields selected from
+ * Supabase. They are kept separate from the
+ * UI/domain types in ./types.
+ */
+
+/*
+ * products
+ */
+type InventoryProductRow = {
+  id: string;
+  category_id: string | null;
+  sku: string | null;
+  name: string;
+  selling_price: number | string | null;
+  cost_price: number | string | null;
+  stock_quantity: number | string | null;
+  online_enabled: boolean | null;
+  online_price: number | string | null;
+  visibility: string;
+  featured: boolean | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/*
+ * product_categories
+ */
+type InventoryCategoryRow = {
+  id: string;
+  name: string;
+};
+
+/*
+ * product_images
+ */
+type InventoryProductImageRow = {
+  id: string;
+  product_id: string;
+  image_url: string | null;
+  is_primary: boolean | null;
+  sort_order: number | null;
+};
+
+/*
+ * product_variants
+ */
+type InventoryVariantRow = {
+  id: string;
+  product_id: string;
+  name: string;
+  sku: string | null;
+  stock_quantity: number | string | null;
+  selling_price: number | string | null;
+};
+
 function getStockStatus(
   stockQuantity: number
 ): InventoryStockStatus {
@@ -36,7 +96,10 @@ export async function getInventoryProducts(): Promise<{
    * relying on a nested relation so this remains compatible with
    * the existing database structure.
    */
-  const { data, error } = await supabase
+  const {
+    data,
+    error,
+  } = await supabase
     .from("products")
     .select(`
       id,
@@ -69,7 +132,14 @@ export async function getInventoryProducts(): Promise<{
     };
   }
 
-  const rawProducts = data ?? [];
+  /*
+   * Supabase's inferred response type can be weak when the
+   * generated Database type is not connected to the client.
+   *
+   * Establish the selected row shape explicitly here.
+   */
+  const rawProducts =
+    (data ?? []) as InventoryProductRow[];
 
   if (rawProducts.length === 0) {
     return {
@@ -87,9 +157,15 @@ export async function getInventoryProducts(): Promise<{
   const categoryIds = Array.from(
     new Set(
       rawProducts
-        .map((product) => product.category_id)
+        .map(
+          (
+            product: InventoryProductRow
+          ) => product.category_id
+        )
         .filter(
-          (categoryId): categoryId is string =>
+          (
+            categoryId: string | null
+          ): categoryId is string =>
             Boolean(categoryId)
         )
     )
@@ -115,15 +191,33 @@ export async function getInventoryProducts(): Promise<{
         categoryError
       );
     } else {
-      categories = (categoryData ?? []) as InventoryCategory[];
+      const rawCategories =
+        (categoryData ??
+          []) as InventoryCategoryRow[];
+
+      categories = rawCategories.map(
+        (
+          category: InventoryCategoryRow
+        ): InventoryCategory => ({
+          id: category.id,
+          name: category.name,
+        })
+      );
     }
   }
 
-  const categoryMap = new Map(
-    categories.map((category) => [
-      category.id,
-      category.name,
-    ])
+  const categoryMap = new Map<
+    string,
+    string
+  >(
+    categories.map(
+      (
+        category: InventoryCategory
+      ): [string, string] => [
+        category.id,
+        category.name,
+      ]
+    )
   );
 
   /*
@@ -133,7 +227,9 @@ export async function getInventoryProducts(): Promise<{
    */
 
   const productIds = rawProducts.map(
-    (product) => product.id
+    (
+      product: InventoryProductRow
+    ) => product.id
   );
 
   const {
@@ -163,13 +259,30 @@ export async function getInventoryProducts(): Promise<{
     );
   }
 
+  const rawImages =
+    (imageData ??
+      []) as InventoryProductImageRow[];
+
   /*
    * Map the first/primary image to each product.
+   *
+   * Because the query orders primary images first and then
+   * by sort order, the first image encountered for a product
+   * becomes its preferred image.
    */
-  const imageMap = new Map<string, string | null>();
+  const imageMap = new Map<
+    string,
+    string | null
+  >();
 
-  for (const image of imageData ?? []) {
-    if (!imageMap.has(image.product_id)) {
+  for (
+    const image of rawImages
+  ) {
+    if (
+      !imageMap.has(
+        image.product_id
+      )
+    ) {
       imageMap.set(
         image.product_id,
         image.image_url
@@ -208,6 +321,10 @@ export async function getInventoryProducts(): Promise<{
     );
   }
 
+  const rawVariants =
+    (variantData ??
+      []) as InventoryVariantRow[];
+
   /*
    * Group variants by product.
    */
@@ -216,17 +333,25 @@ export async function getInventoryProducts(): Promise<{
     InventoryVariant[]
   >();
 
-  for (const variant of variantData ?? []) {
+  for (
+    const variant of rawVariants
+  ) {
     const productVariants =
-      variantsMap.get(variant.product_id) ?? [];
+      variantsMap.get(
+        variant.product_id
+      ) ?? [];
 
     productVariants.push({
       id: variant.id,
+
       name: variant.name,
+
       sku: variant.sku,
+
       stockQuantity: Number(
         variant.stock_quantity ?? 0
       ),
+
       sellingPrice: Number(
         variant.selling_price ?? 0
       ),
@@ -245,63 +370,93 @@ export async function getInventoryProducts(): Promise<{
    */
 
   const products: InventoryProduct[] =
-    rawProducts.map((product) => {
-      const stockQuantity = Number(
-        product.stock_quantity ?? 0
-      );
+    rawProducts.map(
+      (
+        product: InventoryProductRow
+      ): InventoryProduct => {
+        const stockQuantity =
+          Number(
+            product.stock_quantity ?? 0
+          );
 
-      const costPrice = Number(
-        product.cost_price ?? 0
-      );
+        const costPrice =
+          Number(
+            product.cost_price ?? 0
+          );
 
-      return {
-        id: product.id,
+        return {
+          id: product.id,
 
-        categoryId: product.category_id,
+          categoryId:
+            product.category_id,
 
-        categoryName: product.category_id
-          ? categoryMap.get(product.category_id) ?? null
-          : null,
+          categoryName:
+            product.category_id
+              ? categoryMap.get(
+                  product.category_id
+                ) ?? null
+              : null,
 
-        sku: product.sku,
-        name: product.name,
+          sku: product.sku,
 
-        imageUrl:
-          imageMap.get(product.id) ?? null,
+          name: product.name,
 
-        sellingPrice: Number(
-          product.selling_price ?? 0
-        ),
+          imageUrl:
+            imageMap.get(
+              product.id
+            ) ?? null,
 
-        costPrice,
+          sellingPrice:
+            Number(
+              product.selling_price ?? 0
+            ),
 
-        stockQuantity,
+          costPrice,
 
-        onlineEnabled: Boolean(
-          product.online_enabled
-        ),
+          stockQuantity,
 
-        onlinePrice:
-          product.online_price === null
-            ? null
-            : Number(product.online_price),
+          onlineEnabled:
+            Boolean(
+              product.online_enabled
+            ),
 
-        visibility: product.visibility,
+          onlinePrice:
+            product.online_price === null
+              ? null
+              : Number(
+                  product.online_price
+                ),
 
-        featured: Boolean(product.featured),
+          visibility:
+            product.visibility,
 
-        status: getStockStatus(stockQuantity),
+          featured:
+            Boolean(
+              product.featured
+            ),
 
-        variants:
-          variantsMap.get(product.id) ?? [],
+          status:
+            getStockStatus(
+              stockQuantity
+            ),
 
-        inventoryValue:
-          stockQuantity * costPrice,
+          variants:
+            variantsMap.get(
+              product.id
+            ) ?? [],
 
-        createdAt: product.created_at,
-        updatedAt: product.updated_at,
-      };
-    });
+          inventoryValue:
+            stockQuantity *
+            costPrice,
+
+          createdAt:
+            product.created_at,
+
+          updatedAt:
+            product.updated_at,
+        };
+      }
+    );
 
   return {
     products,

@@ -13,19 +13,9 @@ type CheckoutDetailsStepProps = {
   error: string;
   canContinue: boolean;
 
-  onFieldChange: (
-    field: keyof FormState,
-    value: string,
-  ) => void;
-
-  onRecipientModeChange: (
-    mode: RecipientMode,
-  ) => void;
-
-  onSaveCustomerDetailsChange: (
-    value: boolean,
-  ) => void;
-
+  onFieldChange: (field: keyof FormState, value: string,) => void;
+  onRecipientModeChange: (mode: RecipientMode,) => void;
+  onSaveCustomerDetailsChange: (value: boolean,) => void;
   onContinue: () => void;
 };
 

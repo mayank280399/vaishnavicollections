@@ -1,23 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import {
-  CalendarDays,
-  Eye,
-  Loader2,
-  Mail,
-  MapPin,
-  Pencil,
-  Phone,
-  RefreshCw,
-  RotateCcw,
-  Search,
-  ShoppingBag,
-  Trash2,
-  UserRound,
-  Users,
-  Wallet,
-} from "lucide-react";
+import { CalendarDays, Eye, Loader2, Mail, MapPin, Pencil, Phone, RefreshCw, RotateCcw, Search, ShoppingBag,
+  Trash2, UserRound, Users, Wallet } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -36,6 +21,10 @@ type Customer = {
   date_of_birth: string | null;
   gender: string | null;
   city: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
+  state: string | null;
+  postal_code: string | null;
   source: string | null;
   first_purchase_at: string | null;
   last_purchase_at: string | null;
@@ -197,6 +186,10 @@ export default function CustomersTable() {
         date_of_birth,
         gender,
         city,
+        address_line1,
+        address_line2,
+        state,
+        postal_code,
         source,
         first_purchase_at,
         last_purchase_at,
@@ -639,7 +632,7 @@ export default function CustomersTable() {
         <CustomerDialog
           editCustomer={editingCustomer}
           open={true}
-          onOpenChange={(open) => {
+          onOpenChange={(open: boolean) => {
             if (!open) {
               setEditingCustomer(null);
             }
@@ -804,6 +797,44 @@ function CustomerDetailsDialog({
                 label="Source"
                 value={sourceLabel(customer.source)}
               />
+            </div>
+          </section>
+
+          {/* Saved Delivery Address */}
+          <section className="rounded-2xl border p-4 sm:p-5">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold">Saved Delivery Address</h3>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Address saved for future online orders.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 rounded-xl bg-muted/40 p-4">
+              <div className="space-y-1 text-sm">
+                {customer.address_line1 ? (
+                  <p className="font-medium">{customer.address_line1}</p>
+                ) : null}
+                {customer.address_line2 ? (
+                  <p className="text-muted-foreground">{customer.address_line2}</p>
+                ) : null}
+                <p className="text-muted-foreground">
+                  {[customer.city, customer.state, customer.postal_code]
+                    .filter(Boolean)
+                    .join(", ")}
+                </p>
+                {!customer.address_line1 &&
+                !customer.address_line2 &&
+                !customer.city &&
+                !customer.state &&
+                !customer.postal_code ? (
+                  <p className="text-muted-foreground">No saved delivery address.</p>
+                ) : null}
+              </div>
             </div>
           </section>
 

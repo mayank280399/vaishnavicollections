@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
-import type { Customer } from "@/app/account/page";
+import type { Customer } from "@/app/(storefront)/account/page";
 
 type Props = {
   customer: Customer;
