@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient as createServerSupabaseClient } from "@/lib/supabase/server";
 import { createClient as createAdminSupabaseClient } from "@supabase/supabase-js";
 
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_ROLE_KEY =
   process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
   throw new Error(
-    "Missing NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY",
+    "Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY",
   );
 }
 
