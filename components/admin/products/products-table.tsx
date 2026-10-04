@@ -44,9 +44,23 @@ export type Product = {
     | "PUBLISHED"
     | "ARCHIVED";
   featured: boolean | null;
+
+  /*
+   * Handmade / custom product fields
+   */
+  is_handmade: boolean | null;
+  is_made_to_order: boolean | null;
+  bulk_orders_available: boolean | null;
+  handmade_featured: boolean | null;
+
   primary_image_url?: string | null;
   created_at: string;
   updated_at: string;
+};
+
+type ProductImageRow = {
+  id: string;
+  image_url: string;
 };
 
 type ProductsTableProps = {
@@ -376,34 +390,39 @@ export function ProductsTable({
         throw imageLoadError;
       }
 
+      const typedImages =
+        (images ?? []) as ProductImageRow[];
+
       const PRODUCT_IMAGE_BUCKET =
         "product-images";
 
       const storagePaths =
-        (images ?? [])
-          .map((image) => {
-            const marker =
-              `/storage/v1/object/public/${PRODUCT_IMAGE_BUCKET}/`;
+        typedImages
+          .map(
+            (image: ProductImageRow) => {
+              const marker =
+                `/storage/v1/object/public/${PRODUCT_IMAGE_BUCKET}/`;
 
-            const index =
-              image.image_url.indexOf(
-                marker
+              const index =
+                image.image_url.indexOf(
+                  marker
+                );
+
+              if (index === -1) {
+                return null;
+              }
+
+              return decodeURIComponent(
+                image.image_url.slice(
+                  index +
+                    marker.length
+                )
               );
-
-            if (index === -1) {
-              return null;
             }
-
-            return decodeURIComponent(
-              image.image_url.slice(
-                index +
-                  marker.length
-              )
-            );
-          })
+          )
           .filter(
             (
-              path
+              path: string | null
             ): path is string =>
               Boolean(path)
           );
@@ -411,7 +430,7 @@ export function ProductsTable({
       /*
        * Delete image records.
        */
-      if (images?.length) {
+      if (typedImages.length) {
         const {
           error:
             imageDeleteError,
@@ -792,11 +811,37 @@ export function ProductsTable({
                                 </div>
                               )}
 
-                              {product.featured && (
-                                <span className="mt-1 inline-flex text-xs text-muted-foreground">
-                                  Featured
-                                </span>
-                              )}
+                              <div className="mt-1 flex flex-wrap gap-1.5">
+                                {product.featured && (
+                                  <span className="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                                    Featured
+                                  </span>
+                                )}
+
+                                {product.is_handmade && (
+                                  <span className="inline-flex rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-800">
+                                    Handmade
+                                  </span>
+                                )}
+
+                                {product.is_made_to_order && (
+                                  <span className="inline-flex rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800">
+                                    Made to Order
+                                  </span>
+                                )}
+
+                                {product.bulk_orders_available && (
+                                  <span className="inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800">
+                                    Bulk
+                                  </span>
+                                )}
+
+                                {product.handmade_featured && (
+                                  <span className="inline-flex rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                                    Handmade Featured
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </td>

@@ -16,7 +16,7 @@ export default function CustomOrderBanner() {
             <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-[#b18425]">Made especially for you</p>
             <h2 className="mt-2 font-serif text-2xl font-semibold text-[#10233e] sm:text-3xl">Custom creations, just for you</h2>
             <p className="mt-3 text-sm leading-6 text-slate-600">Looking for something special? We prepare beautiful poshak, shringar, accessories and decor items on order.</p>
-            <Link href="/contact" className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#e4b653] px-4 py-2.5 text-xs font-semibold text-[#132440] transition hover:bg-[#d5a33d]">Request a custom order <ArrowRight size={15} /></Link>
+            <Link href="/handmade" className="mt-5 inline-flex items-center gap-2 rounded-lg bg-[#e4b653] px-4 py-2.5 text-xs font-semibold text-[#132440] transition hover:bg-[#d5a33d]">Request a custom order <ArrowRight size={15} /></Link>
           </div>
           <ul className="grid grid-cols-2 gap-3 text-xs text-[#30405a] lg:grid-cols-1">
             <li className="flex items-center gap-2"><Sparkles size={16} className="text-[#b18425]" /> Custom poshak</li>

@@ -2,6 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 
+export type PaymentMethod = "CASH" | "RAZORPAY";
+
 export type CreateOrderInput = {
   customerName: string;
   customerPhone: string;
@@ -12,7 +14,8 @@ export type CreateOrderInput = {
   postalCode: string;
   country?: string;
   notes?: string;
-  paymentMethod?: string;
+  paymentMethod: PaymentMethod;
+  saveCustomerDetails?: boolean;
 };
 
 export async function createOrder(input: CreateOrderInput) {
@@ -35,17 +38,20 @@ export async function createOrder(input: CreateOrderInput) {
       {
         p_customer_name: input.customerName.trim(),
         p_customer_phone: input.customerPhone.trim(),
-        p_shipping_address_line1: input.addressLine1.trim(),
+        p_shipping_address_line1:
+          input.addressLine1.trim(),
         p_shipping_address_line2:
           input.addressLine2?.trim() || "",
         p_shipping_city: input.city.trim(),
         p_shipping_state: input.state.trim(),
-        p_shipping_postal_code: input.postalCode.trim(),
+        p_shipping_postal_code:
+          input.postalCode.trim(),
         p_shipping_country:
           input.country?.trim() || "India",
         p_notes: input.notes?.trim() || "",
-        p_payment_method:
-          input.paymentMethod?.trim() || "",
+        p_payment_method: input.paymentMethod,
+        p_save_customer_details:
+          input.saveCustomerDetails === true,
       },
     );
 
@@ -65,11 +71,15 @@ export async function createOrder(input: CreateOrderInput) {
       orderId: data as string,
     };
   } catch (error) {
-    console.error("Unexpected create order error:", error);
+    console.error(
+      "Unexpected create order error:",
+      error,
+    );
 
     return {
       success: false,
-      error: "Something went wrong while placing your order.",
+      error:
+        "Something went wrong while placing your order.",
     };
   }
 }

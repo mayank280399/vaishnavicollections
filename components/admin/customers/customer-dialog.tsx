@@ -37,7 +37,13 @@ type Customer = {
   email: string | null;
   date_of_birth: string | null;
   gender: string | null;
+
+  address_line1: string | null;
+  address_line2: string | null;
   city: string | null;
+  state: string | null;
+  postal_code: string | null;
+
   source: string | null;
   first_purchase_at: string | null;
   last_purchase_at: string | null;
@@ -54,7 +60,7 @@ type CustomerDialogProps = {
   editCustomer?: Customer | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
-  onSaved?: () => void;
+  onSaved?: () => void | Promise<void>;
 };
 
 const SOURCES = [
@@ -63,13 +69,13 @@ const SOURCES = [
   { value: "REFERRAL", label: "Referral" },
   { value: "ONLINE", label: "Online" },
   { value: "OTHER", label: "Other" },
-];
+] as const;
 
 const GENDERS = [
   { value: "FEMALE", label: "Female" },
   { value: "MALE", label: "Male" },
   { value: "OTHER", label: "Other" },
-];
+] as const;
 
 const inputClass =
   "h-11 w-full rounded-xl border bg-background px-3 text-sm outline-none transition focus:border-primary focus:ring-2 focus:ring-primary/10";
@@ -97,12 +103,12 @@ function Field({
   );
 }
 
-function generateCustomerCode() {
+function generateCustomerCode(): string {
   const timestamp = Date.now().toString().slice(-8);
   return `CUST-${timestamp}`;
 }
 
-function today() {
+function today(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
@@ -128,21 +134,35 @@ export default function CustomerDialog({
   const [email, setEmail] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [gender, setGender] = useState("");
+
+  const [addressLine1, setAddressLine1] = useState("");
+  const [addressLine2, setAddressLine2] = useState("");
   const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [postalCode, setPostalCode] = useState("");
+
   const [source, setSource] = useState("PHYSICAL_SHOP");
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
 
-  function resetForm() {
-    setCustomerCode(editCustomer?.customer_code ?? generateCustomerCode());
+  function resetForm(): void {
+    setCustomerCode(
+      editCustomer?.customer_code ?? generateCustomerCode()
+    );
     setDisplayName(editCustomer?.display_name ?? "");
     setPhone(editCustomer?.phone ?? "");
     setEmail(editCustomer?.email ?? "");
     setDateOfBirth(editCustomer?.date_of_birth ?? "");
     setGender(editCustomer?.gender ?? "");
+
+    setAddressLine1(editCustomer?.address_line1 ?? "");
+    setAddressLine2(editCustomer?.address_line2 ?? "");
     setCity(editCustomer?.city ?? "");
+    setState(editCustomer?.state ?? "");
+    setPostalCode(editCustomer?.postal_code ?? "");
+
     setSource(editCustomer?.source ?? "PHYSICAL_SHOP");
 
     setError("");
@@ -155,7 +175,7 @@ export default function CustomerDialog({
     }
   }, [open, editCustomer]);
 
-  function handleOpenChange(value: boolean) {
+  function handleOpenChange(value: boolean): void {
     if (!isControlled) {
       setInternalOpen(value);
     }
@@ -168,21 +188,61 @@ export default function CustomerDialog({
     }
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(
+    event: FormEvent<HTMLFormElement>
+  ): Promise<void> {
     event.preventDefault();
 
     setError("");
     setMessage("");
 
     const name = displayName.trim();
+    const normalizedPhone = phone.trim();
+    const normalizedEmail = email.trim();
+    const normalizedAddressLine1 = addressLine1.trim();
+    const normalizedAddressLine2 = addressLine2.trim();
+    const normalizedCity = city.trim();
+    const normalizedState = state.trim();
+    const normalizedPostalCode = postalCode.trim();
 
     if (!name) {
       setError("Customer name is required.");
       return;
     }
 
-    if (email.trim() && !/^\S+@\S+\.\S+$/.test(email.trim())) {
+    if (
+      normalizedPhone &&
+      !/^\d{10}$/.test(normalizedPhone)
+    ) {
+      setError("Please enter a valid 10-digit phone number.");
+      return;
+    }
+
+    if (
+      normalizedEmail &&
+      !/^\S+@\S+\.\S+$/.test(normalizedEmail)
+    ) {
       setError("Please enter a valid email address.");
+      return;
+    }
+
+    if (!normalizedAddressLine1) {
+      setError("Address Line 1 is required.");
+      return;
+    }
+
+    if (!normalizedCity) {
+      setError("City is required.");
+      return;
+    }
+
+    if (!normalizedState) {
+      setError("State is required.");
+      return;
+    }
+
+    if (!/^\d{6}$/.test(normalizedPostalCode)) {
+      setError("Please enter a valid 6-digit PIN code.");
       return;
     }
 
@@ -190,13 +250,20 @@ export default function CustomerDialog({
 
     try {
       const payload = {
-        customer_code: customerCode.trim() || generateCustomerCode(),
+        customer_code:
+          customerCode.trim() || generateCustomerCode(),
         display_name: name,
-        phone: phone.trim() || null,
-        email: email.trim() || null,
+        phone: normalizedPhone || null,
+        email: normalizedEmail || null,
         date_of_birth: dateOfBirth || null,
         gender: gender || null,
-        city: city.trim() || null,
+
+        address_line1: normalizedAddressLine1,
+        address_line2: normalizedAddressLine2 || null,
+        city: normalizedCity,
+        state: normalizedState,
+        postal_code: normalizedPostalCode,
+
         source: source || "OTHER",
       };
 
@@ -209,7 +276,21 @@ export default function CustomerDialog({
           })
           .eq("id", editCustomer.id)
           .select(
-            "id,customer_code,display_name,phone,email,date_of_birth,gender,city,source"
+            `
+              id,
+              customer_code,
+              display_name,
+              phone,
+              email,
+              date_of_birth,
+              gender,
+              address_line1,
+              address_line2,
+              city,
+              state,
+              postal_code,
+              source
+            `
           );
 
         if (updateError) {
@@ -234,7 +315,21 @@ export default function CustomerDialog({
             customer_segment: "NEW",
           })
           .select(
-            "id,customer_code,display_name,phone,email,date_of_birth,gender,city,source"
+            `
+              id,
+              customer_code,
+              display_name,
+              phone,
+              email,
+              date_of_birth,
+              gender,
+              address_line1,
+              address_line2,
+              city,
+              state,
+              postal_code,
+              source
+            `
           );
 
         if (insertError) {
@@ -250,14 +345,16 @@ export default function CustomerDialog({
         setMessage("Customer created successfully.");
       }
 
-      onSaved?.();
+      await onSaved?.();
 
-      setTimeout(() => {
+      window.setTimeout(() => {
         handleOpenChange(false);
       }, 500);
-    } catch (err) {
+    } catch (err: unknown) {
       setError(
-        err instanceof Error ? err.message : "Unable to save customer."
+        err instanceof Error
+          ? err.message
+          : "Unable to save customer."
       );
     } finally {
       setSaving(false);
@@ -275,16 +372,18 @@ export default function CustomerDialog({
         </DialogTrigger>
       ) : null}
 
-      <DialogContent className="!w-[calc(100vw-1rem)]
-    !max-w-2xl
-    max-h-[95vh]
-    overflow-x-hidden
-    overflow-y-auto
-    rounded-2xl
-    p-0
-    bg-white
-  "
->
+      <DialogContent
+        className="
+          !w-[calc(100vw-1rem)]
+          !max-w-2xl
+          max-h-[95vh]
+          overflow-x-hidden
+          overflow-y-auto
+          rounded-2xl
+          bg-white
+          p-0
+        "
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
@@ -297,7 +396,11 @@ export default function CustomerDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-5 p-5 sm:p-6">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-5 p-5 sm:p-6"
+        >
+          {/* Personal Information */}
           <section className="rounded-2xl border bg-card p-4 sm:p-5">
             <div className="mb-4">
               <h3 className="text-sm font-semibold">
@@ -305,7 +408,8 @@ export default function CustomerDialog({
               </h3>
 
               <p className="mt-1 text-xs text-muted-foreground">
-                Basic information used for customer records and orders.
+                Basic information used for customer records,
+                orders and communication.
               </p>
             </div>
 
@@ -313,7 +417,9 @@ export default function CustomerDialog({
               <Field label="Customer Code" required>
                 <input
                   value={customerCode}
-                  onChange={(e) => setCustomerCode(e.target.value)}
+                  onChange={(event) =>
+                    setCustomerCode(event.target.value)
+                  }
                   className={inputClass}
                   required
                 />
@@ -322,7 +428,9 @@ export default function CustomerDialog({
               <Field label="Customer Name" required>
                 <input
                   value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
+                  onChange={(event) =>
+                    setDisplayName(event.target.value)
+                  }
                   placeholder="e.g. Priya Sharma"
                   className={inputClass}
                   required
@@ -334,8 +442,13 @@ export default function CustomerDialog({
                   <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
 
                   <input
+                    inputMode="numeric"
                     value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
+                    onChange={(event) =>
+                      setPhone(
+                        event.target.value.replace(/\D/g, "").slice(0, 10)
+                      )
+                    }
                     placeholder="9876543210"
                     className={`${inputClass} pl-10`}
                   />
@@ -349,7 +462,9 @@ export default function CustomerDialog({
                   <input
                     type="email"
                     value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    onChange={(event) =>
+                      setEmail(event.target.value)
+                    }
                     placeholder="customer@example.com"
                     className={`${inputClass} pl-10`}
                   />
@@ -363,7 +478,9 @@ export default function CustomerDialog({
                   <input
                     type="date"
                     value={dateOfBirth}
-                    onChange={(e) => setDateOfBirth(e.target.value)}
+                    onChange={(event) =>
+                      setDateOfBirth(event.target.value)
+                    }
                     max={today()}
                     className={`${inputClass} pl-10`}
                   />
@@ -373,40 +490,18 @@ export default function CustomerDialog({
               <Field label="Gender">
                 <select
                   value={gender}
-                  onChange={(e) => setGender(e.target.value)}
+                  onChange={(event) =>
+                    setGender(event.target.value)
+                  }
                   className={inputClass}
                 >
                   <option value="">Select gender</option>
 
                   {GENDERS.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-
-              <Field label="City">
-                <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-
-                  <input
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder="Delhi"
-                    className={`${inputClass} pl-10`}
-                  />
-                </div>
-              </Field>
-
-              <Field label="Customer Source">
-                <select
-                  value={source}
-                  onChange={(e) => setSource(e.target.value)}
-                  className={inputClass}
-                >
-                  {SOURCES.map((item) => (
-                    <option key={item.value} value={item.value}>
+                    <option
+                      key={item.value}
+                      value={item.value}
+                    >
                       {item.label}
                     </option>
                   ))}
@@ -415,18 +510,154 @@ export default function CustomerDialog({
             </div>
           </section>
 
+          {/* Delivery Address */}
+          <section className="rounded-2xl border bg-card p-4 sm:p-5">
+            <div className="mb-4">
+              <div className="flex items-start gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <MapPin className="h-4 w-4" />
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-semibold">
+                    Delivery Address
+                  </h3>
+
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Keep the customer&apos;s saved address
+                    ready for future online orders.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Field label="Address Line 1" required>
+                <input
+                  value={addressLine1}
+                  onChange={(event) =>
+                    setAddressLine1(event.target.value)
+                  }
+                  placeholder="House / Flat / Shop / Street"
+                  className={inputClass}
+                  required
+                />
+              </Field>
+
+              <Field label="Address Line 2">
+                <input
+                  value={addressLine2}
+                  onChange={(event) =>
+                    setAddressLine2(event.target.value)
+                  }
+                  placeholder="Landmark, locality, apartment, etc. (optional)"
+                  className={inputClass}
+                />
+              </Field>
+
+              <div className="flex flex-col gap-4 sm:grid sm:grid-cols-2">
+                <Field label="City" required>
+                  <div className="relative">
+                    <MapPin className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
+                    <input
+                      value={city}
+                      onChange={(event) =>
+                        setCity(event.target.value)
+                      }
+                      placeholder="Delhi"
+                      className={`${inputClass} pl-10`}
+                      required
+                    />
+                  </div>
+                </Field>
+
+                <Field label="State" required>
+                  <input
+                    value={state}
+                    onChange={(event) =>
+                      setState(event.target.value)
+                    }
+                    placeholder="Delhi"
+                    className={inputClass}
+                    required
+                  />
+                </Field>
+
+                <Field label="PIN Code" required>
+                  <input
+                    inputMode="numeric"
+                    value={postalCode}
+                    onChange={(event) =>
+                      setPostalCode(
+                        event.target.value
+                          .replace(/\D/g, "")
+                          .slice(0, 6)
+                      )
+                    }
+                    placeholder="110046"
+                    className={inputClass}
+                    maxLength={6}
+                    required
+                  />
+                </Field>
+              </div>
+            </div>
+          </section>
+
+          {/* Customer Source */}
+          <section className="rounded-2xl border bg-card p-4 sm:p-5">
+            <div className="mb-4">
+              <h3 className="text-sm font-semibold">
+                Customer Source
+              </h3>
+
+              <p className="mt-1 text-xs text-muted-foreground">
+                Helps you understand where the customer came
+                from.
+              </p>
+            </div>
+
+            <Field label="Customer Source">
+              <select
+                value={source}
+                onChange={(event) =>
+                  setSource(event.target.value)
+                }
+                className={inputClass}
+              >
+                {SOURCES.map((item) => (
+                  <option
+                    key={item.value}
+                    value={item.value}
+                  >
+                    {item.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </section>
+
+          {/* Messages */}
           {error ? (
-            <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+            <div
+              role="alert"
+              className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+            >
               {error}
             </div>
           ) : null}
 
           {message ? (
-            <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-700">
+            <div
+              role="status"
+              className="rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm text-emerald-700"
+            >
               {message}
             </div>
           ) : null}
 
+          {/* Actions */}
           <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
             <Button
               type="button"
@@ -450,7 +681,9 @@ export default function CustomerDialog({
                 </>
               ) : (
                 <>
-                  {isEditMode ? "Update Customer" : "Save Customer"}
+                  {isEditMode
+                    ? "Update Customer"
+                    : "Save Customer"}
                 </>
               )}
             </Button>

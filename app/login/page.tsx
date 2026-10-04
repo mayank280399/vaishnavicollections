@@ -1,394 +1,1124 @@
 "use client";
 
-import Image from "next/image";
-import { Eye, EyeOff } from "lucide-react";
-import { FormEvent, useEffect, useState } from "react";
+import React, {
+  FormEvent,
+  Suspense,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  ArrowRight,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Loader2,
+  Lock,
+  Mail,
+  User,
+} from "lucide-react";
+
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
 
-type Mode = "login" | "register";
+type AuthMode = "login" | "register";
 
-export default function LoginPage() {
+function getSafeRedirect(value: string | null) {
+  if (!value) return "/";
+
+  if (!value.startsWith("/") || value.startsWith("//")) {
+    return "/";
+  }
+
+  return value;
+}
+
+function isValidEmail(value: string) {
+  const email = value.trim().toLowerCase();
+
+  if (!email) return false;
+
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+}
+
+function normalizeOtp(value: string) {
+  return value.replace(/\D/g, "").slice(0, 6);
+}
+
+function LoginPageContent() {
   const router = useRouter();
-  const supabase = createClient();
+  const searchParams = useSearchParams();
 
-  const [mode, setMode] = useState<Mode>("login");
+  const supabase = useMemo(() => createClient(), []);
+
+  const [mode, setMode] = useState<AuthMode>("login");
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [otpSentTo, setOtpSentTo] = useState("");
+  const [otpStep, setOtpStep] = useState(false);
+  const [resendCooldown, setResendCooldown] = useState(0);
 
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] =
+    useState(false);
+
   const [loading, setLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
-  const [resetLoading, setResetLoading] = useState(false);
 
-  const isRegister = mode === "register";
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  /*
+   * ---------------------------------------------------------
+   * CONTEXT
+   * ---------------------------------------------------------
+   */
+
+  const redirectPath = useMemo(
+    () => getSafeRedirect(searchParams.get("redirect")),
+    [searchParams],
+  );
+
+  const pageTitle =
+    mode === "login"
+      ? "Welcome back! 👋"
+      : "Vaishnavi Collections me account banaiye 💛";
+
+  const pageDescription =
+    mode === "login"
+      ? "Apne account me login karein aur apni shopping, orders aur profile details dekhein."
+      : "Apni details save karein aur future shopping ko aur easy banaiye.";
+
+  /*
+   * ---------------------------------------------------------
+   * EMAIL OTP COUNTDOWN
+   * ---------------------------------------------------------
+   */
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const authError = params.get("error");
-
-    if (authError === "oauth") {
-      setError("Google sign-in could not be completed. Please try again.");
-    } else if (authError === "profile") {
-      setError("Your account was authenticated, but its profile could not be set up. Please contact support.");
+    if (resendCooldown <= 0) {
+      return;
     }
 
-    if (authError) {
-      params.delete("error");
-      const query = params.toString();
-      window.history.replaceState({}, "", `${window.location.pathname}${query ? `?${query}` : ""}`);
-    }
-  }, []);
+    const timer = window.setInterval(() => {
+      setResendCooldown((value) =>
+        value > 0 ? value - 1 : 0,
+      );
+    }, 1000);
 
-  function switchMode(nextMode: Mode) {
-    setMode(nextMode);
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [resendCooldown]);
+
+  /*
+   * ---------------------------------------------------------
+   * HELPERS
+   * ---------------------------------------------------------
+   */
+
+  function clearMessages() {
     setError("");
-    setMessage("");
-    setShowPassword(false);
-    setShowConfirmPassword(false);
+    setSuccess("");
   }
 
-  async function getUserRole() {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+  async function getUserRole(userId: string) {
+    const { data, error: roleError } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .maybeSingle();
 
-    if (!user) {
+    if (roleError) {
+      console.error("Role fetch error:", roleError);
+
       return null;
     }
 
-    const { data: profile, error: profileError } = await supabase
+    return data?.role ?? null;
+  }
+
+  async function verifyProfile(userId: string) {
+    const { data, error: profileError } = await supabase
       .from("profiles")
-      .select("role")
-      .eq("id", user.id)
+      .select("id, role")
+      .eq("id", userId)
       .maybeSingle();
 
     if (profileError) {
-      console.error("Role lookup error:", profileError);
-      return "CUSTOMER";
+      console.error(
+        "Profile verification error:",
+        profileError,
+      );
+
+      return false;
     }
 
-    return profile?.role?.toUpperCase() ?? "CUSTOMER";
+    return Boolean(data);
   }
 
-  async function handleLogin(event: FormEvent<HTMLFormElement>) {
+  async function verifyProfileWithRetry(userId: string) {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const exists = await verifyProfile(userId);
+
+      if (exists) {
+        return true;
+      }
+
+      if (attempt < 2) {
+        await new Promise((resolve) =>
+          window.setTimeout(resolve, 500),
+        );
+      }
+    }
+
+    return false;
+  }
+
+  async function redirectAfterAuth(userId: string) {
+    const role = await getUserRole(userId);
+
+    if (
+      role === "ADMIN" ||
+      role === "OWNER" ||
+      role === "STAFF"
+    ) {
+      router.replace("/admin");
+      return;
+    }
+
+    router.replace(redirectPath);
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * EMAIL VALIDATION
+   * ---------------------------------------------------------
+   */
+
+  function validateEmail() {
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!cleanEmail) {
+      setError("Apna email address enter kijiye.");
+      return false;
+    }
+
+    if (!isValidEmail(cleanEmail)) {
+      setError(
+        "Please ek valid email address enter kijiye.",
+      );
+      return false;
+    }
+
+    return true;
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * LOGIN
+   * ---------------------------------------------------------
+   */
+
+  async function handleLogin(
+    event: FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
-    setError("");
-    setMessage("");
+
+    clearMessages();
+
+    const cleanEmail = email.trim().toLowerCase();
+
+    if (!validateEmail()) {
+      return;
+    }
+
+    if (!password) {
+      setError("Password enter kijiye.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      const { error: loginError } =
+      const result =
         await supabase.auth.signInWithPassword({
-          email: email.trim(),
+          email: cleanEmail,
           password,
         });
 
-      if (loginError) {
-        setError(loginError.message);
+      if (result.error) {
+        console.error("Login error:", result.error);
+
+        const message =
+          result.error.message.toLowerCase();
+
+        if (
+          message.includes(
+            "invalid login credentials",
+          ) ||
+          message.includes("invalid credentials")
+        ) {
+          setError(
+            "Email ya password sahi nahi hai. Please dobara check kijiye.",
+          );
+        } else if (
+          message.includes("email not confirmed")
+        ) {
+          setError(
+            "Aapka email abhi verify nahi hua hai. Pehle email verify kijiye.",
+          );
+        } else {
+          setError(
+            result.error.message ||
+              "Login nahi ho paaya. Please dobara try kijiye.",
+          );
+        }
+
         return;
       }
 
-      const role = await getUserRole();
-
-      if (
-        role === "STAFF" ||
-        role === "ADMIN" ||
-        role === "OWNER"
-      ) {
-        router.push("/admin");
-      } else {
-        router.push("/");
+      if (!result.data.user) {
+        setError(
+          "Login complete nahi ho paaya. Please dobara try kijiye.",
+        );
+        return;
       }
 
-      router.refresh();
-    } catch (loginError) {
-      console.error("Sign-in error:", loginError);
-      setError("Unable to sign in right now. Check your connection and try again.");
+      const hasProfile = await verifyProfile(
+        result.data.user.id,
+      );
+
+      if (!hasProfile) {
+        setError(
+          "Account mil gaya, lekin profile setup complete nahi hua. Please dobara try kijiye.",
+        );
+        return;
+      }
+
+      await redirectAfterAuth(result.data.user.id);
+    } catch (err) {
+      console.error("Unexpected login error:", err);
+
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Kuch unexpected problem aa gayi. Please dobara try kijiye.",
+      );
     } finally {
       setLoading(false);
     }
   }
 
-async function handleRegister(event: FormEvent<HTMLFormElement>) {
-  event.preventDefault();
+  /*
+   * ---------------------------------------------------------
+   * REGISTER
+   * ---------------------------------------------------------
+   *
+   * Name + Email + Password
+   * Email OTP verification
+   * ---------------------------------------------------------
+   */
 
-  setError("");
-  setMessage("");
+  async function handleRegister(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
 
-  const trimmedName = name.trim();
-  const trimmedEmail = email.trim().toLowerCase();
+    clearMessages();
 
-  if (!trimmedName) {
-    setError("Please enter your name.");
-    return;
-  }
+    const trimmedName = name.trim();
+    const cleanEmail = email.trim().toLowerCase();
 
-  if (!trimmedEmail) {
-    setError("Please enter your email address.");
-    return;
-  }
+    if (!trimmedName) {
+      setError("Apna naam enter kijiye.");
+      return;
+    }
 
-  if (password.length < 6) {
-    setError("Password must be at least 6 characters.");
-    return;
-  }
+    if (!validateEmail()) {
+      return;
+    }
 
-  if (password !== confirmPassword) {
-    setError("Passwords do not match.");
-    return;
-  }
+    if (!password) {
+      setError("Create password.");
+      return;
+    }
 
-  setLoading(true);
+    if (password.length < 6) {
+      setError(
+        "Password must be at least 6 characters long.",
+      );
+      return;
+    }
 
-  try {
-    const {
-      data: { user, session },
-      error: signUpError,
-    } = await supabase.auth.signUp({
-      email: trimmedEmail,
-      password,
-      options: {
-        data: {
-          display_name: trimmedName,
+    if (password !== confirmPassword) {
+      setError("Dono passwords same nahi hain.");
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const result = await supabase.auth.signUp({
+        email: cleanEmail,
+        password,
+        options: {
+          data: {
+            display_name: trimmedName,
+          },
         },
-      },
-    });
+      });
 
-    if (signUpError) {
-      console.error("Signup error:", signUpError);
-      setError(signUpError.message);
-      return;
-    }
+      if (result.error) {
+        console.error(
+          "Registration error:",
+          result.error,
+        );
 
-    if (!user) {
-      setError("Unable to create your account. Please try again.");
-      return;
-    }
+        const message =
+          result.error.message.toLowerCase();
 
-    // With email confirmation disabled, a session should be available.
-    if (!session) {
-      setError(
-        "Your account was created, but we could not sign you in. Please try signing in again.",
+        if (
+          message.includes("already registered") ||
+          message.includes("already exists") ||
+          message.includes("user already registered")
+        ) {
+          setError(
+            "Ye email already registered hai. Login karke dekhiye.",
+          );
+        } else {
+          setError(
+            result.error.message ||
+              "Account create nahi ho paaya. Please dobara try kijiye.",
+          );
+        }
+
+        return;
+      }
+
+      if (!result.data.user) {
+        setError(
+          "Account create nahi ho paaya. Please dobara try kijiye.",
+        );
+        return;
+      }
+
+      if (!result.data.session) {
+        setOtpSentTo(cleanEmail);
+        setOtp("");
+        setOtpStep(true);
+
+        setResendCooldown(60);
+
+        setSuccess(
+          "Aapke email par verification code bheja gaya hai.",
+        );
+
+        return;
+      }
+
+      const hasProfile =
+        await verifyProfileWithRetry(
+          result.data.user.id,
+        );
+
+      if (!hasProfile) {
+        setError(
+          "Account create ho gaya, lekin profile setup complete nahi hua. Please dobara login kijiye.",
+        );
+        return;
+      }
+
+      await redirectAfterAuth(result.data.user.id);
+    } catch (err) {
+      console.error(
+        "Unexpected registration error:",
+        err,
       );
-      return;
-    }
-
-    // Profile is created automatically by the database trigger.
-    const { data: profile, error: profileError } = await supabase
-      .from("profiles")
-      .select("id, role")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (profileError) {
-      console.error("Profile verification error:", profileError);
 
       setError(
-        "Your account was created, but we could not verify your customer profile. Please try signing in again.",
+        err instanceof Error
+          ? err.message
+          : "Kuch unexpected problem aa gayi. Please dobara try kijiye.",
       );
-
-      return;
+    } finally {
+      setLoading(false);
     }
-
-    if (!profile) {
-      console.error("Profile missing after registration:", user.id);
-
-      setError(
-        "Your account was created, but your customer profile is still being set up. Please try signing in again.",
-      );
-
-      return;
-    }
-
-    // New registrations are customers.
-    router.push("/");
-    router.refresh();
-  } catch (registerError) {
-    console.error("Registration error:", registerError);
-
-    setError(
-      "Unable to create your account right now. Please try again.",
-    );
-  } finally {
-    setLoading(false);
   }
-}
+
+  /*
+   * ---------------------------------------------------------
+   * VERIFY EMAIL OTP
+   * ---------------------------------------------------------
+   */
+
+  async function handleVerifyOtp(
+    event: FormEvent<HTMLFormElement>,
+  ) {
+    event.preventDefault();
+
+    clearMessages();
+
+    const cleanOtp = normalizeOtp(otp);
+
+    if (cleanOtp.length !== 6) {
+      setError(
+        "Please 6-digit verification code enter kijiye.",
+      );
+      return;
+    }
+
+    if (!otpSentTo) {
+      setError(
+        "Verification details missing hain. Please dobara try kijiye.",
+      );
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const verifyResult =
+        await supabase.auth.verifyOtp({
+          email: otpSentTo,
+          token: cleanOtp,
+          type: "email",
+        });
+
+      if (verifyResult.error) {
+        console.error(
+          "Email OTP verification error:",
+          verifyResult.error,
+        );
+
+        const message =
+          verifyResult.error.message.toLowerCase();
+
+        if (
+          message.includes("expired") ||
+          message.includes("otp expired")
+        ) {
+          setError(
+            "Ye verification code expire ho gaya hai. Please naya OTP resend kijiye.",
+          );
+        } else if (
+          message.includes("invalid") ||
+          message.includes("token")
+        ) {
+          setError(
+            "Verification code galat hai. Please dobara check kijiye.",
+          );
+        } else {
+          setError(
+            verifyResult.error.message ||
+              "Email verify nahi ho paaya. Please dobara try kijiye.",
+          );
+        }
+
+        return;
+      }
+
+      const user = verifyResult.data.user;
+
+      if (!user) {
+        setError(
+          "Verification complete nahi ho paayi. Please dobara try kijiye.",
+        );
+        return;
+      }
+
+      const hasProfile =
+        await verifyProfileWithRetry(user.id);
+
+      if (!hasProfile) {
+        setError(
+          "Email successfully verify ho gaya, lekin profile setup complete nahi hua. Please thodi der baad login kijiye.",
+        );
+        return;
+      }
+
+      setSuccess(
+        "Email successfully verify ho gaya! 🎉",
+      );
+
+      await redirectAfterAuth(user.id);
+    } catch (err) {
+      console.error(
+        "Unexpected OTP verification error:",
+        err,
+      );
+
+      setError(
+        "Email verification me problem aa gayi. Please dobara try kijiye.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * RESEND EMAIL OTP
+   * ---------------------------------------------------------
+   */
+
+  async function handleResendOtp() {
+    clearMessages();
+
+    if (resendCooldown > 0) {
+      return;
+    }
+
+    if (!otpSentTo) {
+      setError(
+        "Verification details missing hain. Please dobara registration kijiye.",
+      );
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const resendResult =
+        await supabase.auth.resend({
+          type: "signup",
+          email: otpSentTo,
+        });
+
+      if (resendResult.error) {
+        console.error(
+          "Resend email OTP error:",
+          resendResult.error,
+        );
+
+        setError(
+          resendResult.error.message ||
+            "OTP resend nahi ho paaya. Please thodi der baad try kijiye.",
+        );
+
+        return;
+      }
+
+      setOtp("");
+      setResendCooldown(60);
+
+      setSuccess(
+        "Naya OTP aapke email par bhej diya gaya hai.",
+      );
+    } catch (err) {
+      console.error(
+        "Unexpected resend OTP error:",
+        err,
+      );
+
+      setError(
+        "OTP resend me problem aa gayi. Please thodi der baad try kijiye.",
+      );
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * EDIT VERIFICATION DETAILS
+   * ---------------------------------------------------------
+   */
+
+  function handleEditVerificationDetails() {
+    clearMessages();
+
+    setOtpStep(false);
+    setOtp("");
+    setOtpSentTo("");
+    setResendCooldown(0);
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * GOOGLE LOGIN
+   * ---------------------------------------------------------
+   */
 
   async function handleGoogleLogin() {
-    setError("");
-    setMessage("");
+    clearMessages();
+
     setGoogleLoading(true);
 
     try {
+      const callbackUrl =
+        `${window.location.origin}/auth/callback` +
+        `?next=${encodeURIComponent(
+          redirectPath,
+        )}`;
+
       const { error: googleError } =
         await supabase.auth.signInWithOAuth({
           provider: "google",
           options: {
-            redirectTo: `${window.location.origin}/auth/callback`,
+            redirectTo: callbackUrl,
           },
         });
 
       if (googleError) {
-        setError(googleError.message);
-        setGoogleLoading(false);
+        console.error(
+          "Google login error:",
+          googleError,
+        );
+
+        setError(
+          googleError.message ||
+            "Google se login nahi ho paaya. Please dobara try kijiye.",
+        );
       }
-    } catch {
-      setError("Unable to continue with Google. Please try again.");
+    } catch (err) {
+      console.error(
+        "Unexpected Google login error:",
+        err,
+      );
+
+      setError(
+        "Google login me problem aa gayi. Please dobara try kijiye.",
+      );
+    } finally {
       setGoogleLoading(false);
     }
   }
 
+  /*
+   * ---------------------------------------------------------
+   * FORGOT PASSWORD
+   * ---------------------------------------------------------
+   */
+
   async function handleForgotPassword() {
-    setError("");
-    setMessage("");
+    clearMessages();
 
-    const trimmedEmail = email.trim();
-
-    if (!trimmedEmail) {
-      setError("Enter your email address first.");
+    if (!validateEmail()) {
       return;
     }
 
-    setResetLoading(true);
+    const cleanEmail = email.trim().toLowerCase();
+
+    setLoading(true);
 
     try {
+      const resetRedirect =
+        `${window.location.origin}/auth/reset-password`;
+
       const { error: resetError } =
-        await supabase.auth.resetPasswordForEmail(trimmedEmail, {
-          redirectTo: `${window.location.origin}/auth/reset-password`,
-        });
+        await supabase.auth.resetPasswordForEmail(
+          cleanEmail,
+          {
+            redirectTo: resetRedirect,
+          },
+        );
 
       if (resetError) {
-        setError(resetError.message);
+        console.error(
+          "Password reset error:",
+          resetError,
+        );
+
+        setError(
+          resetError.message ||
+            "Password reset email send nahi ho paaya.",
+        );
+
         return;
       }
 
-      setMessage(
-        "If an account exists for this email, you will receive a password reset link shortly."
+      setSuccess(
+        "Password reset link aapke email par bhej diya gaya. 📧",
       );
-    } catch (resetError) {
-      console.error("Password reset request error:", resetError);
-      setError("Unable to send a reset link right now. Please try again.");
+    } catch (err) {
+      console.error(
+        "Unexpected password reset error:",
+        err,
+      );
+
+      setError(
+        "Password reset me problem aa gayi. Please dobara try kijiye.",
+      );
     } finally {
-      setResetLoading(false);
+      setLoading(false);
     }
   }
 
-  return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-brand-navy px-4 py-8 sm:px-6">
-      {/* Decorative background */}
-      <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-white/5 blur-3xl" />
+  /*
+   * ---------------------------------------------------------
+   * MODE CHANGE
+   * ---------------------------------------------------------
+   */
 
-      <div className="absolute -bottom-32 -right-20 h-80 w-80 rounded-full bg-amber-400/10 blur-3xl" />
+  function changeMode(nextMode: AuthMode) {
+    setMode(nextMode);
 
-      {/* Dynamic width:
-          Login = compact
-          Register = wider on desktop
-      */}
-      <div
-        className={`relative z-10 w-full transition-all duration-300 ${
-          isRegister ? "max-w-[680px]" : "max-w-[400px]"
-        }`}
-      >
-        {/* Logo */}
-        <div className="mb-5 flex justify-center">
-          <div className="rounded-xl border border-white/10 bg-white/10 px-5 py-3 shadow-lg backdrop-blur-sm">
-            <Image
-              src="/vc_white_logo.png"
-              alt="Vaishnavi Collections"
-              width={190}
-              height={64}
-              priority
-              className="h-auto w-[170px] sm:w-[190px]"
-            />
-          </div>
-        </div>
+    clearMessages();
 
-        {/* Main Card */}
-        <div className="rounded-2xl border border-white/10 bg-white p-6 shadow-2xl sm:p-7">
-          {/* Heading */}
-          <div className="mb-6 text-center">
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-              {isRegister ? "Create your account" : "Welcome back"}
+    setOtpStep(false);
+    setOtp("");
+    setOtpSentTo("");
+    setResendCooldown(0);
+
+    setPassword("");
+    setConfirmPassword("");
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * OTP SCREEN
+   * ---------------------------------------------------------
+   */
+
+  if (otpStep && mode === "register") {
+    const maskedDestination =
+      otpSentTo.replace(
+        /^(.{2})(.*)(@.*)$/,
+        (_, first, middle, domain) =>
+          `${first}${"*".repeat(
+            Math.min(middle.length, 6),
+          )}${domain}`,
+      );
+
+    return (
+      <main className="min-h-screen bg-[#071A35] px-4 py-8 sm:px-6 lg:px-8">
+        <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-xl items-center justify-center">
+          <div className="w-full rounded-3xl bg-white p-6 shadow-2xl sm:p-9">
+            <div className="mb-8 flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#071A35] text-[#D4AF37]">
+                ✦
+              </div>
+
+              <div>
+                <p className="text-xs text-gray-500">
+                  Vaishnavi Collections
+                </p>
+
+                <p className="font-semibold text-[#071A35]">
+                  My Account
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#D4AF37]/10 text-[#D4AF37]">
+              <Mail className="h-7 w-7" />
+            </div>
+
+            <h1 className="text-2xl font-bold text-[#071A35] sm:text-3xl">
+              Verification code enter kijiye
             </h1>
 
-            <p className="mt-2 text-sm text-slate-500">
-              {isRegister
-                ? "Create your Vaishnavi Collections customer account"
-                : "Sign in to continue to Vaishnavi Collections"}
+            <p className="mt-3 text-sm leading-6 text-gray-500">
+              Humne 6-digit verification code aapke
+              email address par bheja hai.
+            </p>
+
+            <div className="mt-5 flex items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-4">
+              <div className="min-w-0">
+                <p className="text-xs text-gray-500">
+                  Verification sent to
+                </p>
+
+                <p className="mt-1 truncate text-sm font-semibold text-[#071A35]">
+                  {maskedDestination}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={
+                  handleEditVerificationDetails
+                }
+                disabled={loading}
+                className="flex shrink-0 items-center gap-1.5 text-sm font-semibold text-[#071A35] hover:underline"
+              >
+                Edit
+              </button>
+            </div>
+
+            {error && (
+              <div className="mt-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">
+                {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="mt-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm leading-6 text-green-700">
+                {success}
+              </div>
+            )}
+
+            <form
+              onSubmit={handleVerifyOtp}
+              className="mt-6 space-y-5"
+            >
+              <div>
+                <label className="mb-2 block text-sm font-medium text-gray-700">
+                  6-digit OTP
+                </label>
+
+                <input
+                  type="text"
+                  value={otp}
+                  onChange={(event) =>
+                    setOtp(
+                      normalizeOtp(
+                        event.target.value,
+                      ),
+                    )
+                  }
+                  placeholder="Enter 6-digit OTP"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  autoFocus
+                  className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3.5 text-center text-xl font-semibold tracking-[0.35em] text-[#071A35] outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={
+                  loading ||
+                  googleLoading ||
+                  otp.length !== 6
+                }
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#071A35] px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#071A35]/10 transition hover:bg-[#0b2750] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Verifying...
+                  </>
+                ) : (
+                  <>
+                    Verify & Continue
+                    <CheckCircle2 className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            </form>
+
+            <div className="mt-6 text-center">
+              {resendCooldown > 0 ? (
+                <p className="text-sm text-gray-500">
+                  OTP resend karne ke liye{" "}
+                  <span className="font-semibold text-[#071A35]">
+                    {resendCooldown}s
+                  </span>{" "}
+                  wait kijiye.
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleResendOtp}
+                  disabled={loading}
+                  className="inline-flex items-center gap-2 text-sm font-semibold text-[#071A35] hover:underline disabled:opacity-50"
+                >
+                  Resend OTP
+                </button>
+              )}
+            </div>
+
+            <div className="mt-7 rounded-2xl bg-[#071A35]/5 p-4">
+              <p className="text-xs leading-5 text-gray-500">
+                Details galat hain?{" "}
+                <button
+                  type="button"
+                  onClick={
+                    handleEditVerificationDetails
+                  }
+                  className="font-semibold text-[#071A35] underline underline-offset-2"
+                >
+                  Edit karke
+                </button>{" "}
+                correct email enter kijiye.
+              </p>
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  /*
+   * ---------------------------------------------------------
+   * MAIN AUTH UI
+   * ---------------------------------------------------------
+   */
+
+  return (
+    <main className="min-h-screen bg-[#071A35] px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-6xl items-center justify-center">
+        <div className="grid w-full overflow-hidden rounded-3xl bg-white shadow-2xl lg:grid-cols-[0.9fr_1.1fr]">
+          <div className="hidden bg-[#071A35] p-10 text-white lg:flex lg:flex-col lg:justify-between">
+            <div>
+              <div className="mb-8 flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#D4AF37]/40 bg-[#D4AF37]/10 text-[#D4AF37]">
+                  ✦
+                </div>
+
+                <div>
+                  <p className="text-sm font-medium text-white/60">
+                    Vaishnavi Collections
+                  </p>
+
+                  <p className="text-lg font-semibold">
+                    My Account
+                  </p>
+                </div>
+              </div>
+
+              <h2 className="max-w-md text-4xl font-bold leading-tight">
+                Welcome to
+                <span className="block text-[#D4AF37]">
+                  Vaishnavi Collections 💛
+                </span>
+              </h2>
+
+              <p className="mt-5 max-w-md text-base leading-7 text-white/70">
+                Apne account se orders, profile,
+                address aur shopping details easily
+                manage kijiye.
+              </p>
+            </div>
+
+            <p className="text-sm text-white/40">
+              © {new Date().getFullYear()} Vaishnavi
+              Collections
             </p>
           </div>
 
-          {/* Tabs */}
-          <div className="mb-6 grid grid-cols-2 rounded-xl bg-slate-100 p-1">
-            <button
-              type="button"
-              onClick={() => switchMode("login")}
-              className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
-                !isRegister
-                  ? "bg-amber-400 text-slate-900 shadow-sm"
-                  : "text-slate-500 hover:text-slate-900"
-              }`}
-            >
-              Sign in
-            </button>
+          <div className="p-5 sm:p-8 lg:p-10">
+            <div className="mb-7 flex items-center gap-3 lg:hidden">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#071A35] text-[#D4AF37]">
+                ✦
+              </div>
 
-            <button
-              type="button"
-              onClick={() => switchMode("register")}
-              className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
-                isRegister
-                  ? "bg-amber-400 text-slate-900 shadow-sm"
-                  : "text-slate-500 hover:text-slate-900"
-              }`}
-            >
-              Create account
-            </button>
-          </div>
+              <div>
+                <p className="text-xs text-gray-500">
+                  Vaishnavi Collections
+                </p>
 
-          {/* Form */}
-          <form
-            onSubmit={isRegister ? handleRegister : handleLogin}
-            className="space-y-4"
-          >
-            {isRegister ? (
-              /*
-               * Registration:
-               * 1 column on mobile/tablet
-               * 2 columns on desktop
-               */
-              <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                {/* Name */}
+                <p className="font-semibold text-[#071A35]">
+                  My Account
+                </p>
+              </div>
+            </div>
+
+            <div className="mb-7">
+              <h1 className="text-2xl font-bold text-[#071A35] sm:text-3xl">
+                {pageTitle}
+              </h1>
+
+              <p className="mt-2 max-w-xl text-sm leading-6 text-gray-500 sm:text-base">
+                {pageDescription}
+              </p>
+            </div>
+
+            <div className="mb-6 grid grid-cols-2 rounded-xl bg-gray-100 p-1">
+              <button
+                type="button"
+                onClick={() =>
+                  changeMode("login")
+                }
+                className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
+                  mode === "login"
+                    ? "bg-white text-[#071A35] shadow-sm"
+                    : "text-gray-500"
+                }`}
+              >
+                Login
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  changeMode("register")
+                }
+                className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
+                  mode === "register"
+                    ? "bg-white text-[#071A35] shadow-sm"
+                    : "text-gray-500"
+                }`}
+              >
+                Register
+              </button>
+            </div>
+
+            <div className="mb-5 rounded-xl border border-gray-200 bg-gray-50 px-4 py-3">
+              <div className="flex items-center gap-2">
+                <Mail className="h-4 w-4 text-[#D4AF37]" />
+
+                <p className="text-sm font-semibold text-[#071A35]">
+                  Email se continue kijiye
+                </p>
+              </div>
+
+              <p className="mt-1 pl-6 text-xs leading-5 text-gray-500">
+                Your email is used for account login and
+                verification.
+              </p>
+            </div>
+
+            {error && (
+              <div className="mb-5 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm leading-6 text-red-700">
+                {error}
+              </div>
+            )}
+
+            {success && (
+              <div className="mb-5 rounded-xl border border-green-200 bg-green-50 px-4 py-3 text-sm leading-6 text-green-700">
+                {success}
+              </div>
+            )}
+
+            <form
+              onSubmit={
+                mode === "login"
+                  ? handleLogin
+                  : handleRegister
+              }
+              className="space-y-4"
+            >
+              {mode === "register" && (
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                    Name
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    Customer Name
                   </label>
 
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(event) =>
-                      setName(event.target.value)
-                    }
-                    placeholder="Enter your name"
-                    required
-                    autoComplete="name"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-navy focus:ring-2 focus:ring-brand-navy/10"
-                  />
+                  <div className="relative">
+                    <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(event) =>
+                        setName(event.target.value)
+                      }
+                      placeholder="Enter your name"
+                      autoComplete="name"
+                      maxLength={100}
+                      className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
+                    />
+                  </div>
                 </div>
+              )}
 
-                {/* Email */}
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                    Email
-                  </label>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  Email address
+                </label>
+
+                <div className="relative">
+                  <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
 
                   <input
                     type="email"
@@ -396,61 +1126,97 @@ async function handleRegister(event: FormEvent<HTMLFormElement>) {
                     onChange={(event) =>
                       setEmail(event.target.value)
                     }
-                    placeholder="Enter your email"
-                    required
+                    placeholder="you@example.com"
                     autoComplete="email"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-navy focus:ring-2 focus:ring-brand-navy/10"
+                    maxLength={254}
+                    className={`w-full rounded-xl border bg-white py-3 pl-10 pr-4 text-sm outline-none transition focus:ring-2 focus:ring-[#D4AF37]/20 ${
+                      email &&
+                      !isValidEmail(email)
+                        ? "border-red-300 focus:border-red-400"
+                        : "border-gray-200 focus:border-[#D4AF37]"
+                    }`}
                   />
                 </div>
 
-                {/* Password */}
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                    Password
-                  </label>
+                {email &&
+                  !isValidEmail(email) && (
+                    <p className="mt-1.5 text-xs text-red-500">
+                      Please valid email address enter
+                      kijiye.
+                    </p>
+                  )}
+              </div>
 
-                  <div className="relative">
-                    <input
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(event) =>
-                        setPassword(event.target.value)
-                      }
-                      placeholder="Create a password"
-                      required
-                      minLength={6}
-                      autoComplete="new-password"
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-navy focus:ring-2 focus:ring-brand-navy/10"
-                    />
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                  Password
+                </label>
 
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowPassword((value) => !value)
-                      }
-                      aria-label={
-                        showPassword
-                          ? "Hide password"
-                          : "Show password"
-                      }
-                      className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-400 transition hover:text-brand-navy"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="h-5 w-5" />
-                      ) : (
-                        <Eye className="h-5 w-5" />
-                      )}
-                    </button>
-                  </div>
+                <div className="relative">
+                  <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+
+                  <input
+                    type={
+                      showPassword
+                        ? "text"
+                        : "password"
+                    }
+                    value={password}
+                    onChange={(event) =>
+                      setPassword(
+                        event.target.value,
+                      )
+                    }
+                    placeholder="Password"
+                    autoComplete={
+                      mode === "login"
+                        ? "current-password"
+                        : "new-password"
+                    }
+                    className="w-full rounded-xl border border-gray-200 bg-white py-3 pl-10 pr-11 text-sm outline-none transition focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20"
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setShowPassword(
+                        (value) => !value,
+                      )
+                    }
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
+                    aria-label={
+                      showPassword
+                        ? "Hide password"
+                        : "Show password"
+                    }
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
                 </div>
 
-                {/* Confirm Password */}
+                {mode === "register" &&
+                  password &&
+                  password.length < 6 && (
+                    <p className="mt-1.5 text-xs text-red-500">
+                      Password minimum 6 characters ka
+                      hona chahiye.
+                    </p>
+                  )}
+              </div>
+
+              {mode === "register" && (
                 <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                    Confirm password
+                  <label className="mb-1.5 block text-sm font-medium text-gray-700">
+                    Enter Password again
                   </label>
 
                   <div className="relative">
+                    <Lock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+
                     <input
                       type={
                         showConfirmPassword
@@ -459,249 +1225,176 @@ async function handleRegister(event: FormEvent<HTMLFormElement>) {
                       }
                       value={confirmPassword}
                       onChange={(event) =>
-                        setConfirmPassword(event.target.value)
+                        setConfirmPassword(
+                          event.target.value,
+                        )
                       }
-                      placeholder="Confirm your password"
-                      required
-                      minLength={6}
+                      placeholder="Confirm Password"
                       autoComplete="new-password"
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-navy focus:ring-2 focus:ring-brand-navy/10"
+                      className={`w-full rounded-xl border bg-white py-3 pl-10 pr-11 text-sm outline-none transition focus:ring-2 focus:ring-[#D4AF37]/20 ${
+                        confirmPassword &&
+                        password !==
+                          confirmPassword
+                          ? "border-red-300 focus:border-red-400"
+                          : "border-gray-200 focus:border-[#D4AF37]"
+                      }`}
                     />
 
                     <button
                       type="button"
                       onClick={() =>
                         setShowConfirmPassword(
-                          (value) => !value
+                          (value) => !value,
                         )
                       }
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700"
                       aria-label={
                         showConfirmPassword
-                          ? "Hide confirm password"
-                          : "Show confirm password"
-                      }
-                      className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-400 transition hover:text-brand-navy"
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="h-5 w-5" />
-                      ) : (
-                        <Eye className="h-5 w-5" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              /* Login */
-              <div className="space-y-4">
-                {/* Email */}
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-slate-700">
-                    Email
-                  </label>
-
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(event) =>
-                      setEmail(event.target.value)
-                    }
-                    placeholder="Enter your email"
-                    required
-                    autoComplete="email"
-                    className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-navy focus:ring-2 focus:ring-brand-navy/10"
-                  />
-                </div>
-
-                {/* Password */}
-                <div>
-                  <div className="mb-1.5 flex items-center justify-between">
-                    <label className="block text-sm font-medium text-slate-700">
-                      Password
-                    </label>
-
-                    <button
-                      type="button"
-                      onClick={handleForgotPassword}
-                      disabled={resetLoading}
-                      className="text-xs font-medium text-brand-navy transition hover:text-amber-600 hover:underline disabled:opacity-50"
-                    >
-                      {resetLoading
-                        ? "Sending..."
-                        : "Forgot password?"}
-                    </button>
-                  </div>
-
-                  <div className="relative">
-                    <input
-                      type={
-                        showPassword ? "text" : "password"
-                      }
-                      value={password}
-                      onChange={(event) =>
-                        setPassword(event.target.value)
-                      }
-                      placeholder="Enter your password"
-                      required
-                      minLength={6}
-                      autoComplete="current-password"
-                      className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pr-12 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-brand-navy focus:ring-2 focus:ring-brand-navy/10"
-                    />
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowPassword((value) => !value)
-                      }
-                      aria-label={
-                        showPassword
                           ? "Hide password"
                           : "Show password"
                       }
-                      className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-400 transition hover:text-brand-navy"
                     >
-                      {showPassword ? (
-                        <EyeOff className="h-5 w-5" />
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-4 w-4" />
                       ) : (
-                        <Eye className="h-5 w-5" />
+                        <Eye className="h-4 w-4" />
                       )}
                     </button>
                   </div>
+
+                  {confirmPassword &&
+                    password !==
+                      confirmPassword && (
+                      <p className="mt-1.5 text-xs text-red-500">
+                        Passwords match nahi kar rahe.
+                      </p>
+                    )}
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* Error */}
-            {error && (
-              <div className="rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">
-                {error}
-              </div>
-            )}
+              {mode === "login" && (
+                <div className="flex justify-end">
+                  <button
+                    type="button"
+                    onClick={
+                      handleForgotPassword
+                    }
+                    className="text-sm font-medium text-[#071A35] underline-offset-4 hover:underline"
+                  >
+                    Forgot Password?
+                  </button>
+                </div>
+              )}
 
-            {/* Success */}
-            {message && (
-              <div className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                {message}
-              </div>
-            )}
+              <button
+                type="submit"
+                disabled={
+                  loading || googleLoading
+                }
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-[#071A35] px-5 py-3.5 text-sm font-semibold text-white shadow-lg shadow-[#071A35]/10 transition hover:bg-[#0b2750] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {loading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Please wait...
+                  </>
+                ) : (
+                  <>
+                    {mode === "login"
+                      ? "Login"
+                      : "Create Account"}
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={
-                loading ||
-                googleLoading ||
-                resetLoading
-              }
-              className="w-full rounded-xl bg-brand-navy px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-navy/90 focus:outline-none focus:ring-2 focus:ring-brand-navy/20 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {loading
-                ? isRegister
-                  ? "Creating account..."
-                  : "Signing in..."
-                : isRegister
-                  ? "Create account"
-                  : "Sign in"}
-            </button>
-          </form>
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
+            </form>
 
-          {/* Divider */}
-          <div className="my-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-slate-200" />
+            <div className="my-6 flex items-center gap-3">
+              <div className="h-px flex-1 bg-gray-200" />
 
-            <span className="text-xs font-medium text-slate-400">
-              OR
-            </span>
+              <span className="text-xs text-gray-400">
+                ya
+              </span>
 
-            <div className="h-px flex-1 bg-slate-200" />
-          </div>
-
-          {/* Google */}
-          <button
-            type="button"
-            onClick={handleGoogleLogin}
-            disabled={
-              loading ||
-              googleLoading ||
-              resetLoading
-            }
-            className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <svg
-              viewBox="0 0 24 24"
-              className="h-5 w-5"
-              aria-hidden="true"
-            >
-              <path
-                fill="#4285F4"
-                d="M21.35 12.23c0-.72-.06-1.42-.18-2.09H12v3.96h5.23a4.47 4.47 0 0 1-1.94 2.93v2.43h3.14c1.84-1.69 2.92-4.18 2.92-7.23Z"
-              />
-
-              <path
-                fill="#34A853"
-                d="M12 21.82c2.63 0 4.84-.87 6.45-2.36l-3.14-2.43c-.87.58-1.98.92-3.31.92-2.54 0-4.69-1.72-5.46-4.03H3.3v2.5A9.75 9.75 0 0 0 12 21.82Z"
-              />
-
-              <path
-                fill="#FBBC05"
-                d="M6.54 13.92A5.86 5.86 0 0 1 6.23 12c0-.67.12-1.32.31-1.92v-2.5H3.3A9.75 9.75 0 0 0 2.25 12c0 1.57.38 3.05 1.05 4.42l3.24-2.5Z"
-              />
-
-              <path
-                fill="#EA4335"
-                d="M12 6.05c1.43 0 2.71.49 3.72 1.45l2.79-2.79C16.84 3.1 14.63 2.18 12 2.18a9.75 9.75 0 0 0-8.7 5.4l3.24 2.5C7.31 7.77 9.46 6.05 12 6.05Z"
-              />
-            </svg>
-
-            {googleLoading
-              ? "Connecting to Google..."
-              : "Continue with Google"}
-          </button>
-
-          {/* Account Switch */}
-          <p className="mt-6 text-center text-sm text-slate-500">
-            {isRegister ? (
-              <>
-                Already have an account?{" "}
-                <button
-                  type="button"
-                  onClick={() => switchMode("login")}
-                  className="font-semibold text-brand-navy transition hover:text-amber-600 hover:underline"
-                >
-                  Sign in
-                </button>
-              </>
-            ) : (
-              <>
-                Don't have an account?{" "}
-                <button
-                  type="button"
-                  onClick={() => switchMode("register")}
-                  className="font-semibold text-brand-navy transition hover:text-amber-600 hover:underline"
-                >
-                  Create account
-                </button>
-              </>
-            )}
-          </p>
-
-          {/* Customer role information */}
-          {/* {isRegister && (
-            <div className="mt-5 rounded-xl bg-slate-50 px-4 py-3 text-center">
-              <p className="text-xs leading-5 text-slate-500">
-                New accounts are created as customer accounts.
-                Team access is managed separately by authorized
-                administrators.
-              </p>
+              <div className="h-px flex-1 bg-gray-200" />
             </div>
-          )} */}
-        </div>
 
-        {/* Footer */}
-        <p className="mt-5 text-center text-xs text-white/50">
-          © {new Date().getFullYear()} Vaishnavi Collections
-        </p>
+            <button
+              type="button"
+              onClick={handleGoogleLogin}
+              disabled={
+                loading || googleLoading
+              }
+              className="flex w-full items-center justify-center gap-3 rounded-xl border border-gray-200 bg-white px-5 py-3.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {googleLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <span className="text-base font-bold">
+                  G
+                </span>
+              )}
+
+              {googleLoading
+                ? "Please wait..."
+                : "Continue with Google"}
+            </button>
+
+            <div className="mt-7 text-center text-sm text-gray-500">
+              {mode === "login" ? (
+                <>
+                  Pehli baar aaye hain?{" "}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      changeMode("register")
+                    }
+                    className="font-semibold text-[#071A35] underline-offset-4 hover:underline"
+                  >
+                    Create Account
+                  </button>
+                </>
+              ) : (
+                <>
+                  Already account hai?{" "}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      changeMode("login")
+                    }
+                    className="font-semibold text-[#071A35] underline-offset-4 hover:underline"
+                  >
+                    Login
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="min-h-screen bg-[#071A35] px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-6xl items-center justify-center">
+            <div className="flex items-center gap-3 rounded-3xl bg-white px-6 py-5 shadow-2xl">
+              <Loader2 className="h-5 w-5 animate-spin text-[#D4AF37]" />
+
+              <span className="text-sm font-medium text-[#071A35]">
+                Loading...
+              </span>
+            </div>
+          </div>
+        </main>
+      }
+    >
+      <LoginPageContent />
+    </Suspense>
   );
 }

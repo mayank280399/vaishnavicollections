@@ -1,4 +1,3 @@
-
 "use client";
 
 import {
@@ -58,8 +57,25 @@ type Product = {
     | "PUBLISHED"
     | "ARCHIVED";
   featured: boolean | null;
+
+  /*
+   * Handmade / custom product fields
+   */
+  is_handmade: boolean | null;
+  is_made_to_order: boolean | null;
+  bulk_orders_available: boolean | null;
+  handmade_featured: boolean | null;
+
   created_at: string;
   updated_at: string;
+};
+
+type ProductImageRow = {
+  id: string;
+  image_url: string;
+  alt_text: string | null;
+  sort_order: number;
+  is_primary: boolean;
 };
 
 type ProductDialogProps = {
@@ -158,6 +174,21 @@ export function ProductDialog({
   const [featured, setFeatured] =
     useState(false);
 
+  /*
+   * Handmade / custom product states
+   */
+  const [isHandmade, setIsHandmade] =
+    useState(false);
+
+  const [isMadeToOrder, setIsMadeToOrder] =
+    useState(false);
+
+  const [bulkOrdersAvailable, setBulkOrdersAvailable] =
+    useState(false);
+
+  const [handmadeFeatured, setHandmadeFeatured] =
+    useState(false);
+
   const [visibility, setVisibility] =
     useState<
       "DRAFT" | "PUBLISHED" | "ARCHIVED"
@@ -211,6 +242,15 @@ export function ProductDialog({
 
     setOnlineEnabled(false);
     setFeatured(false);
+
+    /*
+     * Reset handmade / custom fields
+     */
+    setIsHandmade(false);
+    setIsMadeToOrder(false);
+    setBulkOrdersAvailable(false);
+    setHandmadeFeatured(false);
+
     setVisibility("PUBLISHED");
 
     setImages([]);
@@ -344,8 +384,8 @@ export function ProductDialog({
     setCostPrice(
       product.cost_price !==
         null &&
-        product.cost_price !==
-          undefined
+      product.cost_price !==
+        undefined
         ? String(
             product.cost_price
           )
@@ -355,8 +395,8 @@ export function ProductDialog({
     setSellingPrice(
       product.selling_price !==
         null &&
-        product.selling_price !==
-          undefined
+      product.selling_price !==
+        undefined
         ? String(
             product.selling_price
           )
@@ -366,8 +406,8 @@ export function ProductDialog({
     setOnlinePrice(
       product.online_price !==
         null &&
-        product.online_price !==
-          undefined
+      product.online_price !==
+        undefined
         ? String(
             product.online_price
           )
@@ -377,8 +417,8 @@ export function ProductDialog({
     setStockQuantity(
       product.stock_quantity !==
         null &&
-        product.stock_quantity !==
-          undefined
+      product.stock_quantity !==
+        undefined
         ? String(
             product.stock_quantity
           )
@@ -393,6 +433,34 @@ export function ProductDialog({
 
     setFeatured(
       Boolean(product.featured)
+    );
+
+    /*
+     * Load handmade / custom fields.
+     *
+     * Boolean() also safely handles
+     * null values from existing records.
+     */
+    setIsHandmade(
+      Boolean(product.is_handmade)
+    );
+
+    setIsMadeToOrder(
+      Boolean(
+        product.is_made_to_order
+      )
+    );
+
+    setBulkOrdersAvailable(
+      Boolean(
+        product.bulk_orders_available
+      )
+    );
+
+    setHandmadeFeatured(
+      Boolean(
+        product.handmade_featured
+      )
     );
 
     setVisibility(
@@ -766,11 +834,19 @@ export function ProductDialog({
     }
 
     /*
+     * Explicitly type the rows returned by
+     * the product_images query.
+     */
+    const typedSavedImages =
+      (savedImages ??
+        []) as ProductImageRow[];
+
+    /*
      * Reapply primary + ordering safely.
      *
      * First set all images to non-primary.
      */
-    if (savedImages?.length) {
+    if (typedSavedImages.length) {
       const {
         error:
           resetPrimaryError,
@@ -790,14 +866,14 @@ export function ProductDialog({
       }
 
       /*
-       * Match images by URL.
+       * Match images by ID or URL.
        */
       for (
         const image of images
       ) {
         const dbImage =
-          savedImages.find(
-            (saved) =>
+          typedSavedImages.find(
+            (saved: ProductImageRow) =>
               saved.id ===
                 image.id ||
               saved.image_url ===
@@ -838,8 +914,8 @@ export function ProductDialog({
 
       if (primaryImage) {
         const dbPrimary =
-          savedImages.find(
-            (saved) =>
+          typedSavedImages.find(
+            (saved: ProductImageRow) =>
               saved.id ===
                 primaryImage.id ||
               saved.image_url ===
@@ -943,15 +1019,15 @@ export function ProductDialog({
       return;
     }
 
-    const imageValidation =
-      validateImages();
+    // const imageValidation =
+    //   validateImages();
 
-    if (imageValidation) {
-      setError(
-        imageValidation
-      );
-      return;
-    }
+    // if (imageValidation) {
+    //   setError(
+    //     imageValidation
+    //   );
+    //   return;
+    // }
 
     setSaving(true);
 
@@ -1005,6 +1081,21 @@ export function ProductDialog({
 
         featured:
           featured,
+
+        /*
+         * Handmade / custom product fields
+         */
+        is_handmade:
+          isHandmade,
+
+        is_made_to_order:
+          isMadeToOrder,
+
+        bulk_orders_available:
+          bulkOrdersAvailable,
+
+        handmade_featured:
+          handmadeFeatured,
 
         visibility:
           visibility,
@@ -1154,7 +1245,8 @@ export function ProductDialog({
                 value={name}
                 onChange={(event) =>
                   setName(
-                    event.target.value
+                    event.target
+                      .value
                   )
                 }
                 placeholder="e.g. Pink Satin Scrunchie"
@@ -1303,7 +1395,8 @@ export function ProductDialog({
                 }
                 onChange={(event) =>
                   setShortDescription(
-                    event.target.value
+                    event.target
+                      .value
                   )
                 }
                 rows={3}
@@ -1367,7 +1460,8 @@ export function ProductDialog({
                   value={costPrice}
                   onChange={(event) =>
                     setCostPrice(
-                      event.target.value
+                      event.target
+                        .value
                     )
                   }
                   placeholder="0"
@@ -1389,7 +1483,8 @@ export function ProductDialog({
                   }
                   onChange={(event) =>
                     setSellingPrice(
-                      event.target.value
+                      event.target
+                        .value
                     )
                   }
                   placeholder="0"
@@ -1411,7 +1506,8 @@ export function ProductDialog({
                   }
                   onChange={(event) =>
                     setOnlinePrice(
-                      event.target.value
+                      event.target
+                        .value
                     )
                   }
                   placeholder="Optional"
@@ -1447,7 +1543,8 @@ export function ProductDialog({
                 }
                 onChange={(event) =>
                   setStockQuantity(
-                    event.target.value
+                    event.target
+                      .value
                   )
                 }
                 placeholder="0"
@@ -1471,7 +1568,8 @@ export function ProductDialog({
                 }
                 onChange={(event) =>
                   setOnlineEnabled(
-                    event.target.checked
+                    event.target
+                      .checked
                   )
                 }
                 className="mt-1 h-4 w-4"
@@ -1496,7 +1594,8 @@ export function ProductDialog({
                 }
                 onChange={(event) =>
                   setFeatured(
-                    event.target.checked
+                    event.target
+                      .checked
                   )
                 }
                 className="mt-1 h-4 w-4"
@@ -1512,6 +1611,133 @@ export function ProductDialog({
                 </p>
               </div>
             </label>
+          </section>
+
+          {/* HANDMADE & CUSTOM */}
+          <section className="space-y-4 border-t pt-5">
+            <div>
+              <h3 className="font-medium">
+                Handmade & Custom
+              </h3>
+
+              <p className="text-sm text-muted-foreground">
+                Use these options to control how this product
+                appears on the Handmade & Made to Order collection.
+              </p>
+            </div>
+
+            <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+              {/* HANDMADE */}
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={
+                    isHandmade
+                  }
+                  onChange={(event) =>
+                    setIsHandmade(
+                      event.target
+                        .checked
+                    )
+                  }
+                  className="mt-1 h-4 w-4"
+                />
+
+                <div>
+                  <p className="text-sm font-medium">
+                    Handmade Product
+                  </p>
+
+                  <p className="text-xs text-muted-foreground">
+                    Mark this product as handmade by Vaishnavi Collections.
+                  </p>
+                </div>
+              </label>
+
+              {/* MADE TO ORDER */}
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={
+                    isMadeToOrder
+                  }
+                  onChange={(event) =>
+                    setIsMadeToOrder(
+                      event.target
+                        .checked
+                    )
+                  }
+                  className="mt-1 h-4 w-4"
+                />
+
+                <div>
+                  <p className="text-sm font-medium">
+                    Made to Order
+                  </p>
+
+                  <p className="text-xs text-muted-foreground">
+                    Mark this product as available for made-to-order
+                    or customized requests.
+                  </p>
+                </div>
+              </label>
+
+              {/* BULK ORDERS */}
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={
+                    bulkOrdersAvailable
+                  }
+                  onChange={(event) =>
+                    setBulkOrdersAvailable(
+                      event.target
+                        .checked
+                    )
+                  }
+                  className="mt-1 h-4 w-4"
+                />
+
+                <div>
+                  <p className="text-sm font-medium">
+                    Bulk Orders Available
+                  </p>
+
+                  <p className="text-xs text-muted-foreground">
+                    Show that retail and bulk orders can be accepted
+                    for this product.
+                  </p>
+                </div>
+              </label>
+
+              {/* HANDMADE FEATURED */}
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={
+                    handmadeFeatured
+                  }
+                  onChange={(event) =>
+                    setHandmadeFeatured(
+                      event.target
+                        .checked
+                    )
+                  }
+                  className="mt-1 h-4 w-4"
+                />
+
+                <div>
+                  <p className="text-sm font-medium">
+                    Feature in Handmade Collection
+                  </p>
+
+                  <p className="text-xs text-muted-foreground">
+                    Highlight this product in the featured section
+                    of the Handmade page.
+                  </p>
+                </div>
+              </label>
+            </div>
           </section>
 
           {/* VISIBILITY */}

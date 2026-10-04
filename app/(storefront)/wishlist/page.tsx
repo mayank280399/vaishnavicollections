@@ -175,7 +175,7 @@ export default function WishlistPage() {
         }
 
         const productsWithImages: WishlistProductItem[] =
-          (productData ?? []).map((product) => ({
+          (productData ?? []).map((product: WishlistProduct) => ({
             ...(product as WishlistProduct),
             primaryImage:
               imageMap.get(product.id) ?? null,

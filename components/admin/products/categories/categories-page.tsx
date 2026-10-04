@@ -117,7 +117,7 @@ export function CategoriesPage() {
 
         const categoriesWithCounts = (
           categoriesResult.data ?? []
-        ).map((category) => ({
+        ).map((category: ProductCategory) => ({
           ...category,
 
           /*

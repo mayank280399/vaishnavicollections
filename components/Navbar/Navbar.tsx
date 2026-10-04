@@ -1,7 +1,7 @@
 ﻿"use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter} from "next/navigation";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -15,7 +15,11 @@ import {
   Sparkles,
 } from "lucide-react";
 import Image from "next/image";
-import type { User as SupabaseUser } from "@supabase/supabase-js";
+import type {
+  User as SupabaseUser,
+  AuthChangeEvent,
+  Session,
+} from "@supabase/supabase-js";
 
 import { createClient } from "@/lib/supabase/client";
 import { useShopping } from "@/context/ShoppingContext";
@@ -57,14 +61,26 @@ const navLinks = [
 
 export default function Navbar() {
   const pathname = usePathname();
-
+  const router = useRouter();
   const [scrolled, setScrolled] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
-  const { cartCount, wishlistCount } = useShopping();
-  const [user, setUser] = useState<SupabaseUser | null>(null);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [loggingOut, setLoggingOut] = useState(false);
+  const [mobileOpen, setMobileOpen] =
+    useState(false);
+  const [activeDropdown, setActiveDropdown] =
+    useState<string | null>(null);
+
+  const {
+    cartCount,
+    wishlistCount,
+  } = useShopping();
+
+  const [user, setUser] =
+    useState<SupabaseUser | null>(null);
+
+  const [profileOpen, setProfileOpen] =
+    useState(false);
+
+  const [loggingOut, setLoggingOut] =
+    useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -73,10 +89,16 @@ export default function Navbar() {
 
     handleScroll();
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener(
+      "scroll",
+      handleScroll,
+    );
 
     return () => {
-      window.removeEventListener("scroll", handleScroll);
+      window.removeEventListener(
+        "scroll",
+        handleScroll,
+      );
     };
   }, []);
 
@@ -97,11 +119,18 @@ export default function Navbar() {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (mounted) {
-        setUser(session?.user ?? null);
-      }
-    });
+    } = supabase.auth.onAuthStateChange(
+      (
+        _event: AuthChangeEvent,
+        session: Session | null,
+      ) => {
+        if (mounted) {
+          setUser(
+            session?.user ?? null,
+          );
+        }
+      },
+    );
 
     return () => {
       mounted = false;
@@ -118,28 +147,37 @@ export default function Navbar() {
   useEffect(() => {
     if (!mobileOpen) return;
 
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const originalOverflow =
+      document.body.style.overflow;
+
+    document.body.style.overflow =
+      "hidden";
 
     return () => {
-      document.body.style.overflow = originalOverflow;
+      document.body.style.overflow =
+        originalOverflow;
     };
   }, [mobileOpen]);
 
   const displayName =
-    user?.user_metadata?.display_name ||
+    user?.user_metadata
+      ?.display_name ||
     user?.user_metadata?.full_name ||
     user?.user_metadata?.name ||
     user?.email?.split("@")[0] ||
     "Customer";
 
-  const googleIdentity = user?.identities?.find(
-    (identity) => identity.provider === "google"
-  );
+  const googleIdentity =
+    user?.identities?.find(
+      (identity) =>
+        identity.provider === "google",
+    );
 
   const avatarUrl =
-    googleIdentity?.identity_data?.avatar_url ||
-    googleIdentity?.identity_data?.picture ||
+    googleIdentity?.identity_data
+      ?.avatar_url ||
+    googleIdentity?.identity_data
+      ?.picture ||
     user?.user_metadata?.avatar_url ||
     user?.user_metadata?.picture ||
     null;
@@ -149,7 +187,12 @@ export default function Navbar() {
       .split(" ")
       .filter(Boolean)
       .slice(0, 2)
-      .map((part: string) => part.charAt(0).toUpperCase())
+      .map(
+        (part: string) =>
+          part
+            .charAt(0)
+            .toUpperCase(),
+      )
       .join("") || "C";
 
   const handleLogout = async () => {
@@ -157,10 +200,15 @@ export default function Navbar() {
 
     setLoggingOut(true);
 
-    const { error } = await supabase.auth.signOut();
+    const { error } =
+      await supabase.auth.signOut();
 
     if (error) {
-      console.error("Logout error:", error);
+      console.error(
+        "Logout error:",
+        error,
+      );
+
       setLoggingOut(false);
       return;
     }
@@ -169,6 +217,8 @@ export default function Navbar() {
     setProfileOpen(false);
     setMobileOpen(false);
     setLoggingOut(false);
+      router.replace("/");
+  router.refresh();
   };
 
   const closeMobileMenu = () => {
@@ -176,7 +226,9 @@ export default function Navbar() {
     setActiveDropdown(null);
   };
 
-  const isActive = (href: string) => {
+  const isActive = (
+    href: string,
+  ) => {
     if (href === "/") {
       return pathname === "/";
     }
@@ -198,7 +250,9 @@ export default function Navbar() {
           className={[
             "mx-auto flex w-full max-w-7xl items-center px-3 sm:px-6 lg:px-8",
             "justify-between",
-            scrolled ? "h-16" : "h-16 sm:h-20",
+            scrolled
+              ? "h-16"
+              : "h-16 sm:h-20",
           ].join(" ")}
         >
           {/* =========================
@@ -207,7 +261,9 @@ export default function Navbar() {
           <div className="flex min-w-0 flex-1 items-center lg:flex-none">
             <button
               type="button"
-              onClick={() => setMobileOpen(true)}
+              onClick={() =>
+                setMobileOpen(true)
+              }
               aria-label="Open menu"
               className="mr-1 flex size-9 shrink-0 items-center justify-center rounded-full text-[#171B4D] transition-colors hover:bg-gray-100 hover:text-[#C9952E] sm:mr-2 sm:size-10 lg:hidden"
             >
@@ -217,7 +273,9 @@ export default function Navbar() {
             <Link
               href="/"
               className="flex min-w-0 shrink items-center"
-              onClick={() => setMobileOpen(false)}
+              onClick={() =>
+                setMobileOpen(false)
+              }
             >
               <Image
                 src="/vc_logo.png"
@@ -240,17 +298,24 @@ export default function Navbar() {
           ========================== */}
           <nav className="hidden items-center gap-8 lg:flex">
             {navLinks.map((link) => {
-              const hasSub = !!link.sub?.length;
+              const hasSub =
+                !!link.sub?.length;
 
               return (
                 <div
                   key={link.label}
                   className="relative"
                   onMouseEnter={() =>
-                    hasSub && setActiveDropdown(link.label)
+                    hasSub &&
+                    setActiveDropdown(
+                      link.label,
+                    )
                   }
                   onMouseLeave={() =>
-                    hasSub && setActiveDropdown(null)
+                    hasSub &&
+                    setActiveDropdown(
+                      null,
+                    )
                   }
                 >
                   <Link
@@ -269,7 +334,8 @@ export default function Navbar() {
                         size={15}
                         className={[
                           "transition-transform duration-200",
-                          activeDropdown === link.label
+                          activeDropdown ===
+                          link.label
                             ? "rotate-180"
                             : "",
                         ].join(" ")}
@@ -279,24 +345,46 @@ export default function Navbar() {
 
                   {hasSub && (
                     <AnimatePresence>
-                      {activeDropdown === link.label && (
+                      {activeDropdown ===
+                        link.label && (
                         <motion.div
-                          initial={{ opacity: 0, y: 8 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: 8 }}
-                          transition={{ duration: 0.18 }}
+                          initial={{
+                            opacity: 0,
+                            y: 8,
+                          }}
+                          animate={{
+                            opacity: 1,
+                            y: 0,
+                          }}
+                          exit={{
+                            opacity: 0,
+                            y: 8,
+                          }}
+                          transition={{
+                            duration: 0.18,
+                          }}
                           className="absolute left-1/2 top-full z-50 w-56 -translate-x-1/2 pt-3"
                         >
                           <div className="overflow-hidden rounded-2xl border border-gray-100 bg-white p-2 shadow-xl">
-                            {link.sub?.map((subLink) => (
-                              <Link
-                                key={subLink.label}
-                                href={subLink.href}
-                                className="block rounded-xl px-4 py-3 text-sm text-gray-700 transition-colors hover:bg-[#171B4D]/5 hover:text-[#C9952E]"
-                              >
-                                {subLink.label}
-                              </Link>
-                            ))}
+                            {link.sub?.map(
+                              (
+                                subLink,
+                              ) => (
+                                <Link
+                                  key={
+                                    subLink.label
+                                  }
+                                  href={
+                                    subLink.href
+                                  }
+                                  className="block rounded-xl px-4 py-3 text-sm text-gray-700 transition-colors hover:bg-[#171B4D]/5 hover:text-[#C9952E]"
+                                >
+                                  {
+                                    subLink.label
+                                  }
+                                </Link>
+                              ),
+                            )}
                           </div>
                         </motion.div>
                       )}
@@ -330,7 +418,9 @@ export default function Navbar() {
 
               {wishlistCount > 0 && (
                 <span className="absolute right-0.5 top-0.5 flex min-w-4 items-center justify-center rounded-full bg-[#C9952E] px-1 text-[10px] font-bold leading-4 text-white">
-                  {wishlistCount > 99 ? "99+" : wishlistCount}
+                  {wishlistCount > 99
+                    ? "99+"
+                    : wishlistCount}
                 </span>
               )}
             </Link>
@@ -345,7 +435,9 @@ export default function Navbar() {
 
               {cartCount > 0 && (
                 <span className="absolute right-0.5 top-0.5 flex min-w-4 items-center justify-center rounded-full bg-[#C9952E] px-1 text-[10px] font-bold leading-4 text-white">
-                  {cartCount > 99 ? "99+" : cartCount}
+                  {cartCount > 99
+                    ? "99+"
+                    : cartCount}
                 </span>
               )}
             </Link>
@@ -354,8 +446,16 @@ export default function Navbar() {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setProfileOpen((prev) => !prev)}
-                aria-label={user ? "Open profile menu" : "Login"}
+                onClick={() =>
+                  setProfileOpen(
+                    (prev) => !prev,
+                  )
+                }
+                aria-label={
+                  user
+                    ? "Open profile menu"
+                    : "Login"
+                }
                 className="flex size-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-[#171B4D]/10 bg-[#171B4D]/5 text-[#171B4D] transition-all hover:border-[#C9952E] hover:text-[#C9952E] sm:size-10"
               >
                 {user ? (
@@ -383,14 +483,32 @@ export default function Navbar() {
                   <>
                     <div
                       className="fixed inset-0 z-40"
-                      onClick={() => setProfileOpen(false)}
+                      onClick={() =>
+                        setProfileOpen(
+                          false,
+                        )
+                      }
                     />
 
                     <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.98 }}
-                      transition={{ duration: 0.15 }}
+                      initial={{
+                        opacity: 0,
+                        y: 8,
+                        scale: 0.98,
+                      }}
+                      animate={{
+                        opacity: 1,
+                        y: 0,
+                        scale: 1,
+                      }}
+                      exit={{
+                        opacity: 0,
+                        y: 8,
+                        scale: 0.98,
+                      }}
+                      transition={{
+                        duration: 0.15,
+                      }}
                       className="absolute right-0 top-full z-50 mt-3 w-72 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl"
                     >
                       {user ? (
@@ -400,25 +518,39 @@ export default function Navbar() {
                               <div className="flex size-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-[#171B4D]/5 text-[#171B4D]">
                                 {avatarUrl ? (
                                   <Image
-                                    src={avatarUrl}
-                                    alt={displayName}
-                                    width={44}
-                                    height={44}
+                                    src={
+                                      avatarUrl
+                                    }
+                                    alt={
+                                      displayName
+                                    }
+                                    width={
+                                      44
+                                    }
+                                    height={
+                                      44
+                                    }
                                     className="size-full object-cover"
                                   />
                                 ) : (
                                   <span className="text-sm font-bold">
-                                    {initials}
+                                    {
+                                      initials
+                                    }
                                   </span>
                                 )}
                               </div>
 
                               <div className="min-w-0">
                                 <p className="truncate text-sm font-semibold text-[#171B4D]">
-                                  {displayName}
+                                  {
+                                    displayName
+                                  }
                                 </p>
                                 <p className="truncate text-xs text-gray-500">
-                                  {user.email}
+                                  {
+                                    user.email
+                                  }
                                 </p>
                               </div>
                             </div>
@@ -427,30 +559,56 @@ export default function Navbar() {
                           <div className="p-2">
                             <Link
                               href="/account"
-                              onClick={() => setProfileOpen(false)}
+                              onClick={() =>
+                                setProfileOpen(
+                                  false,
+                                )
+                              }
                               className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-[#C9952E]"
                             >
-                              <User size={18} />
+                              <User
+                                size={
+                                  18
+                                }
+                              />
                               My Account
                             </Link>
 
                             <Link
                               href="/wishlist"
-                              onClick={() => setProfileOpen(false)}
+                              onClick={() =>
+                                setProfileOpen(
+                                  false,
+                                )
+                              }
                               className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm text-gray-700 transition-colors hover:bg-gray-50 hover:text-[#C9952E]"
                             >
-                              <Heart size={18} />
+                              <Heart
+                                size={
+                                  18
+                                }
+                              />
                               Wishlist
                             </Link>
 
                             <button
                               type="button"
-                              onClick={handleLogout}
-                              disabled={loggingOut}
+                              onClick={
+                                handleLogout
+                              }
+                              disabled={
+                                loggingOut
+                              }
                               className="flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left text-sm text-red-600 transition-colors hover:bg-red-50 disabled:opacity-50"
                             >
-                              <X size={18} />
-                              {loggingOut ? "Logging out..." : "Logout"}
+                              <X
+                                size={
+                                  18
+                                }
+                              />
+                              {loggingOut
+                                ? "Logging out..."
+                                : "Logout"}
                             </button>
                           </div>
                         </>
@@ -458,7 +616,11 @@ export default function Navbar() {
                         <div className="p-4">
                           <div className="mb-4 flex items-center gap-3">
                             <div className="flex size-11 items-center justify-center rounded-full bg-[#171B4D]/5 text-[#171B4D]">
-                              <User size={20} />
+                              <User
+                                size={
+                                  20
+                                }
+                              />
                             </div>
 
                             <div>
@@ -466,14 +628,19 @@ export default function Navbar() {
                                 Welcome
                               </p>
                               <p className="text-xs text-gray-500">
-                                Sign in to your account
+                                Sign in to your
+                                account
                               </p>
                             </div>
                           </div>
 
                           <Link
                             href="/login"
-                            onClick={() => setProfileOpen(false)}
+                            onClick={() =>
+                              setProfileOpen(
+                                false,
+                              )
+                            }
                             className="flex w-full items-center justify-center rounded-xl bg-[#171B4D] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#C9952E]"
                           >
                             Login / Sign Up
@@ -501,7 +668,9 @@ export default function Navbar() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              onClick={closeMobileMenu}
+              onClick={
+                closeMobileMenu
+              }
             />
 
             {/* Drawer */}
@@ -520,7 +689,9 @@ export default function Navbar() {
               <div className="flex h-20 shrink-0 items-center justify-between border-b border-gray-100 px-5">
                 <Link
                   href="/"
-                  onClick={closeMobileMenu}
+                  onClick={
+                    closeMobileMenu
+                  }
                   className="flex items-center"
                 >
                   <Image
@@ -534,7 +705,9 @@ export default function Navbar() {
 
                 <button
                   type="button"
-                  onClick={closeMobileMenu}
+                  onClick={
+                    closeMobileMenu
+                  }
                   aria-label="Close menu"
                   className="flex size-10 items-center justify-center rounded-full text-[#171B4D] transition-colors hover:bg-gray-100 hover:text-[#C9952E]"
                 >
@@ -551,8 +724,12 @@ export default function Navbar() {
                       <div className="flex size-12 shrink-0 items-center justify-center overflow-hidden rounded-full border-2 border-[#C9952E] bg-white/10">
                         {avatarUrl ? (
                           <Image
-                            src={avatarUrl}
-                            alt={displayName}
+                            src={
+                              avatarUrl
+                            }
+                            alt={
+                              displayName
+                            }
                             width={48}
                             height={48}
                             className="size-full object-cover"
@@ -566,43 +743,60 @@ export default function Navbar() {
 
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm font-semibold">
-                          {displayName}
+                          {
+                            displayName
+                          }
                         </p>
                         <p className="truncate text-xs text-white/60">
-                          {user.email}
+                          {
+                            user.email
+                          }
                         </p>
                       </div>
                     </div>
 
                     <button
                       type="button"
-                      onClick={handleLogout}
-                      disabled={loggingOut}
+                      onClick={
+                        handleLogout
+                      }
+                      disabled={
+                        loggingOut
+                      }
                       className="mt-4 flex w-full items-center justify-center rounded-xl border border-white/15 bg-white/10 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/15 disabled:opacity-50"
                     >
-                      {loggingOut ? "Logging out..." : "Logout"}
+                      {loggingOut
+                        ? "Logging out..."
+                        : "Logout"}
                     </button>
                   </div>
                 ) : (
                   <div className="mb-5 rounded-2xl border border-[#C9952E]/20 bg-[#C9952E]/5 p-4">
                     <div className="flex items-center gap-3">
                       <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-[#171B4D] text-white">
-                        <User size={20} />
+                        <User
+                          size={20}
+                        />
                       </div>
 
                       <div>
                         <p className="text-sm font-semibold text-[#171B4D]">
-                          Welcome to Vaishnavi Collections
+                          Welcome to
+                          Vaishnavi
+                          Collections
                         </p>
                         <p className="mt-0.5 text-xs text-gray-500">
-                          Login to manage your account
+                          Login to manage
+                          your account
                         </p>
                       </div>
                     </div>
 
                     <Link
                       href="/login"
-                      onClick={closeMobileMenu}
+                      onClick={
+                        closeMobileMenu
+                      }
                       className="mt-4 flex w-full items-center justify-center rounded-xl bg-[#171B4D] px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#C9952E]"
                     >
                       Login / Sign Up
@@ -615,7 +809,9 @@ export default function Navbar() {
                   {/* Home */}
                   <Link
                     href="/"
-                    onClick={closeMobileMenu}
+                    onClick={
+                      closeMobileMenu
+                    }
                     className={[
                       "flex items-center rounded-xl px-4 py-3.5 text-sm font-medium transition-colors",
                       pathname === "/"
@@ -631,50 +827,84 @@ export default function Navbar() {
                     <button
                       type="button"
                       onClick={() =>
-                        setActiveDropdown((prev) =>
-                          prev === "mobile-shop" ? null : "mobile-shop"
+                        setActiveDropdown(
+                          (prev) =>
+                            prev ===
+                            "mobile-shop"
+                              ? null
+                              : "mobile-shop",
                         )
                       }
                       className={[
                         "flex w-full items-center justify-between rounded-xl px-4 py-3.5 text-left text-sm font-medium transition-colors",
-                        activeDropdown === "mobile-shop"
+                        activeDropdown ===
+                        "mobile-shop"
                           ? "bg-[#171B4D]/5 text-[#C9952E]"
                           : "text-[#171B4D] hover:bg-gray-50 hover:text-[#C9952E]",
                       ].join(" ")}
                     >
-                      <span>Shop</span>
+                      <span>
+                        Shop
+                      </span>
 
                       <ChevronDown
                         size={18}
                         className={[
                           "transition-transform duration-200",
-                          activeDropdown === "mobile-shop"
+                          activeDropdown ===
+                          "mobile-shop"
                             ? "rotate-180"
                             : "",
                         ].join(" ")}
                       />
                     </button>
 
-                    <AnimatePresence initial={false}>
-                      {activeDropdown === "mobile-shop" && (
+                    <AnimatePresence
+                      initial={false}
+                    >
+                      {activeDropdown ===
+                        "mobile-shop" && (
                         <motion.div
-                          initial={{ height: 0, opacity: 0 }}
-                          animate={{ height: "auto", opacity: 1 }}
-                          exit={{ height: 0, opacity: 0 }}
-                          transition={{ duration: 0.2 }}
+                          initial={{
+                            height: 0,
+                            opacity: 0,
+                          }}
+                          animate={{
+                            height: "auto",
+                            opacity: 1,
+                          }}
+                          exit={{
+                            height: 0,
+                            opacity: 0,
+                          }}
+                          transition={{
+                            duration: 0.2,
+                          }}
                           className="overflow-hidden"
                         >
                           <div className="ml-4 space-y-1 border-l border-[#C9952E]/20 py-1 pl-3">
-                            {navLinks[1].sub?.map((subLink) => (
-                              <Link
-                                key={subLink.label}
-                                href={subLink.href}
-                                onClick={closeMobileMenu}
-                                className="block rounded-lg px-3 py-2.5 text-sm text-gray-600 transition-colors hover:bg-gray-50 hover:text-[#C9952E]"
-                              >
-                                {subLink.label}
-                              </Link>
-                            ))}
+                            {navLinks[1].sub?.map(
+                              (
+                                subLink,
+                              ) => (
+                                <Link
+                                  key={
+                                    subLink.label
+                                  }
+                                  href={
+                                    subLink.href
+                                  }
+                                  onClick={
+                                    closeMobileMenu
+                                  }
+                                  className="block rounded-lg px-3 py-2.5 text-sm text-gray-600 transition-colors hover:bg-gray-50 hover:text-[#C9952E]"
+                                >
+                                  {
+                                    subLink.label
+                                  }
+                                </Link>
+                              ),
+                            )}
                           </div>
                         </motion.div>
                       )}
@@ -684,10 +914,14 @@ export default function Navbar() {
                   {/* About */}
                   <Link
                     href="/about"
-                    onClick={closeMobileMenu}
+                    onClick={
+                      closeMobileMenu
+                    }
                     className={[
                       "flex items-center rounded-xl px-4 py-3.5 text-sm font-medium transition-colors",
-                      isActive("/about")
+                      isActive(
+                        "/about",
+                      )
                         ? "bg-[#171B4D]/5 text-[#C9952E]"
                         : "text-[#171B4D] hover:bg-gray-50 hover:text-[#C9952E]",
                     ].join(" ")}
@@ -698,10 +932,14 @@ export default function Navbar() {
                   {/* Contact */}
                   <Link
                     href="/contact"
-                    onClick={closeMobileMenu}
+                    onClick={
+                      closeMobileMenu
+                    }
                     className={[
                       "flex items-center rounded-xl px-4 py-3.5 text-sm font-medium transition-colors",
-                      isActive("/contact")
+                      isActive(
+                        "/contact",
+                      )
                         ? "bg-[#171B4D]/5 text-[#C9952E]"
                         : "text-[#171B4D] hover:bg-gray-50 hover:text-[#C9952E]",
                     ].join(" ")}
@@ -719,34 +957,48 @@ export default function Navbar() {
                   <div className="space-y-1">
                     <Link
                       href="/wishlist"
-                      onClick={closeMobileMenu}
+                      onClick={
+                        closeMobileMenu
+                      }
                       className="flex items-center justify-between rounded-xl px-4 py-3.5 text-sm font-medium text-[#171B4D] transition-colors hover:bg-gray-50 hover:text-[#C9952E]"
                     >
                       <span className="flex items-center gap-3">
-                        <Heart size={19} />
+                        <Heart
+                          size={19}
+                        />
                         Wishlist
                       </span>
 
-                      {wishlistCount > 0 && (
+                      {wishlistCount >
+                        0 && (
                         <span className="rounded-full bg-[#C9952E]/10 px-2 py-0.5 text-xs font-semibold text-[#C9952E]">
-                          {wishlistCount}
+                          {
+                            wishlistCount
+                          }
                         </span>
                       )}
                     </Link>
 
                     <Link
                       href="/cart"
-                      onClick={closeMobileMenu}
+                      onClick={
+                        closeMobileMenu
+                      }
                       className="flex items-center justify-between rounded-xl px-4 py-3.5 text-sm font-medium text-[#171B4D] transition-colors hover:bg-gray-50 hover:text-[#C9952E]"
                     >
                       <span className="flex items-center gap-3">
-                        <ShoppingBag size={19} />
+                        <ShoppingBag
+                          size={19}
+                        />
                         Cart
                       </span>
 
-                      {cartCount > 0 && (
+                      {cartCount >
+                        0 && (
                         <span className="rounded-full bg-[#C9952E]/10 px-2 py-0.5 text-xs font-semibold text-[#C9952E]">
-                          {cartCount}
+                          {
+                            cartCount
+                          }
                         </span>
                       )}
                     </Link>
@@ -756,16 +1008,22 @@ export default function Navbar() {
                 {/* Small Brand Message */}
                 <div className="mt-6 rounded-2xl border border-[#C9952E]/15 bg-[#C9952E]/5 p-4">
                   <div className="flex items-center gap-2 text-[#C9952E]">
-                    <Sparkles size={17} />
+                    <Sparkles
+                      size={17}
+                    />
 
                     <span className="text-xs font-semibold uppercase tracking-wider">
-                      Vaishnavi Collections
+                      Vaishnavi
+                      Collections
                     </span>
                   </div>
 
                   <p className="mt-2 text-xs leading-5 text-gray-500">
-                    Discover beautiful products for your home, devotion,
-                    beauty and everyday style.
+                    Discover beautiful
+                    products for your
+                    home, devotion,
+                    beauty and
+                    everyday style.
                   </p>
                 </div>
 
@@ -777,7 +1035,9 @@ export default function Navbar() {
               <div className="shrink-0 border-t border-gray-100 bg-white p-4">
                 <Link
                   href="/products"
-                  onClick={closeMobileMenu}
+                  onClick={
+                    closeMobileMenu
+                  }
                   className="flex w-full items-center justify-center rounded-xl bg-[#171B4D] px-4 py-3.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#C9952E]"
                 >
                   Shop Now
