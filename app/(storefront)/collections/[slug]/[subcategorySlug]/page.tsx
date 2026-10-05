@@ -492,7 +492,7 @@ export default async function SubcategoryPage({
               {products.map((product, index) => (
                 <div
                   key={product.id}
-                  className="w-full max-w-[220px] sm:w-[220px] lg:w-[240px]"
+                  className="w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)]"
                 >
                   <ProductCard
                     product={product}
