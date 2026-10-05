@@ -66,11 +66,12 @@ export default function ProductCard({
     product.name;
 
   const wishlisted = isFavorite(product.id);
-  const cartItem = cartItems.find(
-  (item) => item.product_id === product.id,
-);
 
-const isInCart = Boolean(cartItem);
+  const cartItem = cartItems.find(
+    (item) => item.product_id === product.id,
+  );
+
+  const isInCart = Boolean(cartItem);
 
   const hasDiscount =
     typeof product.originalPrice === "number" &&
@@ -95,41 +96,41 @@ const isInCart = Boolean(cartItem);
   // ---------------------------------------------------------
 
   const handleCart = async (
-  event?: React.MouseEvent<HTMLButtonElement>,
-) => {
-  event?.preventDefault();
-  event?.stopPropagation();
+    event?: React.MouseEvent<HTMLButtonElement>,
+  ) => {
+    event?.preventDefault();
+    event?.stopPropagation();
 
-  if (
-    isOutOfStock ||
-    cartLoading ||
-    isInCart
-  ) {
-    return;
-  }
+    if (
+      isOutOfStock ||
+      cartLoading ||
+      isInCart
+    ) {
+      return;
+    }
 
-  setCartLoading(true);
+    setCartLoading(true);
 
-  try {
-    await addToCart(product.id, 1);
+    try {
+      await addToCart(product.id, 1);
 
-    setAddedToCart(true);
-  } catch (error) {
-    console.error(
-      "Failed to add product to cart:",
-      error,
-    );
+      setAddedToCart(true);
+    } catch (error) {
+      console.error(
+        "Failed to add product to cart:",
+        error,
+      );
 
-    const message =
-      error instanceof Error
-        ? error.message
-        : "Unable to add this product to your cart.";
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Unable to add this product to your cart.";
 
-    alert(message);
-  } finally {
-    setCartLoading(false);
-  }
-};
+      alert(message);
+    } finally {
+      setCartLoading(false);
+    }
+  };
 
   // ---------------------------------------------------------
   // WISHLIST
@@ -281,30 +282,32 @@ const isInCart = Boolean(cartItem);
 
           {!isOutOfStock && (
             <button
-  type="button"
-  onClick={handleCart}
-  disabled={cartLoading || isInCart}
-  className={`absolute inset-x-0 bottom-0 hidden translate-y-2 items-center justify-center gap-2 py-2.5 text-xs font-semibold text-white opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 disabled:cursor-default sm:flex ${
-    isInCart
-      ? "bg-[#b18425]/95"
-      : "bg-[#10233e]/95"
-  }`}
->
-  {cartLoading ? (
-    <Loader2
-      size={14}
-      className="animate-spin"
-    />
-  ) : (
-    <ShoppingBag size={14} />
-  )}
+              type="button"
+              onClick={handleCart}
+              disabled={
+                cartLoading || isInCart
+              }
+              className={`absolute inset-x-0 bottom-0 hidden translate-y-2 items-center justify-center gap-2 py-2.5 text-xs font-semibold text-white opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 disabled:cursor-default sm:flex ${
+                isInCart
+                  ? "bg-[#b18425]/95"
+                  : "bg-[#10233e]/95"
+              }`}
+            >
+              {cartLoading ? (
+                <Loader2
+                  size={14}
+                  className="animate-spin"
+                />
+              ) : (
+                <ShoppingBag size={14} />
+              )}
 
-  {cartLoading
-    ? "Adding..."
-    : isInCart
-      ? "✓ Added to Bag"
-      : "Add to Bag"}
-</button>
+              {cartLoading
+                ? "Adding..."
+                : isInCart
+                  ? "✓ Added to Bag"
+                  : "Add to Bag"}
+            </button>
           )}
         </div>
 
@@ -348,6 +351,8 @@ const isInCart = Boolean(cartItem);
               )}
             </div>
 
+            {/* Desktop / Mobile View Item */}
+
             <span className="shrink-0 text-[10px] font-medium text-[#b18425]">
               View item
             </span>
@@ -355,39 +360,63 @@ const isInCart = Boolean(cartItem);
         </div>
       </Link>
 
-      {/* Mobile Add to Bag */}
+      {/* -----------------------------------------------------
+          Mobile Quick Add
+          Compact icon-only control
+         ----------------------------------------------------- */}
 
       {!isOutOfStock && (
-        <div className="px-3 pb-3 sm:hidden">
+        <div className="flex items-center justify-end px-3 pb-3 sm:hidden">
           <button
-  type="button"
-  onClick={handleCart}
-  disabled={cartLoading || isInCart}
-  className={`flex w-full items-center justify-center gap-2 rounded-lg py-2.5 text-[11px] font-semibold text-white transition disabled:cursor-default ${
-    isInCart
-      ? "bg-[#b18425]"
-      : "bg-[#10233e] hover:bg-[#1b3558]"
-  }`}
->
-  {cartLoading ? (
-    <Loader2
-      size={13}
-      className="animate-spin"
-    />
-  ) : (
-    <ShoppingBag size={13} />
-  )}
-
-  {cartLoading
-    ? "Adding..."
-    : isInCart
-      ? "✓ Added to Bag"
-      : "Add to Bag"}
-</button>
+            type="button"
+            onClick={handleCart}
+            disabled={
+              cartLoading || isInCart
+            }
+            aria-label={
+              cartLoading
+                ? `Adding ${displayTitle} to bag`
+                : isInCart
+                  ? `${displayTitle} is already in your bag`
+                  : `Add ${displayTitle} to bag`
+            }
+            title={
+              isInCart
+                ? "Added to Bag"
+                : "Add to Bag"
+            }
+            className={`grid size-10 place-items-center rounded-full text-white shadow-sm transition duration-200 active:scale-95 disabled:cursor-default ${
+              isInCart
+                ? "bg-[#b18425]"
+                : "bg-[#10233e] hover:bg-[#1b3558]"
+            }`}
+          >
+            {cartLoading ? (
+              <Loader2
+                size={16}
+                className="animate-spin"
+              />
+            ) : isInCart ? (
+              <span
+                className="text-base font-bold leading-none"
+                aria-hidden="true"
+              >
+                ✓
+              </span>
+            ) : (
+              <ShoppingBag
+                size={16}
+                strokeWidth={2}
+                aria-hidden="true"
+              />
+            )}
+          </button>
         </div>
       )}
 
-      {/* Out of Stock Mobile State */}
+      {/* -----------------------------------------------------
+          Out of Stock Mobile State
+         ----------------------------------------------------- */}
 
       {isOutOfStock && (
         <div className="px-3 pb-3 sm:hidden">
