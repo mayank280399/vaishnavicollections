@@ -3,6 +3,7 @@
 import {
   useEffect,
   useMemo,
+  useRef,
   useState,
   type FormEvent,
   type ReactNode,
@@ -10,12 +11,15 @@ import {
 import {
   CalendarDays,
   CheckCircle2,
+  ChevronDown,
   CreditCard,
   Loader2,
   Package,
   Plus,
   ReceiptText,
+  Search,
   WalletCards,
+  X,
 } from "lucide-react";
 
 import {
@@ -116,11 +120,7 @@ function aggregateStockChanges(changes: StockChange[]) {
   for (const change of changes) {
     if (!change.delta) continue;
 
-    const key = stockKey(
-      change.productId,
-      change.variantId
-    );
-
+    const key = stockKey(change.productId, change.variantId);
     const existing = map.get(key);
 
     if (existing) {
@@ -195,6 +195,237 @@ function Section({
   );
 }
 
+/**
+ * Searchable product selector.
+ *
+ * The product list is intentionally independent of category/subcategory.
+ * Selecting a product calls onSelect(), and the parent automatically
+ * derives category + subcategory from that product.
+ */
+function ProductSearchDropdown({
+  products,
+  selectedProduct,
+  search,
+  setSearch,
+  open,
+  setOpen,
+  onSelect,
+  onClear,
+}: {
+  products: Product[];
+  selectedProduct: Product | undefined;
+  search: string;
+  setSearch: (value: string) => void;
+  open: boolean;
+  setOpen: (value: boolean) => void;
+  onSelect: (product: Product) => void;
+  onClear: () => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
+  const filteredProducts = useMemo(() => {
+    const query = search.trim().toLowerCase();
+
+    if (!query) {
+      return products.slice(0, 100);
+    }
+
+    return products
+      .filter((product) =>
+        product.name.toLowerCase().includes(query)
+      )
+      .slice(0, 100);
+  }, [products, search]);
+
+  useEffect(() => {
+    function handleOutsideClick(event: MouseEvent) {
+      if (
+        containerRef.current &&
+        !containerRef.current.contains(
+          event.target as Node
+        )
+      ) {
+        setOpen(false);
+      }
+    }
+
+    document.addEventListener(
+      "mousedown",
+      handleOutsideClick
+    );
+
+    return () => {
+      document.removeEventListener(
+        "mousedown",
+        handleOutsideClick
+      );
+    };
+  }, [setOpen]);
+
+  useEffect(() => {
+    if (open) {
+      requestAnimationFrame(() => {
+        searchInputRef.current?.focus();
+      });
+    }
+  }, [open]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative"
+    >
+      <div
+        className={`flex min-h-11 w-full items-center rounded-xl border bg-background transition ${
+          open
+            ? "border-primary ring-2 ring-primary/10"
+            : "border-input"
+        }`}
+      >
+        <Search className="ml-3 h-4 w-4 shrink-0 text-muted-foreground" />
+
+        <input
+          ref={searchInputRef}
+          type="text"
+          value={
+            open
+              ? search
+              : selectedProduct?.name ?? ""
+          }
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => {
+            setOpen(true);
+
+            if (selectedProduct) {
+              setSearch("");
+            }
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setOpen(false);
+            }
+          }}
+          placeholder="Search product..."
+          className="h-11 min-w-0 flex-1 bg-transparent px-3 text-sm outline-none placeholder:text-muted-foreground"
+        />
+
+        {selectedProduct ? (
+          <button
+            type="button"
+            onClick={() => {
+              onClear();
+              setSearch("");
+              setOpen(false);
+            }}
+            className="mr-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
+            aria-label="Clear selected product"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        ) : null}
+
+        <button
+          type="button"
+          onClick={() => setOpen(!open)}
+          className="mr-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-muted-foreground transition hover:bg-muted hover:text-foreground"
+          aria-label="Open product list"
+        >
+          <ChevronDown
+            className={`h-4 w-4 transition-transform ${
+              open ? "rotate-180" : ""
+            }`}
+          />
+        </button>
+      </div>
+
+      {open ? (
+        <div className="absolute left-0 right-0 z-50 mt-2 overflow-hidden rounded-2xl border bg-popover shadow-xl bg-white">
+          <div className="border-b bg-muted/30 px-3 py-2">
+            <p className="text-xs text-muted-foreground">
+              {search.trim()
+                ? `${filteredProducts.length} product${
+                    filteredProducts.length === 1
+                      ? ""
+                      : "s"
+                  } found`
+                : `Showing up to ${Math.min(
+                    products.length,
+                    100
+                  )} products`}
+            </p>
+          </div>
+
+          <div className="max-h-72 overflow-y-auto p-1.5">
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((product) => {
+                const isSelected =
+                  product.id === selectedProduct?.id;
+
+                return (
+                  <button
+                    key={product.id}
+                    type="button"
+                    onClick={() => {
+                      onSelect(product);
+                      setSearch("");
+                      setOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-xl px-3 py-2.5 text-left transition ${
+                      isSelected
+                        ? "bg-primary/10 text-primary"
+                        : "hover:bg-muted"
+                    }`}
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">
+                        {product.name}
+                      </p>
+
+                      <p className="mt-0.5 text-xs text-muted-foreground">
+                        ₹
+                        {number(
+                          product.selling_price
+                        ).toLocaleString("en-IN")}
+                        {number(
+                          product.stock_quantity
+                        ) > 0
+                          ? ` • Stock ${number(
+                              product.stock_quantity
+                            )}`
+                          : " • Out of stock"}
+                      </p>
+                    </div>
+
+                    {isSelected ? (
+                      <CheckCircle2 className="ml-3 h-4 w-4 shrink-0 text-primary" />
+                    ) : null}
+                  </button>
+                );
+              })
+            ) : (
+              <div className="px-4 py-8 text-center">
+                <Package className="mx-auto h-8 w-8 text-muted-foreground/50" />
+
+                <p className="mt-2 text-sm font-medium">
+                  No products found
+                </p>
+
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Try a different product name.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export function SaleDialog({
   showTrigger = false,
   editSale = null,
@@ -223,21 +454,33 @@ export function SaleDialog({
   }
 
   const [date, setDate] = useState(today());
-  const [paymentMethod, setPaymentMethod] = useState("CASH");
+  const [paymentMethod, setPaymentMethod] =
+    useState("CASH");
 
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<Category[]>(
+    []
+  );
   const [products, setProducts] = useState<Product[]>([]);
   const [variants, setVariants] = useState<Variant[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>(
+    []
+  );
 
   const [categoryId, setCategoryId] = useState("");
-  const [subcategoryId, setSubcategoryId] = useState("");
+  const [subcategoryId, setSubcategoryId] =
+    useState("");
   const [productId, setProductId] = useState("");
   const [variantId, setVariantId] = useState("");
   const [customerId, setCustomerId] = useState("");
 
+  const [productSearch, setProductSearch] =
+    useState("");
+  const [productDropdownOpen, setProductDropdownOpen] =
+    useState(false);
+
   const [quantity, setQuantity] = useState("1");
-  const [sellingPrice, setSellingPrice] = useState("");
+  const [sellingPrice, setSellingPrice] =
+    useState("");
 
   const [loadingData, setLoadingData] = useState(false);
   const [loadingSale, setLoadingSale] = useState(false);
@@ -247,14 +490,18 @@ export function SaleDialog({
   const [error, setError] = useState("");
 
   const topLevelCategories = useMemo(
-    () => categories.filter((category) => !category.parent_id),
+    () =>
+      categories.filter(
+        (category) => !category.parent_id
+      ),
     [categories]
   );
 
   const subcategories = useMemo(
     () =>
       categories.filter(
-        (category) => category.parent_id === categoryId
+        (category) =>
+          category.parent_id === categoryId
       ),
     [categories, categoryId]
   );
@@ -267,23 +514,14 @@ export function SaleDialog({
     () =>
       variants.filter(
         (variant) =>
-          variant.product_id === productId && variant.active
+          variant.product_id === productId &&
+          variant.active
       ),
     [variants, productId]
   );
 
   const selectedVariant = productVariants.find(
     (variant) => variant.id === variantId
-  );
-
-  const filteredProducts = useMemo(
-    () =>
-      subcategoryId
-        ? products.filter(
-            (product) => product.category_id === subcategoryId
-          )
-        : [],
-    [products, subcategoryId]
   );
 
   const saleTotal =
@@ -403,14 +641,12 @@ export function SaleDialog({
   /*
    * Validate every negative stock change before applying
    * any stock changes.
-   *
-   * This prevents a multi-change sale edit from partially
-   * changing stock before discovering insufficient stock.
    */
   async function validateStockChanges(
     changes: StockChange[]
   ) {
-    const aggregated = aggregateStockChanges(changes);
+    const aggregated =
+      aggregateStockChanges(changes);
 
     for (const change of aggregated) {
       if (change.delta >= 0) continue;
@@ -434,13 +670,15 @@ export function SaleDialog({
   }
 
   /*
-   * Apply stock changes and remember what was successfully
-   * changed so the caller can roll them back if necessary.
+   * Apply stock changes and remember what was
+   * successfully changed so the caller can roll them back.
    */
   async function applyStockChanges(
     changes: StockChange[]
   ) {
-    const aggregated = aggregateStockChanges(changes);
+    const aggregated =
+      aggregateStockChanges(changes);
+
     const applied: StockChange[] = [];
 
     try {
@@ -456,9 +694,6 @@ export function SaleDialog({
 
       return applied;
     } catch (error) {
-      /*
-       * Best-effort rollback for changes already applied.
-       */
       for (const change of [...applied].reverse()) {
         try {
           await adjustStock(
@@ -553,7 +788,9 @@ export function SaleDialog({
         if (!isEditMode && !customerId) {
           const walkIn = loadedCustomers.find(
             (customer: Customer) =>
-              /walk.?in/i.test(customer.display_name)
+              /walk.?in/i.test(
+                customer.display_name
+              )
           );
 
           if (walkIn) {
@@ -573,7 +810,8 @@ export function SaleDialog({
   }, [open, supabase, isEditMode]);
 
   /*
-   * When editing, load the existing sale and its single sale item.
+   * When editing, load the existing sale and its
+   * single sale item.
    */
   useEffect(() => {
     if (!open || !editSale?.id) return;
@@ -589,24 +827,25 @@ export function SaleDialog({
 
       if (!saleId) return;
 
-      const { data, error: saleError } = await supabase
-        .from("sales")
-        .select(`
-          id,
-          customer_id,
-          invoice_number,
-          payment_method,
-          purchased_at,
-          sale_items (
+      const { data, error: saleError } =
+        await supabase
+          .from("sales")
+          .select(`
             id,
-            product_id,
-            variant_id,
-            quantity,
-            unit_price
-          )
-        `)
-        .eq("id", saleId)
-        .single();
+            customer_id,
+            invoice_number,
+            payment_method,
+            purchased_at,
+            sale_items (
+              id,
+              product_id,
+              variant_id,
+              quantity,
+              unit_price
+            )
+          `)
+          .eq("id", saleId)
+          .single();
 
       if (cancelled) return;
 
@@ -637,12 +876,19 @@ export function SaleDialog({
           : today()
       );
 
-      setPaymentMethod(data.payment_method ?? "CASH");
+      setPaymentMethod(
+        data.payment_method ?? "CASH"
+      );
+
       setCustomerId(data.customer_id ?? "");
+
       setProductId(item.product_id ?? "");
       setVariantId(item.variant_id ?? "");
+
       setQuantity(String(item.quantity ?? 1));
-      setSellingPrice(String(item.unit_price ?? 0));
+      setSellingPrice(
+        String(item.unit_price ?? 0)
+      );
 
       setLoadingSale(false);
     }
@@ -655,8 +901,11 @@ export function SaleDialog({
   }, [open, editSale?.id, supabase]);
 
   /*
-   * Once product data is loaded, derive category/subcategory
-   * from the selected product.
+   * Automatically derive category/subcategory from
+   * the selected product.
+   *
+   * This also handles edit mode because the product ID
+   * may be loaded before categories finish loading.
    */
   useEffect(() => {
     if (!productId || products.length === 0) return;
@@ -665,20 +914,49 @@ export function SaleDialog({
       (item) => item.id === productId
     );
 
-    if (!product?.category_id) return;
+    if (!product?.category_id) {
+      setCategoryId("");
+      setSubcategoryId("");
+      return;
+    }
 
-    const subcategory = categories.find(
-      (category) => category.id === product.category_id
+    const assignedCategory = categories.find(
+      (category) =>
+        category.id === product.category_id
     );
 
-    if (!subcategory) return;
+    if (!assignedCategory) return;
 
-    setSubcategoryId(subcategory.id);
-
-    if (subcategory.parent_id) {
-      setCategoryId(subcategory.parent_id);
+    /*
+     * Product may technically belong directly to a
+     * top-level category OR to a subcategory.
+     */
+    if (assignedCategory.parent_id) {
+      setSubcategoryId(assignedCategory.id);
+      setCategoryId(
+        assignedCategory.parent_id
+      );
+    } else {
+      setCategoryId(assignedCategory.id);
+      setSubcategoryId("");
     }
   }, [productId, products, categories]);
+
+  /*
+   * Keep the product search label synchronized when
+   * a product is loaded during edit mode.
+   */
+  useEffect(() => {
+    if (!productId || products.length === 0) return;
+
+    const product = products.find(
+      (item) => item.id === productId
+    );
+
+    if (product) {
+      setProductSearch(product.name);
+    }
+  }, [productId, products]);
 
   /*
    * Set prices when selecting a product.
@@ -698,7 +976,11 @@ export function SaleDialog({
     );
 
     setVariantId("");
-  }, [productId, selectedProduct, isEditMode]);
+  }, [
+    productId,
+    selectedProduct,
+    isEditMode,
+  ]);
 
   /*
    * Variant changes the selling price.
@@ -706,9 +988,13 @@ export function SaleDialog({
   useEffect(() => {
     if (!selectedVariant || isEditMode) return;
 
-    if (selectedVariant.selling_price !== null) {
+    if (
+      selectedVariant.selling_price !== null
+    ) {
       setSellingPrice(
-        String(selectedVariant.selling_price)
+        String(
+          selectedVariant.selling_price
+        )
       );
     }
   }, [selectedVariant, isEditMode]);
@@ -716,44 +1002,115 @@ export function SaleDialog({
   function resetForm() {
     setDate(today());
     setPaymentMethod("CASH");
+
     setCategoryId("");
     setSubcategoryId("");
     setProductId("");
     setVariantId("");
     setCustomerId("");
+
+    setProductSearch("");
+    setProductDropdownOpen(false);
+
     setQuantity("1");
     setSellingPrice("");
+
     setMessage("");
     setError("");
+
     setLoadingSale(false);
   }
 
+  /*
+   * Manual category selection is still supported.
+   * However, selecting a product is now the primary
+   * way to populate category/subcategory.
+   */
   function handleCategoryChange(value: string) {
     setCategoryId(value);
     setSubcategoryId("");
     setProductId("");
     setVariantId("");
+    setProductSearch("");
     setSellingPrice("");
   }
 
-  function handleSubcategoryChange(value: string) {
+  function handleSubcategoryChange(
+    value: string
+  ) {
     setSubcategoryId(value);
     setProductId("");
     setVariantId("");
+    setProductSearch("");
     setSellingPrice("");
+  }
+
+  /*
+   * Main product selection handler.
+   *
+   * Product -> category -> subcategory
+   */
+  function handleProductSelect(
+    product: Product
+  ) {
+    setProductId(product.id);
+    setProductSearch(product.name);
+    setProductDropdownOpen(false);
+
+    setVariantId("");
+
+    const assignedCategory = categories.find(
+      (category) =>
+        category.id === product.category_id
+    );
+
+    if (!assignedCategory) {
+      setCategoryId("");
+      setSubcategoryId("");
+      return;
+    }
+
+    if (assignedCategory.parent_id) {
+      setCategoryId(
+        assignedCategory.parent_id
+      );
+      setSubcategoryId(
+        assignedCategory.id
+      );
+    } else {
+      setCategoryId(
+        assignedCategory.id
+      );
+      setSubcategoryId("");
+    }
+  }
+
+  function handleClearProduct() {
+    setProductId("");
+    setVariantId("");
+    setProductSearch("");
+    setSellingPrice("");
+    setCategoryId("");
+    setSubcategoryId("");
   }
 
   async function handleAddSale() {
     if (!customerId) {
-      throw new Error("Please select a customer.");
+      throw new Error(
+        "Please select a customer."
+      );
     }
 
     if (!productId) {
-      throw new Error("Please select a product.");
+      throw new Error(
+        "Please select a product."
+      );
     }
 
     if (number(quantity) <= 0) {
-      throw new Error("Quantity must be at least 1.");
+      throw new Error(
+        "Quantity must be at least 1."
+      );
     }
 
     if (number(sellingPrice) < 0) {
@@ -774,9 +1131,6 @@ export function SaleDialog({
     const lineCost = cost * qty;
     const profit = total - lineCost;
 
-    /*
-     * A new completed sale consumes stock.
-     */
     const stockChanges: StockChange[] = [
       {
         productId,
@@ -785,10 +1139,9 @@ export function SaleDialog({
       },
     ];
 
-    /*
-     * Validate stock before creating the sale.
-     */
-    await validateStockChanges(stockChanges);
+    await validateStockChanges(
+      stockChanges
+    );
 
     const invoiceNumber = `INV-${Date.now()}`;
 
@@ -796,27 +1149,29 @@ export function SaleDialog({
       `${date}T12:00:00`
     ).toISOString();
 
-    const { data: sale, error: saleError } =
-      await supabase
-        .from("sales")
-        .insert({
-          customer_id: customerId,
-          invoice_number: invoiceNumber,
-          subtotal: total,
-          discount_amount: 0,
-          reward_discount: 0,
-          tax_amount: 0,
-          shipping_amount: 0,
-          total_amount: total,
-          cost_amount: lineCost,
-          gross_profit: profit,
-          payment_method: paymentMethod,
-          status: "COMPLETED",
-          source: "PHYSICAL_SHOP",
-          purchased_at: purchasedAt,
-        })
-        .select("id")
-        .single();
+    const {
+      data: sale,
+      error: saleError,
+    } = await supabase
+      .from("sales")
+      .insert({
+        customer_id: customerId,
+        invoice_number: invoiceNumber,
+        subtotal: total,
+        discount_amount: 0,
+        reward_discount: 0,
+        tax_amount: 0,
+        shipping_amount: 0,
+        total_amount: total,
+        cost_amount: lineCost,
+        gross_profit: profit,
+        payment_method: paymentMethod,
+        status: "COMPLETED",
+        source: "PHYSICAL_SHOP",
+        purchased_at: purchasedAt,
+      })
+      .select("id")
+      .single();
 
     if (saleError || !sale) {
       throw new Error(
@@ -825,21 +1180,23 @@ export function SaleDialog({
       );
     }
 
-    const { error: itemError } = await supabase
-      .from("sale_items")
-      .insert({
-        sale_id: sale.id,
-        product_id: productId,
-        variant_id: variantId || null,
-        quantity: qty,
-        unit_price: price,
-        discount: 0,
-        cost_price: cost,
-        line_total: total,
-        line_cost: lineCost,
-        line_profit: profit,
-        points_earned: 0,
-      });
+    const { error: itemError } =
+      await supabase
+        .from("sale_items")
+        .insert({
+          sale_id: sale.id,
+          product_id: productId,
+          variant_id:
+            variantId || null,
+          quantity: qty,
+          unit_price: price,
+          discount: 0,
+          cost_price: cost,
+          line_total: total,
+          line_cost: lineCost,
+          line_profit: profit,
+          points_earned: 0,
+        });
 
     if (itemError) {
       await supabase
@@ -850,15 +1207,10 @@ export function SaleDialog({
       throw new Error(itemError.message);
     }
 
-    /*
-     * Now consume stock.
-     *
-     * Validation was already performed before the sale
-     * was created. If the actual stock update fails,
-     * remove the newly created sale.
-     */
     try {
-      await applyStockChanges(stockChanges);
+      await applyStockChanges(
+        stockChanges
+      );
     } catch (stockError) {
       await supabase
         .from("sale_items")
@@ -873,24 +1225,34 @@ export function SaleDialog({
       throw stockError;
     }
 
-    setMessage(`Sale saved • ${invoiceNumber}`);
+    setMessage(
+      `Sale saved • ${invoiceNumber}`
+    );
   }
 
   async function handleUpdateSale() {
     if (!editSale?.id) {
-      throw new Error("Sale ID is missing.");
+      throw new Error(
+        "Sale ID is missing."
+      );
     }
 
     if (!customerId) {
-      throw new Error("Please select a customer.");
+      throw new Error(
+        "Please select a customer."
+      );
     }
 
     if (!productId) {
-      throw new Error("Please select a product.");
+      throw new Error(
+        "Please select a product."
+      );
     }
 
     if (number(quantity) <= 0) {
-      throw new Error("Quantity must be at least 1.");
+      throw new Error(
+        "Quantity must be at least 1."
+      );
     }
 
     if (number(sellingPrice) < 0) {
@@ -899,33 +1261,31 @@ export function SaleDialog({
       );
     }
 
-    /*
-     * Load the existing sale/item so we can calculate
-     * the exact stock difference.
-     */
-    const { data: existingSale, error: existingError } =
-      await supabase
-        .from("sales")
-        .select(`
+    const {
+      data: existingSale,
+      error: existingError,
+    } = await supabase
+      .from("sales")
+      .select(`
+        id,
+        customer_id,
+        total_amount,
+        cost_amount,
+        gross_profit,
+        payment_method,
+        purchased_at,
+        status,
+        sale_items (
           id,
-          customer_id,
-          total_amount,
-          cost_amount,
-          gross_profit,
-          payment_method,
-          purchased_at,
-          status,
-          sale_items (
-            id,
-            product_id,
-            variant_id,
-            quantity,
-            unit_price,
-            cost_price
-          )
-        `)
-        .eq("id", editSale.id)
-        .single();
+          product_id,
+          variant_id,
+          quantity,
+          unit_price,
+          cost_price
+        )
+      `)
+      .eq("id", editSale.id)
+      .single();
 
     if (existingError || !existingSale) {
       throw new Error(
@@ -934,13 +1294,16 @@ export function SaleDialog({
       );
     }
 
-    if (existingSale.sale_items?.length !== 1) {
+    if (
+      existingSale.sale_items?.length !== 1
+    ) {
       throw new Error(
         "This sale contains multiple items and cannot be edited using this form yet."
       );
     }
 
-    const oldItem = existingSale.sale_items[0];
+    const oldItem =
+      existingSale.sale_items[0];
 
     const qty = number(quantity);
     const price = number(sellingPrice);
@@ -958,64 +1321,39 @@ export function SaleDialog({
       `${date}T12:00:00`
     ).toISOString();
 
-    /*
-     * Build the NET stock change.
-     *
-     * Old sale quantity is restored (+oldQty).
-     * New sale quantity is consumed (-newQty).
-     *
-     * Examples:
-     *
-     * 5 -> 3 of same product:
-     * +5 -3 = +2
-     *
-     * 5 -> 7 of same product:
-     * +5 -7 = -2
-     *
-     * Product A 5 -> Product B 3:
-     * A +5
-     * B -3
-     */
     const stockChanges: StockChange[] = [
       {
         productId: oldItem.product_id,
         variantId: oldItem.variant_id,
-        delta: number(oldItem.quantity),
+        delta: number(
+          oldItem.quantity
+        ),
       },
       {
         productId,
-        variantId: variantId || null,
+        variantId:
+          variantId || null,
         delta: -qty,
       },
     ];
 
     const aggregatedStockChanges =
-      aggregateStockChanges(stockChanges);
+      aggregateStockChanges(
+        stockChanges
+      );
 
-    /*
-     * Validate all negative changes BEFORE modifying
-     * either stock or sale records.
-     */
     await validateStockChanges(
       aggregatedStockChanges
     );
 
-    /*
-     * Apply stock first.
-     *
-     * This ensures that if the new sale needs additional
-     * stock, that stock is actually available before the
-     * sale record is changed.
-     */
     const appliedStockChanges =
       await applyStockChanges(
         aggregatedStockChanges
       );
 
-    /*
-     * Update sale header.
-     */
-    const { error: saleUpdateError } = await supabase
+    const {
+      error: saleUpdateError,
+    } = await supabase
       .from("sales")
       .update({
         customer_id: customerId,
@@ -1029,15 +1367,12 @@ export function SaleDialog({
         gross_profit: profit,
         payment_method: paymentMethod,
         purchased_at: purchasedAt,
-        updated_at: new Date().toISOString(),
+        updated_at:
+          new Date().toISOString(),
       })
       .eq("id", editSale.id);
 
     if (saleUpdateError) {
-      /*
-       * Sale update failed, so restore the exact stock
-       * changes that were already applied.
-       */
       for (const change of [
         ...appliedStockChanges,
       ].reverse()) {
@@ -1052,17 +1387,19 @@ export function SaleDialog({
         }
       }
 
-      throw new Error(saleUpdateError.message);
+      throw new Error(
+        saleUpdateError.message
+      );
     }
 
-    /*
-     * Update existing sale item.
-     */
-    const { error: itemUpdateError } = await supabase
+    const {
+      error: itemUpdateError,
+    } = await supabase
       .from("sale_items")
       .update({
         product_id: productId,
-        variant_id: variantId || null,
+        variant_id:
+          variantId || null,
         quantity: qty,
         unit_price: price,
         discount: 0,
@@ -1074,23 +1411,24 @@ export function SaleDialog({
       .eq("id", oldItem.id);
 
     if (itemUpdateError) {
-      /*
-       * Roll the sale header and stock back if the
-       * sale-item update fails.
-       */
       try {
         await supabase
           .from("sales")
           .update({
-            customer_id: existingSale.customer_id,
-            total_amount: existingSale.total_amount,
-            cost_amount: existingSale.cost_amount,
-            gross_profit: existingSale.gross_profit,
+            customer_id:
+              existingSale.customer_id,
+            total_amount:
+              existingSale.total_amount,
+            cost_amount:
+              existingSale.cost_amount,
+            gross_profit:
+              existingSale.gross_profit,
             payment_method:
               existingSale.payment_method,
             purchased_at:
               existingSale.purchased_at,
-            updated_at: new Date().toISOString(),
+            updated_at:
+              new Date().toISOString(),
           })
           .eq("id", editSale.id);
       } catch {
@@ -1107,11 +1445,13 @@ export function SaleDialog({
             -change.delta
           );
         } catch {
-          // Keep the original database error.
+          // Keep the original item error.
         }
       }
 
-      throw new Error(itemUpdateError.message);
+      throw new Error(
+        itemUpdateError.message
+      );
     }
 
     setMessage(
@@ -1149,11 +1489,16 @@ export function SaleDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={handleOpenChange}
+    >
       {!isEditMode && showTrigger ? (
         <Button
           type="button"
-          onClick={() => handleOpenChange(true)}
+          onClick={() =>
+            handleOpenChange(true)
+          }
         >
           <Plus className="mr-2 h-4 w-4" />
           Add Sale
@@ -1204,10 +1549,12 @@ export function SaleDialog({
             onSubmit={handleSubmit}
             className="mx-auto w-full max-w-[1280px] p-4 sm:p-6 lg:p-8"
           >
-            {loadingData || loadingSale ? (
+            {loadingData ||
+            loadingSale ? (
               <div className="flex min-h-72 items-center justify-center">
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
+
                   {loadingSale
                     ? "Loading sale..."
                     : "Loading products and customers..."}
@@ -1236,23 +1583,33 @@ export function SaleDialog({
                   }
                 >
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <Field label="Date" required>
+                    <Field
+                      label="Date"
+                      required
+                    >
                       <input
                         type="date"
                         value={date}
                         onChange={(e) =>
-                          setDate(e.target.value)
+                          setDate(
+                            e.target.value
+                          )
                         }
                         className={inputClass}
                         required
                       />
                     </Field>
 
-                    <Field label="Customer" required>
+                    <Field
+                      label="Customer"
+                      required
+                    >
                       <select
                         value={customerId}
                         onChange={(e) =>
-                          setCustomerId(e.target.value)
+                          setCustomerId(
+                            e.target.value
+                          )
                         }
                         className={inputClass}
                         required
@@ -1261,17 +1618,26 @@ export function SaleDialog({
                           Select customer
                         </option>
 
-                        {customers.map((customer) => (
-                          <option
-                            key={customer.id}
-                            value={customer.id}
-                          >
-                            {customer.display_name}
-                            {customer.phone
-                              ? ` • ${customer.phone}`
-                              : ""}
-                          </option>
-                        ))}
+                        {customers.map(
+                          (customer) => (
+                            <option
+                              key={
+                                customer.id
+                              }
+                              value={
+                                customer.id
+                              }
+                            >
+                              {
+                                customer.display_name
+                              }
+
+                              {customer.phone
+                                ? ` • ${customer.phone}`
+                                : ""}
+                            </option>
+                          )
+                        )}
                       </select>
                     </Field>
                   </div>
@@ -1279,11 +1645,57 @@ export function SaleDialog({
 
                 <Section
                   title="What was sold?"
-                  description="Choose the category, product and quantity."
-                  icon={<Package className="h-4 w-4" />}
+                  description="Search and select the product. Its category and subcategory will be filled automatically."
+                  icon={
+                    <Package className="h-4 w-4" />
+                  }
                 >
                   <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                    <Field label="Category" required>
+                    {/* PRODUCT FIRST */}
+                    <div className="lg:col-span-2">
+                      <Field
+                        label="Product"
+                        required
+                      >
+                        <ProductSearchDropdown
+                          products={products}
+                          selectedProduct={
+                            selectedProduct
+                          }
+                          search={
+                            productSearch
+                          }
+                          setSearch={
+                            setProductSearch
+                          }
+                          open={
+                            productDropdownOpen
+                          }
+                          setOpen={
+                            setProductDropdownOpen
+                          }
+                          onSelect={
+                            handleProductSelect
+                          }
+                          onClear={
+                            handleClearProduct
+                          }
+                        />
+
+                        <p className="mt-1.5 text-xs text-muted-foreground">
+                          Search by product name.
+                          Selecting a product
+                          automatically fills its
+                          category and subcategory.
+                        </p>
+                      </Field>
+                    </div>
+
+                    {/* CATEGORY */}
+                    <Field
+                      label="Category"
+                      required
+                    >
                       <select
                         value={categoryId}
                         onChange={(e) =>
@@ -1309,14 +1721,25 @@ export function SaleDialog({
                           )
                         )}
                       </select>
+
+                      {productId &&
+                      categoryId ? (
+                        <p className="text-xs text-emerald-600">
+                          Automatically selected
+                          from product
+                        </p>
+                      ) : null}
                     </Field>
 
+                    {/* SUBCATEGORY */}
                     <Field
                       label="Subcategory"
                       required
                     >
                       <select
-                        value={subcategoryId}
+                        value={
+                          subcategoryId
+                        }
                         onChange={(e) =>
                           handleSubcategoryChange(
                             e.target.value
@@ -1324,7 +1747,8 @@ export function SaleDialog({
                         }
                         disabled={
                           !categoryId ||
-                          subcategories.length === 0
+                          subcategories.length ===
+                            0
                         }
                         className={inputClass}
                         required
@@ -1340,57 +1764,46 @@ export function SaleDialog({
                         {subcategories.map(
                           (subcategory) => (
                             <option
-                              key={subcategory.id}
-                              value={subcategory.id}
+                              key={
+                                subcategory.id
+                              }
+                              value={
+                                subcategory.id
+                              }
                             >
-                              {subcategory.name}
+                              {
+                                subcategory.name
+                              }
                             </option>
                           )
                         )}
                       </select>
+
+                      {productId &&
+                      subcategoryId ? (
+                        <p className="text-xs text-emerald-600">
+                          Automatically selected
+                          from product
+                        </p>
+                      ) : null}
                     </Field>
 
-                    <Field label="Product" required>
-                      <select
-                        value={productId}
-                        onChange={(e) =>
-                          setProductId(e.target.value)
-                        }
-                        disabled={!subcategoryId}
-                        className={inputClass}
-                        required
-                      >
-                        <option value="">
-                          {!subcategoryId
-                            ? "Select subcategory first"
-                            : filteredProducts.length
-                              ? "Select product"
-                              : "No products in this subcategory"}
-                        </option>
-
-                        {filteredProducts.map(
-                          (product) => (
-                            <option
-                              key={product.id}
-                              value={product.id}
-                            >
-                              {product.name}
-                            </option>
-                          )
-                        )}
-                      </select>
-                    </Field>
-
-                    {productVariants.length > 0 ? (
+                    {/* VARIANT */}
+                    {productVariants.length >
+                    0 ? (
                       <Field label="Variant">
                         <select
-                          value={variantId}
+                          value={
+                            variantId
+                          }
                           onChange={(e) =>
                             setVariantId(
                               e.target.value
                             )
                           }
-                          className={inputClass}
+                          className={
+                            inputClass
+                          }
                         >
                           <option value="">
                             No variant
@@ -1399,10 +1812,15 @@ export function SaleDialog({
                           {productVariants.map(
                             (variant) => (
                               <option
-                                key={variant.id}
-                                value={variant.id}
+                                key={
+                                  variant.id
+                                }
+                                value={
+                                  variant.id
+                                }
                               >
                                 {variant.name}
+
                                 {variant.variant_value
                                   ? ` • ${variant.variant_value}`
                                   : ""}
@@ -1413,16 +1831,24 @@ export function SaleDialog({
                       </Field>
                     ) : null}
 
-                    <Field label="Quantity" required>
+                    {/* QUANTITY */}
+                    <Field
+                      label="Quantity"
+                      required
+                    >
                       <input
                         type="number"
                         min="1"
                         step="1"
                         value={quantity}
                         onChange={(e) =>
-                          setQuantity(e.target.value)
+                          setQuantity(
+                            e.target.value
+                          )
                         }
-                        className={inputClass}
+                        className={
+                          inputClass
+                        }
                         required
                       />
                     </Field>
@@ -1450,7 +1876,9 @@ export function SaleDialog({
                           type="number"
                           min="0"
                           step="0.01"
-                          value={sellingPrice}
+                          value={
+                            sellingPrice
+                          }
                           onChange={(e) =>
                             setSellingPrice(
                               e.target.value
@@ -1469,7 +1897,9 @@ export function SaleDialog({
                       </p>
 
                       <p className="mt-1 text-2xl font-bold tracking-tight">
-                        {currency.format(saleTotal)}
+                        {currency.format(
+                          saleTotal
+                        )}
                       </p>
                     </div>
                   </div>
@@ -1487,7 +1917,9 @@ export function SaleDialog({
                     required
                   >
                     <select
-                      value={paymentMethod}
+                      value={
+                        paymentMethod
+                      }
                       onChange={(e) =>
                         setPaymentMethod(
                           e.target.value
@@ -1499,8 +1931,12 @@ export function SaleDialog({
                       {PAYMENT_METHODS.map(
                         (method) => (
                           <option
-                            key={method.value}
-                            value={method.value}
+                            key={
+                              method.value
+                            }
+                            value={
+                              method.value
+                            }
                           >
                             {method.label}
                           </option>
@@ -1515,9 +1951,11 @@ export function SaleDialog({
                     type="button"
                     variant="outline"
                     className="h-11 rounded-xl sm:min-w-28"
-                    onClick={() => {
-                      handleOpenChange(false);
-                    }}
+                    onClick={() =>
+                      handleOpenChange(
+                        false
+                      )
+                    }
                     disabled={saving}
                   >
                     Cancel
@@ -1535,6 +1973,7 @@ export function SaleDialog({
                     {saving ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+
                         {isEditMode
                           ? "Updating..."
                           : "Saving..."}

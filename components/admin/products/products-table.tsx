@@ -1,18 +1,8 @@
 "use client";
 
-import {
-  useMemo,
-  useState,
-} from "react";
+import { useMemo, useState } from "react";
 
-import {
-  ChevronDown,
-  Edit,
-  Loader2,
-  Package,
-  Search,
-  Trash2,
-} from "lucide-react";
+import {  ChevronDown, Edit, Loader2, Package, Search, Trash2,} from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 
