@@ -25,9 +25,11 @@ interface OrderDetailsDialogProps {
 
     editStatus: string;
     editPaymentStatus: string;
+    editAmountPaid: string;
 
     onStatusChange: (value: string) => void;
     onPaymentStatusChange: (value: string) => void;
+    onAmountPaidChange: (value: string) => void;
 
     onSaveOrder: () => void;
 
@@ -70,9 +72,11 @@ export default function OrderDetailsDialog({
 
     editStatus,
     editPaymentStatus,
+    editAmountPaid,
 
     onStatusChange,
     onPaymentStatusChange,
+    onAmountPaidChange,
 
     onSaveOrder,
 
@@ -220,6 +224,21 @@ export default function OrderDetailsDialog({
 
                         <OrderPaymentSection
                             order={order}
+                            editPaymentStatus={
+                                editPaymentStatus
+                            }
+                            editAmountPaid={
+                                editAmountPaid
+                            }
+                            onPaymentStatusChange={
+                                onPaymentStatusChange
+                            }
+                            onAmountPaidChange={
+                                onAmountPaidChange
+                            }
+                            onSave={onSaveOrder}
+                            saving={orderSaving}
+                            hasChanges={orderHasChanges}
                         />
 
                         <OrderSummarySection

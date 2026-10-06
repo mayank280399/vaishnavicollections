@@ -8,17 +8,26 @@ export type OrderItem = {
     total_price: number;
 };
 
+export type OrderPaymentPlan =
+    | "FULL"
+    | "PARTIAL";
+
 export type OrderRow = {
     id: string;
     order_number: string;
     status: string;
+
     payment_status: string;
     payment_method: string | null;
+    payment_plan: OrderPaymentPlan;
 
     subtotal: number;
     shipping_amount: number;
     discount_amount: number;
     total_amount: number;
+
+    amount_paid: number;
+    amount_due: number;
 
     customer_name: string;
     customer_phone: string;

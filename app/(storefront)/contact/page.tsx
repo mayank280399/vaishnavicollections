@@ -14,8 +14,6 @@ const { data: settings, error } = await supabase
   .from("public_store_settings")
   .select("*")
   .maybeSingle();
-console.log("APP SETTINGS DATA:", settings);
-console.log("APP SETTINGS ERROR:", error);
   if (error) {
     console.error("Contact settings error:", error);
   }
@@ -28,7 +26,7 @@ console.log("APP SETTINGS ERROR:", error);
   ]
     .filter(Boolean)
     .join(", ");
-console.log("Settings",settings);
+
   const hasBusinessHours =
     settings?.business_hours_enabled &&
     [

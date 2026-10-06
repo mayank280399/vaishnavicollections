@@ -668,8 +668,6 @@ if (isEditMode && editExpense) {
     );
   }
 
-  console.log("Updated expense:", updatedExpense[0]);
-
   setMessage(`${expenseNumber} updated successfully.`);
 }
       // INSERT NEW EXPENSE

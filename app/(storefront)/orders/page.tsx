@@ -25,20 +25,32 @@ type OrderStatus =
 
 type PaymentStatus =
   | "PENDING"
+  | "PARTIALLY_PAID"
   | "PAID"
   | "FAILED"
   | "REFUNDED";
+
+type PaymentPlan =
+  | "FULL"
+  | "PARTIAL";
 
 type Order = {
   id: string;
   order_number: string;
   status: OrderStatus;
+
   payment_status: PaymentStatus;
   payment_method: string | null;
+  payment_plan: PaymentPlan;
+
   subtotal: number;
   shipping_amount: number;
   discount_amount: number;
   total_amount: number;
+
+  amount_paid: number;
+  amount_due: number;
+
   customer_name: string;
   created_at: string;
 };
@@ -100,7 +112,7 @@ function getStatusLabel(status: OrderStatus) {
       return "Cancelled";
 
     default:
-      return status;
+      return String(status);
   }
 }
 
@@ -130,8 +142,56 @@ function getStatusClasses(status: OrderStatus) {
   }
 }
 
+function getPaymentStatusLabel(
+  paymentStatus: PaymentStatus,
+) {
+  switch (paymentStatus) {
+    case "PENDING":
+      return "Payment Pending";
+
+    case "PARTIALLY_PAID":
+      return "Partially Paid";
+
+    case "PAID":
+      return "Paid";
+
+    case "FAILED":
+      return "Payment Failed";
+
+    case "REFUNDED":
+      return "Refunded";
+
+    default:
+      return String(paymentStatus);
+  }
+}
+
+function getPaymentStatusClasses(
+  paymentStatus: PaymentStatus,
+) {
+  switch (paymentStatus) {
+    case "PAID":
+      return "bg-emerald-50 text-emerald-700 border-emerald-200";
+
+    case "PARTIALLY_PAID":
+      return "bg-amber-50 text-amber-700 border-amber-200";
+
+    case "REFUNDED":
+      return "bg-purple-50 text-purple-700 border-purple-200";
+
+    case "FAILED":
+      return "bg-red-50 text-red-700 border-red-200";
+
+    case "PENDING":
+    default:
+      return "bg-orange-50 text-orange-700 border-orange-200";
+  }
+}
+
 function getPaymentLabel(paymentMethod: string | null) {
-  if (!paymentMethod) return "Not specified";
+  if (!paymentMethod) {
+    return "Not specified";
+  }
 
   switch (paymentMethod.toUpperCase()) {
     case "CASH":
@@ -147,7 +207,9 @@ function getPaymentLabel(paymentMethod: string | null) {
       return "Bank Transfer";
 
     default:
-      return paymentMethod.replaceAll("_", " ");
+      return paymentMethod
+        .split("_")
+        .join(" ");
   }
 }
 
@@ -155,7 +217,10 @@ function getShipmentStatus(
   shipment: Shipment | undefined,
   orderStatus: OrderStatus,
 ) {
-  if (shipment?.delivered_at || orderStatus === "DELIVERED") {
+  if (
+    shipment?.delivered_at ||
+    orderStatus === "DELIVERED"
+  ) {
     return {
       label: "Delivered",
       classes:
@@ -174,10 +239,14 @@ function getShipmentStatus(
     };
   }
 
-  if (shipment?.shipped_at || orderStatus === "SHIPPED") {
+  if (
+    shipment?.shipped_at ||
+    orderStatus === "SHIPPED"
+  ) {
     return {
       label: "Shipped",
-      classes: "bg-blue-50 text-blue-700 border-blue-200",
+      classes:
+        "bg-blue-50 text-blue-700 border-blue-200",
     };
   }
 
@@ -191,7 +260,8 @@ function getShipmentStatus(
 
   return {
     label: "Not Dispatched",
-    classes: "bg-slate-50 text-slate-600 border-slate-200",
+    classes:
+      "bg-slate-50 text-slate-600 border-slate-200",
   };
 }
 
@@ -199,7 +269,10 @@ function getShipmentDescription(
   shipment: Shipment | undefined,
   orderStatus: OrderStatus,
 ) {
-  if (shipment?.delivered_at || orderStatus === "DELIVERED") {
+  if (
+    shipment?.delivered_at ||
+    orderStatus === "DELIVERED"
+  ) {
     return "Your order has been delivered.";
   }
 
@@ -210,12 +283,31 @@ function getShipmentDescription(
     return "Your order is out for delivery.";
   }
 
-  if (shipment?.shipped_at || orderStatus === "SHIPPED") {
+  if (
+    shipment?.shipped_at ||
+    orderStatus === "SHIPPED"
+  ) {
     return "Your order has been dispatched.";
   }
 
   if (shipment) {
     return "Shipment details are available.";
+  }
+
+  if (orderStatus === "PROCESSING") {
+    return "Your order is being prepared.";
+  }
+
+  if (orderStatus === "CONFIRMED") {
+    return "Your order has been confirmed and will be prepared soon.";
+  }
+
+  if (orderStatus === "PENDING") {
+    return "Your order has been placed and is awaiting confirmation.";
+  }
+
+  if (orderStatus === "CANCELLED") {
+    return "This order has been cancelled.";
   }
 
   return "Shipment details will appear after dispatch.";
@@ -225,8 +317,12 @@ export default function OrdersPage() {
   const supabase = createClient();
 
   const [orders, setOrders] = useState<Order[]>([]);
-  const [itemCounts, setItemCounts] = useState<Record<string, number>>({});
-  const [shipments, setShipments] = useState<Record<string, Shipment>>({});
+  const [itemCounts, setItemCounts] = useState<
+    Record<string, number>
+  >({});
+  const [shipments, setShipments] = useState<
+    Record<string, Shipment>
+  >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -258,7 +354,10 @@ export default function OrdersPage() {
           return;
         }
 
-        const { data: orderData, error: ordersError } = await supabase
+        const {
+          data: orderData,
+          error: ordersError,
+        } = await supabase
           .from("orders")
           .select(`
             id,
@@ -266,23 +365,100 @@ export default function OrdersPage() {
             status,
             payment_status,
             payment_method,
+            payment_plan,
             subtotal,
             shipping_amount,
             discount_amount,
             total_amount,
+            amount_paid,
+            amount_due,
             customer_name,
             created_at
           `)
           .eq("user_id", user.id)
-          .order("created_at", { ascending: false });
+          .order("created_at", {
+            ascending: false,
+          });
 
         if (ordersError) {
           throw ordersError;
         }
 
-        const loadedOrders = (orderData ?? []) as Order[];
+        type SupabaseOrderRow = {
+          id: string;
+          order_number: string;
+          status: string;
+          payment_status: string;
+          payment_method: string | null;
+          payment_plan: string | null;
+          subtotal: number | string | null;
+          shipping_amount: number | string | null;
+          discount_amount: number | string | null;
+          total_amount: number | string | null;
+          amount_paid: number | string | null;
+          amount_due: number | string | null;
+          customer_name: string;
+          created_at: string;
+        };
 
-        if (!mounted) return;
+        const rawOrders =
+          (orderData ?? []) as SupabaseOrderRow[];
+
+        const loadedOrders: Order[] =
+          rawOrders.map(
+            (order: SupabaseOrderRow) => ({
+              id: order.id,
+              order_number: order.order_number,
+
+              status:
+                order.status as OrderStatus,
+
+              payment_status:
+                order.payment_status as PaymentStatus,
+
+              payment_method:
+                order.payment_method,
+
+              payment_plan:
+                order.payment_plan === "PARTIAL"
+                  ? "PARTIAL"
+                  : "FULL",
+
+              subtotal: Number(
+                order.subtotal ?? 0,
+              ),
+
+              shipping_amount: Number(
+                order.shipping_amount ?? 0,
+              ),
+
+              discount_amount: Number(
+                order.discount_amount ?? 0,
+              ),
+
+              total_amount: Number(
+                order.total_amount ?? 0,
+              ),
+
+              amount_paid: Number(
+                order.amount_paid ?? 0,
+              ),
+
+              amount_due: Number(
+                order.amount_due ?? 0,
+              ),
+
+              customer_name:
+                order.customer_name,
+
+              created_at:
+                order.created_at,
+            }),
+          );
+
+        if (!mounted) {
+          return;
+        }
 
         setOrders(loadedOrders);
 
@@ -292,12 +468,17 @@ export default function OrdersPage() {
           return;
         }
 
-        const orderIds = loadedOrders.map((order) => order.id);
+        const orderIds = loadedOrders.map(
+          (order: Order) => order.id,
+        );
 
         /*
          * Load order item counts.
          */
-        const { data: itemData, error: itemError } = await supabase
+        const {
+          data: itemData,
+          error: itemError,
+        } = await supabase
           .from("order_items")
           .select("order_id")
           .in("order_id", orderIds);
@@ -308,12 +489,18 @@ export default function OrdersPage() {
             itemError,
           );
         } else {
-          const counts: Record<string, number> = {};
+          const counts: Record<string, number> =
+            {};
 
-          ((itemData ?? []) as OrderItem[]).forEach((item) => {
-            counts[item.order_id] =
-              (counts[item.order_id] || 0) + 1;
-          });
+          (
+            (itemData ?? []) as OrderItem[]
+          ).forEach(
+            (item: OrderItem) => {
+              counts[item.order_id] =
+                (counts[item.order_id] || 0) +
+                1;
+            },
+          );
 
           if (mounted) {
             setItemCounts(counts);
@@ -323,27 +510,31 @@ export default function OrdersPage() {
         /*
          * Load shipment information.
          *
-         * A shipment table currently allows more than one shipment
-         * record per order, so we keep the newest shipment for each
-         * order.
+         * A shipment table currently allows more than
+         * one shipment record per order, so we keep
+         * the newest shipment for each order.
          */
-        const { data: shipmentData, error: shipmentError } =
-          await supabase
-            .from("order_shipments")
-            .select(`
-              id,
-              order_id,
-              delivery_partner,
-              tracking_number,
-              tracking_url,
-              shipped_at,
-              out_for_delivery_at,
-              delivered_at,
-              delivery_notes,
-              created_at
-            `)
-            .in("order_id", orderIds)
-            .order("created_at", { ascending: false });
+        const {
+          data: shipmentData,
+          error: shipmentError,
+        } = await supabase
+          .from("order_shipments")
+          .select(`
+            id,
+            order_id,
+            delivery_partner,
+            tracking_number,
+            tracking_url,
+            shipped_at,
+            out_for_delivery_at,
+            delivered_at,
+            delivery_notes,
+            created_at
+          `)
+          .in("order_id", orderIds)
+          .order("created_at", {
+            ascending: false,
+          });
 
         if (shipmentError) {
           console.error(
@@ -351,16 +542,25 @@ export default function OrdersPage() {
             shipmentError,
           );
         } else {
-          const shipmentMap: Record<string, Shipment> = {};
+          const shipmentMap: Record<
+            string,
+            Shipment
+          > = {};
 
-          ((shipmentData ?? []) as Shipment[]).forEach(
-            (shipment) => {
+          (
+            (shipmentData ?? []) as Shipment[]
+          ).forEach(
+            (shipment: Shipment) => {
               /*
-               * Because the query is ordered newest first,
-               * only keep the first shipment for each order.
+               * Because the query is ordered newest
+               * first, only keep the first shipment
+               * for each order.
                */
-              if (!shipmentMap[shipment.order_id]) {
-                shipmentMap[shipment.order_id] = shipment;
+              if (
+                !shipmentMap[shipment.order_id]
+              ) {
+                shipmentMap[shipment.order_id] =
+                  shipment;
               }
             },
           );
@@ -370,7 +570,10 @@ export default function OrdersPage() {
           }
         }
       } catch (err) {
-        console.error("Orders page error:", err);
+        console.error(
+          "Orders page error:",
+          err,
+        );
 
         if (mounted) {
           setError(
@@ -436,7 +639,9 @@ export default function OrdersPage() {
 
             <button
               type="button"
-              onClick={() => window.location.reload()}
+              onClick={() =>
+                window.location.reload()
+              }
               className="mt-5 rounded-xl bg-[#0f1f3d] px-5 py-3 text-sm font-semibold text-white transition hover:bg-[#172b52]"
             >
               Try Again
@@ -473,7 +678,8 @@ export default function OrdersPage() {
             </h1>
 
             <p className="mt-1 text-sm text-slate-600">
-              Track and manage your Vaishnavi Collections orders.
+              Track and manage your Vaishnavi Collections
+              orders.
             </p>
           </div>
         </div>
@@ -493,8 +699,8 @@ export default function OrdersPage() {
               </h2>
 
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                You haven't placed an order with Vaishnavi Collections
-                yet.
+                You haven't placed an order with
+                Vaishnavi Collections yet.
               </p>
 
               <Link
@@ -508,178 +714,342 @@ export default function OrdersPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {orders.map((order) => {
-              const itemCount = itemCounts[order.id] || 0;
-              const shipment = shipments[order.id];
+            {orders.map(
+              (order: Order) => {
+                const itemCount =
+                  itemCounts[order.id] || 0;
 
-              const shipmentStatus = getShipmentStatus(
-                shipment,
-                order.status,
-              );
+                const shipment =
+                  shipments[order.id];
 
-              const shipmentDescription =
-                getShipmentDescription(
-                  shipment,
-                  order.status,
+                const shipmentStatus =
+                  getShipmentStatus(
+                    shipment,
+                    order.status,
+                  );
+
+                const shipmentDescription =
+                  getShipmentDescription(
+                    shipment,
+                    order.status,
+                  );
+
+                const amountPaid = Number(
+                  order.amount_paid ?? 0,
                 );
 
-              return (
-                <div
-                  key={order.id}
-                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-[#d4af37]/50 hover:shadow-md sm:p-5"
-                >
-                  {/* Top */}
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-base font-bold text-[#0f1f3d] sm:text-lg">
-                          {order.order_number}
-                        </h2>
+                const amountDue = Number(
+                  order.amount_due ?? 0,
+                );
 
-                        <span
-                          className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getStatusClasses(
-                            order.status,
-                          )}`}
-                        >
-                          {getStatusLabel(order.status)}
-                        </span>
-                      </div>
+                const isPartialPayment =
+                  order.payment_plan ===
+                    "PARTIAL" ||
+                  order.payment_status ===
+                    "PARTIALLY_PAID";
 
-                      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
-                        <span className="flex items-center gap-1.5">
-                          <Clock3 className="h-3.5 w-3.5" />
-                          {formatDate(order.created_at)}
-                        </span>
+                return (
+                  <div
+                    key={order.id}
+                    className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-[#d4af37]/50 hover:shadow-md sm:p-5"
+                  >
+                    {/* Top */}
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h2 className="text-base font-bold text-[#0f1f3d] sm:text-lg">
+                            {order.order_number}
+                          </h2>
 
-                        <span className="flex items-center gap-1.5">
-                          <Package className="h-3.5 w-3.5" />
-                          {itemCount}{" "}
-                          {itemCount === 1 ? "item" : "items"}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="text-left sm:text-right">
-                      <p className="text-lg font-bold text-[#0f1f3d]">
-                        {formatCurrency(
-                          Number(order.total_amount),
-                        )}
-                      </p>
-
-                      <p className="mt-1 text-xs text-slate-500">
-                        {getPaymentLabel(order.payment_method)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Shipment */}
-                  <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="flex min-w-0 gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0f1f3d]/5">
-                          <Truck className="h-5 w-5 text-[#0f1f3d]" />
+                          <span
+                            className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${getStatusClasses(
+                              order.status,
+                            )}`}
+                          >
+                            {getStatusLabel(
+                              order.status,
+                            )}
+                          </span>
                         </div>
 
-                        <div className="min-w-0">
+                        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+                          <span className="flex items-center gap-1.5">
+                            <Clock3 className="h-3.5 w-3.5" />
+                            {formatDate(
+                              order.created_at,
+                            )}
+                          </span>
+
+                          <span className="flex items-center gap-1.5">
+                            <Package className="h-3.5 w-3.5" />
+                            {itemCount}{" "}
+                            {itemCount === 1
+                              ? "item"
+                              : "items"}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="text-left sm:text-right">
+                        <p className="text-lg font-bold text-[#0f1f3d]">
+                          {formatCurrency(
+                            Number(
+                              order.total_amount,
+                            ),
+                          )}
+                        </p>
+
+                        <p className="mt-1 text-xs text-slate-500">
+                          {getPaymentLabel(
+                            order.payment_method,
+                          )}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Payment */}
+                    <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
                           <div className="flex flex-wrap items-center gap-2">
                             <p className="text-sm font-semibold text-slate-900">
-                              Delivery
+                              Payment
                             </p>
 
                             <span
-                              className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${shipmentStatus.classes}`}
+                              className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${getPaymentStatusClasses(
+                                order.payment_status,
+                              )}`}
                             >
-                              {shipmentStatus.label}
+                              {getPaymentStatusLabel(
+                                order.payment_status,
+                              )}
                             </span>
                           </div>
 
                           <p className="mt-1 text-xs text-slate-500">
-                            {shipmentDescription}
+                            {isPartialPayment
+                              ? "Partial UPI payment"
+                              : "Full payment"}
+                          </p>
+                        </div>
+
+                        <div className="text-left sm:text-right">
+                          <p className="text-xs text-slate-500">
+                            Order Total
+                          </p>
+
+                          <p className="mt-0.5 text-sm font-bold text-[#0f1f3d]">
+                            {formatCurrency(
+                              Number(
+                                order.total_amount,
+                              ),
+                            )}
                           </p>
                         </div>
                       </div>
 
-                      {shipment?.tracking_url ? (
-                        <a
-                          href={shipment.tracking_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          onClick={(event) =>
-                            event.stopPropagation()
-                          }
-                          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-[#d4af37]/40 bg-white px-3 py-2 text-xs font-semibold text-[#0f1f3d] transition hover:border-[#d4af37] hover:bg-[#fffdf5]"
-                        >
-                          Track Shipment
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </a>
-                      ) : null}
-                    </div>
+                      <div className="mt-3 grid grid-cols-2 gap-3 border-t border-slate-200/70 pt-3">
+                        <div>
+                          <p className="text-[11px] text-slate-500">
+                            Amount Paid
+                          </p>
 
-                    {shipment &&
-                    (shipment.delivery_partner ||
-                      shipment.tracking_number) ? (
-                      <div className="mt-3 flex flex-col gap-2 border-t border-slate-200/70 pt-3 text-xs sm:flex-row sm:items-center sm:gap-6">
-                        {shipment.delivery_partner ? (
-                          <div>
-                            <span className="text-slate-500">
-                              Courier
-                            </span>
-                            <p className="mt-0.5 font-semibold text-slate-800">
-                              {shipment.delivery_partner}
-                            </p>
-                          </div>
-                        ) : null}
+                          <p className="mt-0.5 text-sm font-semibold text-emerald-700">
+                            {formatCurrency(
+                              amountPaid,
+                            )}
+                          </p>
+                        </div>
 
-                        {shipment.tracking_number ? (
-                          <div>
-                            <span className="text-slate-500">
-                              Tracking / AWB
-                            </span>
-                            <p className="mt-0.5 break-all font-semibold text-slate-800">
-                              {shipment.tracking_number}
-                            </p>
-                          </div>
-                        ) : null}
+                        <div>
+                          <p className="text-[11px] text-slate-500">
+                            Amount Due
+                          </p>
+
+                          <p
+                            className={`mt-0.5 text-sm font-semibold ${
+                              amountDue > 0
+                                ? "text-amber-700"
+                                : "text-emerald-700"
+                            }`}
+                          >
+                            {formatCurrency(
+                              amountDue,
+                            )}
+                          </p>
+                        </div>
                       </div>
-                    ) : null}
-                  </div>
 
-                  {/* Divider */}
-                  <div className="my-4 h-px bg-slate-100" />
-
-                  {/* Bottom */}
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="text-xs text-slate-500">
-                      {order.payment_status === "PAID" ? (
-                        <span className="font-medium text-emerald-600">
-                          Payment received
-                        </span>
-                      ) : order.payment_method === "CASH" ? (
-                        <span>
-                          Pay when your order is delivered
-                        </span>
+                      {order.payment_status ===
+                      "PAID" ? (
+                        <p className="mt-3 text-xs font-medium text-emerald-600">
+                          Payment received. Your
+                          order is confirmed.
+                        </p>
+                      ) : order.payment_status ===
+                        "PARTIALLY_PAID" ? (
+                        <p className="mt-3 text-xs font-medium text-amber-700">
+                          Your advance payment has
+                          been received. The remaining
+                          balance is due.
+                        </p>
+                      ) : order.payment_status ===
+                        "REFUNDED" ? (
+                        <p className="mt-3 text-xs font-medium text-purple-700">
+                          Your payment has been
+                          refunded.
+                        </p>
+                      ) : order.payment_status ===
+                        "FAILED" ? (
+                        <p className="mt-3 text-xs font-medium text-red-600">
+                          Payment could not be verified.
+                        </p>
                       ) : (
-                        <span>
-                          Payment:{" "}
-                          {order.payment_status.replaceAll(
-                            "_",
-                            " ",
-                          )}
-                        </span>
+                        <p className="mt-3 text-xs text-slate-500">
+                          Your payment is awaiting
+                          verification.
+                        </p>
                       )}
                     </div>
 
-                    <Link
-                      href={`/orders/${order.id}`}
-                      className="group inline-flex shrink-0 items-center justify-center gap-1.5 text-sm font-semibold text-[#0f1f3d] transition hover:text-[#8b6f16]"
-                    >
-                      View Order
-                      <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
-                    </Link>
+                    {/* Shipment */}
+                    <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="flex min-w-0 gap-3">
+                          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#0f1f3d]/5">
+                            <Truck className="h-5 w-5 text-[#0f1f3d]" />
+                          </div>
+
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <p className="text-sm font-semibold text-slate-900">
+                                Delivery
+                              </p>
+
+                              <span
+                                className={`rounded-full border px-2.5 py-1 text-[10px] font-semibold ${shipmentStatus.classes}`}
+                              >
+                                {
+                                  shipmentStatus.label
+                                }
+                              </span>
+                            </div>
+
+                            <p className="mt-1 text-xs text-slate-500">
+                              {
+                                shipmentDescription
+                              }
+                            </p>
+                          </div>
+                        </div>
+
+                        {shipment?.tracking_url ? (
+                          <a
+                            href={
+                              shipment.tracking_url
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={(event) =>
+                              event.stopPropagation()
+                            }
+                            className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-[#d4af37]/40 bg-white px-3 py-2 text-xs font-semibold text-[#0f1f3d] transition hover:border-[#d4af37] hover:bg-[#fffdf5]"
+                          >
+                            Track Shipment
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        ) : null}
+                      </div>
+
+                      {shipment &&
+                      (shipment.delivery_partner ||
+                        shipment.tracking_number) ? (
+                        <div className="mt-3 flex flex-col gap-2 border-t border-slate-200/70 pt-3 text-xs sm:flex-row sm:items-center sm:gap-6">
+                          {shipment.delivery_partner ? (
+                            <div>
+                              <span className="text-slate-500">
+                                Courier
+                              </span>
+
+                              <p className="mt-0.5 font-semibold text-slate-800">
+                                {
+                                  shipment.delivery_partner
+                                }
+                              </p>
+                            </div>
+                          ) : null}
+
+                          {shipment.tracking_number ? (
+                            <div>
+                              <span className="text-slate-500">
+                                Tracking / AWB
+                              </span>
+
+                              <p className="mt-0.5 break-all font-semibold text-slate-800">
+                                {
+                                  shipment.tracking_number
+                                }
+                              </p>
+                            </div>
+                          ) : null}
+                        </div>
+                      ) : null}
+                    </div>
+
+                    {/* Divider */}
+                    <div className="my-4 h-px bg-slate-100" />
+
+                    {/* Bottom */}
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="text-xs text-slate-500">
+                        {order.status ===
+                        "CANCELLED" ? (
+                          <span className="font-medium text-red-600">
+                            This order has been
+                            cancelled.
+                          </span>
+                        ) : order.payment_status ===
+                          "PAID" ? (
+                          <span className="font-medium text-emerald-600">
+                            Payment received
+                          </span>
+                        ) : order.payment_status ===
+                          "PARTIALLY_PAID" ? (
+                          <span className="font-medium text-amber-700">
+                            {formatCurrency(
+                              amountDue,
+                            )}{" "}
+                            remaining
+                          </span>
+                        ) : order.payment_method ===
+                          "CASH" ? (
+                          <span>
+                            Pay when your order is
+                            delivered
+                          </span>
+                        ) : (
+                          <span>
+                            Payment:{" "}
+                            {getPaymentStatusLabel(
+                              order.payment_status,
+                            )}
+                          </span>
+                        )}
+                      </div>
+
+                      <Link
+                        href={`/orders/${order.id}`}
+                        className="group inline-flex shrink-0 items-center justify-center gap-1.5 text-sm font-semibold text-[#0f1f3d] transition hover:text-[#8b6f16]"
+                      >
+                        View Order
+                        <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                      </Link>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              },
+            )}
           </div>
         )}
       </section>
