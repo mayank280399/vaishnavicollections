@@ -3,14 +3,14 @@ import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://vaishnavicollections.vercel.app"),
+  metadataBase: new URL("https://vaishnavicollections.vercel.app/"),
   applicationName: "Vaishnavi Collections",
   title: {
-    default: "Vaishnavi Collections | Modern Essentials for Inspired Living",
+    default: "Vaishnavi Collections | Laddu Gopal Poshak, Shringar & Home Décor",
     template: "%s | Vaishnavi Collections",
   },
   description:
-    "Curated collection of high-end furniture, lighting, decor, Laddu Gopal Ji poshak & shringar, handmade accessories, and more from Vaishnavi Collections.",
+    "Shop Laddu Gopal Ji poshak and shringar, home décor, cosmetics, beauty products, handmade hair accessories and more from Vaishnavi Collections. Pan India shipping available.",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
@@ -28,8 +28,8 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Vaishnavi Collections",
-    title: "Vaishnavi Collections | Modern Essentials for Inspired Living",
-    description: "Discover beautiful products from Vaishnavi Collections.",
+    title: "Vaishnavi Collections | Laddu Gopal Poshak, Shringar & Home Décor",
+    description: "Shop Laddu Gopal Ji poshak and shringar, home décor, cosmetics, beauty products and handmade accessories. Pan India shipping available.",
     images: [
       {
         url: "/vc-round-logo.png",
@@ -41,8 +41,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Vaishnavi Collections | Modern Essentials for Inspired Living",
-    description: "Discover beautiful products from Vaishnavi Collections.",
+    title: "Vaishnavi Collections | Laddu Gopal Poshak, Shringar & Home Décor",
+    description: "Shop Laddu Gopal Ji poshak and shringar, home décor, cosmetics, beauty products and handmade accessories. Pan India shipping available.",
     images: ["/vc-round-logo.png"],
   },
 };

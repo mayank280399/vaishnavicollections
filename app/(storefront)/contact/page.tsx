@@ -5,6 +5,13 @@ import ContactHelp from "@/components/contact/ContactHelp";
 import ContactCTA from "@/components/contact/ContactCTA";
 
 import { createClient } from "@/lib/supabase/server";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Contact Us",
+  description: "Contact Vaishnavi Collections for help with products, orders, store visits and shipping across India.",
+  alternates: { canonical: "/contact" },
+};
 
 
 export default async function ContactPage() {

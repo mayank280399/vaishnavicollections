@@ -69,6 +69,7 @@ export async function generateMetadata({
     .select(
       `
         id,
+        slug,
         name,
         product_title,
         description,
@@ -84,7 +85,7 @@ export async function generateMetadata({
 
   if (!product) {
     return {
-      title: "Product | Vaishnavi Collections",
+      title: "Product",
     };
   }
 
@@ -148,9 +149,13 @@ export async function generateMetadata({
     imageData?.image_url || null;
 
   return {
-    title: `${productName} | Vaishnavi Collections`,
+    title: productName,
 
     description,
+
+    alternates: {
+      canonical: `https://vaishnavicollections.vercel.app/products/${encodeURIComponent(product.slug)}`,
+    },
 
     openGraph: {
       type: "website",

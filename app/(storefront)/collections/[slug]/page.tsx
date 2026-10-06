@@ -51,9 +51,7 @@ type ProductImage = {
   is_primary: boolean | null;
 };
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ||
-  "https://vaishnavicollections.vercel.app";
+const SITE_URL = "https://vaishnavicollections.vercel.app";
 
 /* =========================================================
    CATEGORY
@@ -244,7 +242,7 @@ export async function generateMetadata({
 
   if (!category) {
     return {
-      title: "Collection Not Found | Vaishnavi Collections",
+      title: "Collection Not Found",
       robots: {
         index: false,
         follow: false,
@@ -252,7 +250,7 @@ export async function generateMetadata({
     };
   }
 
-  const title = `${category.name} | Vaishnavi Collections`;
+  const title = category.name;
 
   const description =
     category.description?.trim() ||

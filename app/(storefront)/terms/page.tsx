@@ -1,4 +1,11 @@
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Terms & Conditions",
+  description: "Review the terms for using the Vaishnavi Collections website, products and online services.",
+  alternates: { canonical: "/terms" },
+};
 
 export default function TermsPage() {
   return (

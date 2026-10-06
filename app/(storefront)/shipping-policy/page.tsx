@@ -12,9 +12,10 @@ import {
 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Shipping Policy | Vaishnavi Collections",
+  title: "Shipping Policy",
   description:
     "Read the shipping and delivery policy for Vaishnavi Collections. We offer Pan-India shipping for eligible products.",
+  alternates: { canonical: "/shipping-policy" },
 };
 
 const shippingSections = [

@@ -50,8 +50,7 @@ type ProductImage = {
   is_primary: boolean | null;
 };
 
-const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+const SITE_URL = "https://vaishnavicollections.vercel.app";
 
 /* =========================================================
    PARENT CATEGORY
@@ -261,7 +260,7 @@ export async function generateMetadata({
   if (!parent) {
     return {
       title:
-        "Collection Not Found | Vaishnavi Collections",
+        "Collection Not Found",
       robots: {
         index: false,
         follow: false,
@@ -278,7 +277,7 @@ export async function generateMetadata({
   if (!subcategory) {
     return {
       title:
-        "Category Not Found | Vaishnavi Collections",
+        "Category Not Found",
       robots: {
         index: false,
         follow: false,
@@ -287,7 +286,7 @@ export async function generateMetadata({
   }
 
   const title =
-    `${subcategory.name} | ${parent.name} | Vaishnavi Collections`;
+    `${subcategory.name} | ${parent.name}`;
 
   const description =
     subcategory.description ||
