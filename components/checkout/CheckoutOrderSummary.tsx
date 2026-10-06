@@ -1,20 +1,10 @@
+
 "use client";
 
 import React from "react";
-import {
-  CheckCircle2,
-  ChevronDown,
-  Loader2,
-  PackageCheck,
-  ShieldCheck,
-  ShoppingBag,
-} from "lucide-react";
-
-import type { CheckoutItem } from "@/lib/checkout/types";
-
+import { CheckCircle2, ChevronDown, Loader2, PackageCheck, ShieldCheck, ShoppingBag, Smartphone} from "lucide-react";
+import type { CheckoutItem, CheckoutPaymentOption} from "@/lib/checkout/types";
 import { TrustItem } from "./CheckoutUI";
-
-type CheckoutPaymentMethod = "cod" | "razorpay";
 
 type CheckoutOrderSummaryProps = {
   items: CheckoutItem[];
@@ -22,32 +12,21 @@ type CheckoutOrderSummaryProps = {
   shipping: number;
   total: number;
   totalQuantity: number;
-
   currentStep: number;
   submitting: boolean;
   showOrderItems: boolean;
-
   checkoutComplete: boolean;
-
-  paymentMethod: CheckoutPaymentMethod;
-
+  paymentMethod: CheckoutPaymentOption;
+  partialPaymentAmount: number;
   onToggleItems: () => void;
   onSubmit: (
     event: React.FormEvent<HTMLFormElement>,
   ) => void;
 };
-
-function getProductPrice(
-  product: CheckoutItem["product"],
-) {
-  if (
-    product.online_enabled &&
-    product.online_price !== null &&
-    Number(product.online_price) > 0
-  ) {
+function getProductPrice( product: CheckoutItem["product"]) {
+  if (product.online_enabled && product.online_price !== null && Number(product.online_price) > 0) {
     return Number(product.online_price);
   }
-
   return Number(product.selling_price);
 }
 
@@ -69,24 +48,52 @@ export default function CheckoutOrderSummary({
   showOrderItems,
   checkoutComplete,
   paymentMethod,
+  partialPaymentAmount,
   onToggleItems,
   onSubmit,
 }: CheckoutOrderSummaryProps) {
-  const isCod = paymentMethod === "cod";
+  const isFullPayment =
+    paymentMethod === "upi_full";
 
-  const buttonLabel = isCod
-    ? "Place My Order"
-    : `Pay ${formatPrice(total)}`;
+  const isPartialPayment =
+    paymentMethod === "upi_partial";
 
-  const submittingLabel = isCod
-    ? "Placing Order..."
-    : "Opening Payment...";
+  const remainingAmount = Math.max(
+    total - partialPaymentAmount,
+    0,
+  );
+
+  /*
+   * --------------------------------------------------
+   * CTA
+   * --------------------------------------------------
+   */
+
+  const buttonLabel = isFullPayment
+    ? `Continue to UPI · ${formatPrice(total)}`
+    : `Continue to UPI · ${formatPrice(
+        partialPaymentAmount,
+      )}`;
+
+  const submittingLabel =
+    "Creating Your Order...";
+
+  /*
+   * --------------------------------------------------
+   * Payment description
+   * --------------------------------------------------
+   */
+
+  const paymentLabel = isFullPayment
+    ? "Full UPI Payment"
+    : "Partial UPI Advance";
 
   return (
     <aside className="lg:sticky lg:top-24 lg:self-start">
       <form onSubmit={onSubmit}>
         <div className="overflow-hidden rounded-[1.75rem] bg-white shadow-sm">
           {/* Header */}
+
           <div className="bg-[#0f1f3d] px-5 py-5 text-white sm:px-6">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
@@ -114,6 +121,7 @@ export default function CheckoutOrderSummary({
                 className="flex items-center gap-1 rounded-xl bg-white/10 px-3 py-2 text-xs font-medium text-white lg:hidden"
               >
                 Review
+
                 <ChevronDown
                   className={[
                     "h-4 w-4 transition-transform",
@@ -127,6 +135,7 @@ export default function CheckoutOrderSummary({
           </div>
 
           {/* Items */}
+
           <div
             className={[
               "px-5 sm:px-6",
@@ -137,9 +146,10 @@ export default function CheckoutOrderSummary({
           >
             <div className="divide-y divide-slate-100">
               {items.map((item) => {
-                const price = getProductPrice(
-                  item.product,
-                );
+                const price =
+                  getProductPrice(
+                    item.product,
+                  );
 
                 const title =
                   item.product.product_title ||
@@ -186,6 +196,7 @@ export default function CheckoutOrderSummary({
           </div>
 
           {/* Totals */}
+
           <div className="border-t border-slate-100 px-5 py-5 sm:px-6">
             <div className="space-y-3 text-sm">
               <div className="flex items-center justify-between text-slate-500">
@@ -218,6 +229,7 @@ export default function CheckoutOrderSummary({
             </div>
 
             {/* Selected payment method */}
+
             <div className="mt-4 rounded-xl bg-slate-50 px-3.5 py-3">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-xs text-slate-500">
@@ -225,14 +237,41 @@ export default function CheckoutOrderSummary({
                 </span>
 
                 <span className="text-xs font-semibold text-slate-800">
-                  {isCod
-                    ? "Cash on Delivery"
-                    : "Online Payment"}
+                  {paymentLabel}
                 </span>
               </div>
+
+              <div className="mt-2 flex items-center justify-between gap-3 border-t border-slate-200 pt-2">
+                <span className="text-xs text-slate-500">
+                  Pay now
+                </span>
+
+                <span className="text-xs font-bold text-[#0f1f3d]">
+                  {formatPrice(
+                    isFullPayment
+                      ? total
+                      : partialPaymentAmount,
+                  )}
+                </span>
+              </div>
+
+              {isPartialPayment && (
+                <div className="mt-1.5 flex items-center justify-between gap-3">
+                  <span className="text-xs text-slate-500">
+                    Remaining later
+                  </span>
+
+                  <span className="text-xs font-semibold text-slate-700">
+                    {formatPrice(
+                      remainingAmount,
+                    )}
+                  </span>
+                </div>
+              )}
             </div>
 
             {/* Final CTA */}
+
             <button
               type="submit"
               disabled={
@@ -245,20 +284,24 @@ export default function CheckoutOrderSummary({
               {submitting ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
+
                   {submittingLabel}
                 </>
               ) : (
                 <>
+                  <Smartphone className="h-4 w-4" />
+
                   {buttonLabel}
+
                   <CheckCircle2 className="h-4 w-4" />
                 </>
               )}
             </button>
 
             <p className="mt-3 text-center text-[11px] leading-5 text-slate-400">
-              {isCod
-                ? "By placing this order, you confirm that the delivery details provided are correct."
-                : "You will be taken to Razorpay's secure payment window to complete your payment."}
+              Your order will be created first. You&apos;ll
+              then see the UPI payment details and can
+              confirm your payment with us on WhatsApp.
             </p>
 
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
@@ -282,3 +325,4 @@ export default function CheckoutOrderSummary({
     </aside>
   );
 }
+

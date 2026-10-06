@@ -9,7 +9,6 @@ export function TopProducts({
 }: Props) {
   const maxRevenue =
     products[0]?.revenue ?? 1;
-    console.log("TopProducts products:", products);
 
   return (
     <div className="rounded-2xl border bg-card p-4 shadow-sm sm:p-5">

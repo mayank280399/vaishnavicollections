@@ -7,7 +7,10 @@ import React, {
     useState,
 } from "react";
 
-import { Loader2, RefreshCw } from "lucide-react";
+import {
+    Loader2,
+    RefreshCw,
+} from "lucide-react";
 
 import { createClient } from "@/lib/supabase/client";
 
@@ -15,10 +18,23 @@ import OrdersFilters from "./orders-filters";
 import OrdersSummary from "./orders-summary";
 import OrdersTableView from "./orders-table-view";
 import OrderDetailsDialog from "./order-details-dialog";
-import { OrderFilters, OrderRow, Shipment, SortOrder } from "@/lib/orders/orders-types";
-import { loadOrders, loadShipment, saveShipment, updateOrder } from "@/lib/service/orders/orders-service";
-import { ORDER_STATUSES } from "@/lib/orders/orders-constants";
 
+import {
+    OrderFilters,
+    OrderRow,
+    Shipment,
+    SortOrder,
+} from "@/lib/orders/orders-types";
+
+import {
+    loadOrders,
+    loadShipment,
+    saveShipment,
+    updateOrder,
+    updateOrderPayment,
+} from "@/lib/service/orders/orders-service";
+
+import { ORDER_STATUSES } from "@/lib/orders/orders-constants";
 
 const DEFAULT_FILTERS: OrderFilters = {
     search: "",
@@ -40,26 +56,35 @@ const EMPTY_SHIPMENT_FORM = {
 };
 
 export default function OrdersTable() {
-    const supabase = useMemo(() => createClient(), []);
+    const supabase = useMemo(
+        () => createClient(),
+        []
+    );
 
     /* ------------------------------------------------------------------
      * Main data
      * ------------------------------------------------------------------ */
 
-    const [orders, setOrders] = useState<OrderRow[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
+    const [orders, setOrders] =
+        useState<OrderRow[]>([]);
 
-    const [error, setError] = useState<string | null>(
-        null
-    );
+    const [loading, setLoading] =
+        useState(true);
+
+    const [refreshing, setRefreshing] =
+        useState(false);
+
+    const [error, setError] =
+        useState<string | null>(null);
 
     /* ------------------------------------------------------------------
      * Filters
      * ------------------------------------------------------------------ */
 
     const [filters, setFilters] =
-        useState<OrderFilters>(DEFAULT_FILTERS);
+        useState<OrderFilters>(
+            DEFAULT_FILTERS
+        );
 
     const [sortOrder, setSortOrder] =
         useState<SortOrder>("newest");
@@ -81,8 +106,23 @@ export default function OrdersTable() {
     const [editStatus, setEditStatus] =
         useState("");
 
-    const [editPaymentStatus, setEditPaymentStatus] =
-        useState("");
+    const [
+        editPaymentStatus,
+        setEditPaymentStatus,
+    ] = useState("");
+
+    /*
+     * Amount actually verified as received
+     * in the bank / UPI account.
+     *
+     * Stored as a string while editing so
+     * the input can temporarily be empty
+     * or contain decimals.
+     */
+    const [
+        editAmountPaid,
+        setEditAmountPaid,
+    ] = useState("");
 
     const [orderSaving, setOrderSaving] =
         useState(false);
@@ -94,41 +134,53 @@ export default function OrdersTable() {
     const [shipment, setShipment] =
         useState<Shipment | null>(null);
 
-    const [shipmentLoading, setShipmentLoading] =
-        useState(false);
+    const [
+        shipmentLoading,
+        setShipmentLoading,
+    ] = useState(false);
 
-    const [shipmentSaving, setShipmentSaving] =
-        useState(false);
+    const [
+        shipmentSaving,
+        setShipmentSaving,
+    ] = useState(false);
 
-    const [deliveryPartner, setDeliveryPartner] =
-        useState("");
+    const [
+        deliveryPartner,
+        setDeliveryPartner,
+    ] = useState("");
 
-    const [trackingNumber, setTrackingNumber] =
-        useState("");
+    const [
+        trackingNumber,
+        setTrackingNumber,
+    ] = useState("");
 
     const [trackingUrl, setTrackingUrl] =
         useState("");
 
-    const [deliveryNotes, setDeliveryNotes] =
-        useState("");
+    const [
+        deliveryNotes,
+        setDeliveryNotes,
+    ] = useState("");
 
     const [shippedAt, setShippedAt] =
         useState<string | null>(null);
 
-    const [outForDeliveryAt, setOutForDeliveryAt] =
-        useState<string | null>(null);
+    const [
+        outForDeliveryAt,
+        setOutForDeliveryAt,
+    ] = useState<string | null>(null);
 
     const [deliveredAt, setDeliveredAt] =
         useState<string | null>(null);
 
     /* ------------------------------------------------------------------
      * Shipment original state
-     *
-     * Used to determine whether the shipment form has changed.
      * ------------------------------------------------------------------ */
 
-    const [originalShipmentForm, setOriginalShipmentForm] =
-        useState(EMPTY_SHIPMENT_FORM);
+    const [
+        originalShipmentForm,
+        setOriginalShipmentForm,
+    ] = useState(EMPTY_SHIPMENT_FORM);
 
     /* ------------------------------------------------------------------
      * Load orders
@@ -145,10 +197,11 @@ export default function OrdersTable() {
                     setLoading(true);
                 }
 
-                const result = await loadOrders(
-                    supabase,
-                    sortOrder
-                );
+                const result =
+                    await loadOrders(
+                        supabase,
+                        sortOrder
+                    );
 
                 if (result.error) {
                     setError(result.error);
@@ -185,7 +238,9 @@ export default function OrdersTable() {
 
     const filteredOrders = useMemo(() => {
         const search =
-            filters.search.trim().toLowerCase();
+            filters.search
+                .trim()
+                .toLowerCase();
 
         return orders.filter((order) => {
             /* Search */
@@ -199,16 +254,21 @@ export default function OrdersTable() {
                     order.shipping_city,
                     order.shipping_state,
                     order.shipping_postal_code,
-                    ...order.items.flatMap((item) => [
-                        item.product_name,
-                        item.product_sku ?? "",
-                    ]),
+
+                    ...order.items.flatMap(
+                        (item) => [
+                            item.product_name,
+                            item.product_sku ?? "",
+                        ]
+                    ),
                 ]
                     .join(" ")
                     .toLowerCase();
 
                 if (
-                    !searchableText.includes(search)
+                    !searchableText.includes(
+                        search
+                    )
                 ) {
                     return false;
                 }
@@ -217,14 +277,16 @@ export default function OrdersTable() {
             /* Order status */
             if (
                 filters.status !== "ALL" &&
-                order.status !== filters.status
+                order.status !==
+                    filters.status
             ) {
                 return false;
             }
 
             /* Payment status */
             if (
-                filters.paymentStatus !== "ALL" &&
+                filters.paymentStatus !==
+                    "ALL" &&
                 order.payment_status !==
                     filters.paymentStatus
             ) {
@@ -233,7 +295,8 @@ export default function OrdersTable() {
 
             /* Payment method */
             if (
-                filters.paymentMethod !== "ALL" &&
+                filters.paymentMethod !==
+                    "ALL" &&
                 order.payment_method !==
                     filters.paymentMethod
             ) {
@@ -242,30 +305,38 @@ export default function OrdersTable() {
 
             /* Date from */
             if (filters.dateFrom) {
-                const fromDate = new Date(
-                    `${filters.dateFrom}T00:00:00`
-                );
+                const fromDate =
+                    new Date(
+                        `${filters.dateFrom}T00:00:00`
+                    );
 
-                const orderDate = new Date(
-                    order.created_at
-                );
+                const orderDate =
+                    new Date(
+                        order.created_at
+                    );
 
-                if (orderDate < fromDate) {
+                if (
+                    orderDate < fromDate
+                ) {
                     return false;
                 }
             }
 
             /* Date to */
             if (filters.dateTo) {
-                const toDate = new Date(
-                    `${filters.dateTo}T23:59:59.999`
-                );
+                const toDate =
+                    new Date(
+                        `${filters.dateTo}T23:59:59.999`
+                    );
 
-                const orderDate = new Date(
-                    order.created_at
-                );
+                const orderDate =
+                    new Date(
+                        order.created_at
+                    );
 
-                if (orderDate > toDate) {
+                if (
+                    orderDate > toDate
+                ) {
                     return false;
                 }
             }
@@ -279,29 +350,44 @@ export default function OrdersTable() {
      * ------------------------------------------------------------------ */
 
     const summary = useMemo(() => {
-        const totalValue = filteredOrders.reduce(
-            (sum, order) =>
-                sum + Number(order.total_amount || 0),
-            0
-        );
+        const totalValue =
+            filteredOrders.reduce(
+                (sum, order) =>
+                    sum +
+                    Number(
+                        order.total_amount || 0
+                    ),
+                0
+            );
 
-        const itemCount = filteredOrders.reduce(
-            (sum, order) =>
-                sum +
-                order.items.reduce(
-                    (itemSum, item) =>
-                        itemSum +
-                        Number(item.quantity || 0),
-                    0
-                ),
-            0
-        );
+        const itemCount =
+            filteredOrders.reduce(
+                (sum, order) =>
+                    sum +
+                    order.items.reduce(
+                        (
+                            itemSum,
+                            item
+                        ) =>
+                            itemSum +
+                            Number(
+                                item.quantity ||
+                                    0
+                            ),
+                        0
+                    ),
+                0
+            );
 
-        const orderCount = filteredOrders.length;
+        const orderCount =
+            filteredOrders.length;
 
-        const pendingCount = filteredOrders.filter(
-            (order) => order.status === "PENDING"
-        ).length;
+        const pendingCount =
+            filteredOrders.filter(
+                (order) =>
+                    order.status ===
+                    "PENDING"
+            ).length;
 
         const average =
             orderCount > 0
@@ -377,17 +463,27 @@ export default function OrdersTable() {
 
         const form = {
             deliveryPartner:
-                currentShipment.delivery_partner ?? "",
+                currentShipment.delivery_partner ??
+                "",
+
             trackingNumber:
-                currentShipment.tracking_number ?? "",
+                currentShipment.tracking_number ??
+                "",
+
             trackingUrl:
-                currentShipment.tracking_url ?? "",
+                currentShipment.tracking_url ??
+                "",
+
             deliveryNotes:
-                currentShipment.delivery_notes ?? "",
+                currentShipment.delivery_notes ??
+                "",
+
             shippedAt:
                 currentShipment.shipped_at,
+
             outForDeliveryAt:
                 currentShipment.out_for_delivery_at,
+
             deliveredAt:
                 currentShipment.delivered_at,
         };
@@ -395,19 +491,30 @@ export default function OrdersTable() {
         setDeliveryPartner(
             form.deliveryPartner
         );
+
         setTrackingNumber(
             form.trackingNumber
         );
-        setTrackingUrl(form.trackingUrl);
+
+        setTrackingUrl(
+            form.trackingUrl
+        );
+
         setDeliveryNotes(
             form.deliveryNotes
         );
 
-        setShippedAt(form.shippedAt);
+        setShippedAt(
+            form.shippedAt
+        );
+
         setOutForDeliveryAt(
             form.outForDeliveryAt
         );
-        setDeliveredAt(form.deliveredAt);
+
+        setDeliveredAt(
+            form.deliveredAt
+        );
 
         setOriginalShipmentForm(form);
     };
@@ -416,49 +523,69 @@ export default function OrdersTable() {
      * Shipment dirty state
      * ------------------------------------------------------------------ */
 
-    const shipmentHasChanges = useMemo(() => {
-        const current = getShipmentForm();
+    const shipmentHasChanges =
+        useMemo(() => {
+            const current =
+                getShipmentForm();
 
-        return (
-            current.deliveryPartner !==
-                originalShipmentForm.deliveryPartner ||
-            current.trackingNumber !==
-                originalShipmentForm.trackingNumber ||
-            current.trackingUrl !==
-                originalShipmentForm.trackingUrl ||
-            current.deliveryNotes !==
-                originalShipmentForm.deliveryNotes ||
-            current.shippedAt !==
-                originalShipmentForm.shippedAt ||
-            current.outForDeliveryAt !==
-                originalShipmentForm.outForDeliveryAt ||
-            current.deliveredAt !==
-                originalShipmentForm.deliveredAt
-        );
-    }, [
-        getShipmentForm,
-        originalShipmentForm,
-    ]);
+            return (
+                current.deliveryPartner !==
+                    originalShipmentForm.deliveryPartner ||
+                current.trackingNumber !==
+                    originalShipmentForm.trackingNumber ||
+                current.trackingUrl !==
+                    originalShipmentForm.trackingUrl ||
+                current.deliveryNotes !==
+                    originalShipmentForm.deliveryNotes ||
+                current.shippedAt !==
+                    originalShipmentForm.shippedAt ||
+                current.outForDeliveryAt !==
+                    originalShipmentForm.outForDeliveryAt ||
+                current.deliveredAt !==
+                    originalShipmentForm.deliveredAt
+            );
+        }, [
+            getShipmentForm,
+            originalShipmentForm,
+        ]);
 
     /* ------------------------------------------------------------------
      * Order dirty state
      * ------------------------------------------------------------------ */
 
-    const orderHasChanges = useMemo(() => {
-        if (!selectedOrder) {
-            return false;
-        }
+    const orderHasChanges =
+        useMemo(() => {
+            if (!selectedOrder) {
+                return false;
+            }
 
-        return (
-            editStatus !== selectedOrder.status ||
-            editPaymentStatus !==
-                selectedOrder.payment_status
-        );
-    }, [
-        selectedOrder,
-        editStatus,
-        editPaymentStatus,
-    ]);
+            const currentAmountPaid =
+                Number(
+                    editAmountPaid === ""
+                        ? 0
+                        : editAmountPaid
+                );
+
+            const originalAmountPaid =
+                Number(
+                    selectedOrder.amount_paid ??
+                        0
+                );
+
+            return (
+                editStatus !==
+                    selectedOrder.status ||
+                editPaymentStatus !==
+                    selectedOrder.payment_status ||
+                currentAmountPaid !==
+                    originalAmountPaid
+            );
+        }, [
+            selectedOrder,
+            editStatus,
+            editPaymentStatus,
+            editAmountPaid,
+        ]);
 
     /* ------------------------------------------------------------------
      * Load shipment
@@ -515,9 +642,20 @@ export default function OrdersTable() {
     ) => {
         setSelectedOrder(order);
 
-        setEditStatus(order.status);
+        setEditStatus(
+            order.status
+        );
+
         setEditPaymentStatus(
             order.payment_status
+        );
+
+        setEditAmountPaid(
+            String(
+                Number(
+                    order.amount_paid ?? 0
+                )
+            )
         );
 
         setDialogOpen(true);
@@ -530,7 +668,10 @@ export default function OrdersTable() {
      * ------------------------------------------------------------------ */
 
     const closeDialog = () => {
-        if (orderSaving || shipmentSaving) {
+        if (
+            orderSaving ||
+            shipmentSaving
+        ) {
             return;
         }
 
@@ -540,6 +681,7 @@ export default function OrdersTable() {
 
         setEditStatus("");
         setEditPaymentStatus("");
+        setEditAmountPaid("");
 
         resetShipmentForm();
     };
@@ -548,170 +690,640 @@ export default function OrdersTable() {
      * Update selected order locally
      * ------------------------------------------------------------------ */
 
-    const updateSelectedOrderLocally = (
-        updates: Partial<OrderRow>
-    ) => {
-        if (!selectedOrder) {
-            return;
-        }
+    const updateSelectedOrderLocally =
+        (
+            updates: Partial<OrderRow>
+        ) => {
+            if (!selectedOrder) {
+                return;
+            }
 
-        setSelectedOrder((current) =>
-            current
-                ? {
-                      ...current,
-                      ...updates,
-                  }
-                : current
-        );
+            setSelectedOrder(
+                (current) =>
+                    current
+                        ? {
+                              ...current,
+                              ...updates,
+                          }
+                        : current
+            );
 
-        setOrders((currentOrders) =>
-            currentOrders.map((order) =>
-                order.id === selectedOrder.id
-                    ? {
-                          ...order,
-                          ...updates,
-                      }
-                    : order
-            )
-        );
-    };
+            setOrders(
+                (currentOrders) =>
+                    currentOrders.map(
+                        (order) =>
+                            order.id ===
+                            selectedOrder.id
+                                ? {
+                                      ...order,
+                                      ...updates,
+                                  }
+                                : order
+                    )
+            );
+        };
 
     /* ------------------------------------------------------------------
      * Save order status/payment
      * ------------------------------------------------------------------ */
 
-    const handleSaveOrder = async () => {
-        if (!selectedOrder) {
-            return;
-        }
-
-        if (
-            !ORDER_STATUSES.includes(
-                editStatus as (typeof ORDER_STATUSES)[number]
-            )
-        ) {
-            alert("Invalid order status.");
-            return;
-        }
-
-        try {
-            setOrderSaving(true);
-
-            /*
-             * Automatically create shipment timestamps based
-             * on the order status.
-             *
-             * These are only applied when the relevant timestamp
-             * does not already exist.
-             */
-            const now =
-                new Date().toISOString();
-
-            let nextShippedAt = shippedAt;
-            let nextOutForDeliveryAt =
-                outForDeliveryAt;
-            let nextDeliveredAt =
-                deliveredAt;
-
-            if (
-                editStatus === "SHIPPED" &&
-                !nextShippedAt
-            ) {
-                nextShippedAt = now;
+    const handleSaveOrder =
+        async () => {
+            if (!selectedOrder) {
+                return;
             }
 
             if (
-                editStatus ===
-                    "OUT_FOR_DELIVERY"
+                !ORDER_STATUSES.includes(
+                    editStatus as (typeof ORDER_STATUSES)[number]
+                )
             ) {
-                if (!nextShippedAt) {
-                    nextShippedAt = now;
-                }
-
-                if (
-                    !nextOutForDeliveryAt
-                ) {
-                    nextOutForDeliveryAt =
-                        now;
-                }
-            }
-
-            if (
-                editStatus === "DELIVERED"
-            ) {
-                if (!nextShippedAt) {
-                    nextShippedAt = now;
-                }
-
-                if (
-                    !nextOutForDeliveryAt
-                ) {
-                    nextOutForDeliveryAt =
-                        now;
-                }
-
-                if (!nextDeliveredAt) {
-                    nextDeliveredAt = now;
-                }
-            }
-
-            const result =
-                await updateOrder(
-                    supabase,
-                    selectedOrder.id,
-                    editStatus,
-                    editPaymentStatus
-                );
-
-            if (result.error) {
                 alert(
-                    `Failed to update order: ${result.error}`
+                    "Invalid order status."
                 );
                 return;
             }
 
-            if (result.data) {
-                updateSelectedOrderLocally({
-                    status: result.data.status,
-                    payment_status:
-                        result.data
-                            .payment_status,
-                    updated_at:
-                        result.data.updated_at,
-                });
-            }
+            /* ----------------------------------------------------------
+             * Validate payment amount
+             * ---------------------------------------------------------- */
 
-            /*
-             * If the order status implies shipment progress,
-             * persist those timestamps as well.
-             */
-            const shipmentTimestampChanged =
-                nextShippedAt !==
-                    shippedAt ||
-                nextOutForDeliveryAt !==
-                    outForDeliveryAt ||
-                nextDeliveredAt !==
-                    deliveredAt;
+            const totalAmount =
+                Number(
+                    selectedOrder.total_amount ??
+                        0
+                );
+
+            const amountPaid =
+                editAmountPaid.trim() === ""
+                    ? 0
+                    : Number(
+                          editAmountPaid
+                      );
 
             if (
-                shipmentTimestampChanged
+                !Number.isFinite(
+                    amountPaid
+                ) ||
+                amountPaid < 0
             ) {
-                setShippedAt(
-                    nextShippedAt
+                alert(
+                    "Please enter a valid payment amount."
                 );
-                setOutForDeliveryAt(
-                    nextOutForDeliveryAt
+                return;
+            }
+
+            if (
+                amountPaid >
+                totalAmount
+            ) {
+                alert(
+                    "The verified payment amount cannot be greater than the order total."
                 );
-                setDeliveredAt(
-                    nextDeliveredAt
+                return;
+            }
+
+            /* ----------------------------------------------------------
+             * Payment-status validation
+             * ---------------------------------------------------------- */
+
+            if (
+                editPaymentStatus ===
+                    "PAID" &&
+                amountPaid !== totalAmount
+            ) {
+                alert(
+                    "A paid order must have the full order amount verified."
+                );
+                return;
+            }
+
+            if (
+                editPaymentStatus ===
+                    "PARTIALLY_PAID" &&
+                (
+                    amountPaid <= 0 ||
+                    amountPaid >=
+                        totalAmount
+                )
+            ) {
+                alert(
+                    "A partially paid order must have an amount greater than ₹0 and less than the order total."
+                );
+                return;
+            }
+
+            if (
+                (
+                    editPaymentStatus ===
+                        "PENDING" ||
+                    editPaymentStatus ===
+                        "FAILED"
+                ) &&
+                amountPaid !== 0
+            ) {
+                alert(
+                    "Pending or failed payments must have ₹0 as the verified amount paid."
+                );
+                return;
+            }
+
+            try {
+                setOrderSaving(true);
+
+                /* ------------------------------------------------------
+                 * Shipment timestamps
+                 * ------------------------------------------------------ */
+
+                const now =
+                    new Date().toISOString();
+
+                let nextShippedAt =
+                    shippedAt;
+
+                let nextOutForDeliveryAt =
+                    outForDeliveryAt;
+
+                let nextDeliveredAt =
+                    deliveredAt;
+
+                if (
+                    editStatus ===
+                        "SHIPPED" &&
+                    !nextShippedAt
+                ) {
+                    nextShippedAt = now;
+                }
+
+                if (
+                    editStatus ===
+                    "OUT_FOR_DELIVERY"
+                ) {
+                    if (!nextShippedAt) {
+                        nextShippedAt = now;
+                    }
+
+                    if (
+                        !nextOutForDeliveryAt
+                    ) {
+                        nextOutForDeliveryAt =
+                            now;
+                    }
+                }
+
+                if (
+                    editStatus ===
+                    "DELIVERED"
+                ) {
+                    if (!nextShippedAt) {
+                        nextShippedAt = now;
+                    }
+
+                    if (
+                        !nextOutForDeliveryAt
+                    ) {
+                        nextOutForDeliveryAt =
+                            now;
+                    }
+
+                    if (!nextDeliveredAt) {
+                        nextDeliveredAt = now;
+                    }
+                }
+
+                /* ------------------------------------------------------
+                 * Determine changes
+                 * ------------------------------------------------------ */
+
+                const paymentStatusChanged =
+                    editPaymentStatus !==
+                    selectedOrder.payment_status;
+
+                const originalAmountPaid =
+                    Number(
+                        selectedOrder.amount_paid ??
+                            0
+                    );
+
+                const paymentAmountChanged =
+                    amountPaid !==
+                    originalAmountPaid;
+
+                const paymentChanged =
+                    paymentStatusChanged ||
+                    paymentAmountChanged;
+
+                const orderStatusChanged =
+                    editStatus !==
+                    selectedOrder.status;
+
+                /* ------------------------------------------------------
+                 * Payment update
+                 * ------------------------------------------------------ */
+
+                let paymentResult:
+                    | Awaited<
+                          ReturnType<
+                              typeof updateOrderPayment
+                          >
+                      >
+                    | null = null;
+
+                /*
+                 * PAID
+                 *
+                 * The full order total has been
+                 * verified as received.
+                 */
+                if (
+                    paymentChanged &&
+                    editPaymentStatus ===
+                        "PAID"
+                ) {
+                    paymentResult =
+                        await updateOrderPayment(
+                            supabase,
+                            selectedOrder.id,
+                            totalAmount,
+                            "PAID"
+                        );
+                }
+
+                /*
+                 * PARTIALLY PAID
+                 *
+                 * Use the actual verified amount
+                 * entered by the admin.
+                 */
+                else if (
+                    paymentChanged &&
+                    editPaymentStatus ===
+                        "PARTIALLY_PAID"
+                ) {
+                    paymentResult =
+                        await updateOrderPayment(
+                            supabase,
+                            selectedOrder.id,
+                            amountPaid,
+                            "PARTIALLY_PAID"
+                        );
+                }
+
+                /*
+                 * PENDING / FAILED
+                 *
+                 * These use the normal order update
+                 * path and have already been validated
+                 * to contain ₹0 verified payment.
+                 */
+                else if (
+                    paymentChanged &&
+                    (
+                        editPaymentStatus ===
+                            "PENDING" ||
+                        editPaymentStatus ===
+                            "FAILED"
+                    )
+                ) {
+                    const result =
+                        await updateOrder(
+                            supabase,
+                            selectedOrder.id,
+                            editStatus,
+                            editPaymentStatus
+                        );
+
+                    if (result.error) {
+                        alert(
+                            `Failed to update order: ${result.error}`
+                        );
+                        return;
+                    }
+
+                    if (result.data) {
+                        updateSelectedOrderLocally(
+                            {
+                                status:
+                                    result
+                                        .data
+                                        .status,
+
+                                payment_status:
+                                    result
+                                        .data
+                                        .payment_status,
+
+                                updated_at:
+                                    result
+                                        .data
+                                        .updated_at,
+                            }
+                        );
+                    }
+                }
+
+                /*
+                 * REFUNDED
+                 *
+                 * Actual refund processing is a separate
+                 * workflow. This only updates the current
+                 * payment status.
+                 */
+                else if (
+                    paymentChanged &&
+                    editPaymentStatus ===
+                        "REFUNDED"
+                ) {
+                    const result =
+                        await updateOrder(
+                            supabase,
+                            selectedOrder.id,
+                            editStatus,
+                            editPaymentStatus
+                        );
+
+                    if (result.error) {
+                        alert(
+                            `Failed to update order: ${result.error}`
+                        );
+                        return;
+                    }
+
+                    if (result.data) {
+                        updateSelectedOrderLocally(
+                            {
+                                status:
+                                    result
+                                        .data
+                                        .status,
+
+                                payment_status:
+                                    result
+                                        .data
+                                        .payment_status,
+
+                                updated_at:
+                                    result
+                                        .data
+                                        .updated_at,
+                            }
+                        );
+                    }
+                }
+
+                /* ------------------------------------------------------
+                 * Apply payment result returned by database
+                 *
+                 * IMPORTANT:
+                 * updateOrderPayment() does NOT return order.status.
+                 * Therefore we only update fields that it actually
+                 * returns.
+                 * ------------------------------------------------------ */
+
+                if (
+                    paymentResult
+                ) {
+                    if (
+                        paymentResult.error
+                    ) {
+                        alert(
+                            `Failed to update payment: ${paymentResult.error}`
+                        );
+                        return;
+                    }
+
+                    if (
+                        paymentResult.data
+                    ) {
+                        updateSelectedOrderLocally(
+                            {
+                                payment_status:
+                                    paymentResult
+                                        .data
+                                        .payment_status,
+
+                                payment_plan:
+                                    paymentResult
+                                        .data
+                                        .payment_plan,
+
+                                amount_paid:
+                                    paymentResult
+                                        .data
+                                        .amount_paid,
+
+                                amount_due:
+                                    paymentResult
+                                        .data
+                                        .amount_due,
+
+                                updated_at:
+                                    paymentResult
+                                        .data
+                                        .updated_at,
+                            }
+                        );
+                    }
+                }
+
+                /* ------------------------------------------------------
+                 * Save order status independently.
+                 *
+                 * This is important when the admin changes BOTH:
+                 *
+                 * - payment status
+                 * - order status
+                 *
+                 * Payment verification and order status are separate
+                 * database operations.
+                 * ------------------------------------------------------ */
+
+                if (
+                    orderStatusChanged
+                ) {
+                    const result =
+                        await updateOrder(
+                            supabase,
+                            selectedOrder.id,
+                            editStatus,
+                            editPaymentStatus
+                        );
+
+                    if (result.error) {
+                        alert(
+                            `Payment was updated, but the order status could not be updated: ${result.error}`
+                        );
+                        return;
+                    }
+
+                    if (result.data) {
+                        updateSelectedOrderLocally(
+                            {
+                                status:
+                                    result
+                                        .data
+                                        .status,
+
+                                payment_status:
+                                    result
+                                        .data
+                                        .payment_status,
+
+                                updated_at:
+                                    result
+                                        .data
+                                        .updated_at,
+                            }
+                        );
+                    }
+                }
+
+                /* ------------------------------------------------------
+                 * Shipment timestamps
+                 * ------------------------------------------------------ */
+
+                const shipmentTimestampChanged =
+                    nextShippedAt !==
+                        shippedAt ||
+                    nextOutForDeliveryAt !==
+                        outForDeliveryAt ||
+                    nextDeliveredAt !==
+                        deliveredAt;
+
+                if (
+                    shipmentTimestampChanged
+                ) {
+                    setShippedAt(
+                        nextShippedAt
+                    );
+
+                    setOutForDeliveryAt(
+                        nextOutForDeliveryAt
+                    );
+
+                    setDeliveredAt(
+                        nextDeliveredAt
+                    );
+
+                    const shipmentResult =
+                        await saveShipment(
+                            supabase,
+                            {
+                                orderId:
+                                    selectedOrder.id,
+
+                                shipmentId:
+                                    shipment?.id ??
+                                    null,
+
+                                deliveryPartner,
+                                trackingNumber,
+                                trackingUrl,
+                                deliveryNotes,
+
+                                shippedAt:
+                                    nextShippedAt,
+
+                                outForDeliveryAt:
+                                    nextOutForDeliveryAt,
+
+                                deliveredAt:
+                                    nextDeliveredAt,
+                            }
+                        );
+
+                    if (
+                        shipmentResult.error
+                    ) {
+                        alert(
+                            `Order updated, but shipment timestamp could not be saved: ${shipmentResult.error}`
+                        );
+                        return;
+                    }
+
+                    if (
+                        shipmentResult.data
+                    ) {
+                        setShipment(
+                            shipmentResult.data
+                        );
+
+                        populateShipmentForm(
+                            shipmentResult.data
+                        );
+                    }
+                }
+
+                /* ------------------------------------------------------
+                 * No actual changes
+                 * ------------------------------------------------------ */
+
+                if (
+                    !paymentChanged &&
+                    !orderStatusChanged &&
+                    !shipmentTimestampChanged
+                ) {
+                    alert(
+                        "No changes to save."
+                    );
+                    return;
+                }
+
+                /* ------------------------------------------------------
+                 * Synchronize editing fields
+                 * ------------------------------------------------------ */
+
+                setEditStatus(
+                    editStatus
                 );
 
-                const shipmentResult =
+                setEditPaymentStatus(
+                    editPaymentStatus
+                );
+
+                setEditAmountPaid(
+                    String(amountPaid)
+                );
+
+                alert(
+                    "Order updated successfully."
+                );
+            } catch (err) {
+                console.error(
+                    "Failed to update order:",
+                    err
+                );
+
+                alert(
+                    err instanceof Error
+                        ? err.message
+                        : "Failed to update order."
+                );
+            } finally {
+                setOrderSaving(false);
+            }
+        };
+
+    /* ------------------------------------------------------------------
+     * Save shipment
+     * ------------------------------------------------------------------ */
+
+    const handleSaveShipment =
+        async () => {
+            if (!selectedOrder) {
+                return;
+            }
+
+            try {
+                setShipmentSaving(true);
+
+                const result =
                     await saveShipment(
                         supabase,
                         {
                             orderId:
                                 selectedOrder.id,
+
                             shipmentId:
                                 shipment?.id ??
                                 null,
@@ -721,124 +1333,47 @@ export default function OrdersTable() {
                             trackingUrl,
                             deliveryNotes,
 
-                            shippedAt:
-                                nextShippedAt,
-                            outForDeliveryAt:
-                                nextOutForDeliveryAt,
-                            deliveredAt:
-                                nextDeliveredAt,
+                            shippedAt,
+                            outForDeliveryAt,
+                            deliveredAt,
                         }
                     );
 
-                if (
-                    shipmentResult.error
-                ) {
+                if (result.error) {
                     alert(
-                        `Order updated, but shipment timestamp could not be saved: ${shipmentResult.error}`
+                        `Failed to save shipment: ${result.error}`
                     );
                     return;
                 }
 
-                if (
-                    shipmentResult.data
-                ) {
+                if (result.data) {
                     setShipment(
-                        shipmentResult.data
+                        result.data
                     );
 
                     populateShipmentForm(
-                        shipmentResult.data
+                        result.data
                     );
                 }
-            }
 
-            alert(
-                "Order updated successfully."
-            );
-        } catch (err) {
-            console.error(
-                "Failed to update order:",
-                err
-            );
-
-            alert(
-                err instanceof Error
-                    ? err.message
-                    : "Failed to update order."
-            );
-        } finally {
-            setOrderSaving(false);
-        }
-    };
-
-    /* ------------------------------------------------------------------
-     * Save shipment
-     * ------------------------------------------------------------------ */
-
-    const handleSaveShipment = async () => {
-        if (!selectedOrder) {
-            return;
-        }
-
-        try {
-            setShipmentSaving(true);
-
-            const result =
-                await saveShipment(
-                    supabase,
-                    {
-                        orderId:
-                            selectedOrder.id,
-                        shipmentId:
-                            shipment?.id ??
-                            null,
-
-                        deliveryPartner,
-                        trackingNumber,
-                        trackingUrl,
-                        deliveryNotes,
-
-                        shippedAt,
-                        outForDeliveryAt,
-                        deliveredAt,
-                    }
-                );
-
-            if (result.error) {
                 alert(
-                    `Failed to save shipment: ${result.error}`
+                    "Shipment details saved successfully."
                 );
-                return;
+            } catch (err) {
+                console.error(
+                    "Failed to save shipment:",
+                    err
+                );
+
+                alert(
+                    err instanceof Error
+                        ? err.message
+                        : "Failed to save shipment."
+                );
+            } finally {
+                setShipmentSaving(false);
             }
-
-            if (result.data) {
-                setShipment(
-                    result.data
-                );
-
-                populateShipmentForm(
-                    result.data
-                );
-            }
-
-            alert(
-                "Shipment details saved successfully."
-            );
-        } catch (err) {
-            console.error(
-                "Failed to save shipment:",
-                err
-            );
-
-            alert(
-                err instanceof Error
-                    ? err.message
-                    : "Failed to save shipment."
-            );
-        } finally {
-            setShipmentSaving(false);
-        }
-    };
+        };
 
     /* ------------------------------------------------------------------
      * Loading state
@@ -860,7 +1395,10 @@ export default function OrdersTable() {
      * Error state
      * ------------------------------------------------------------------ */
 
-    if (error && orders.length === 0) {
+    if (
+        error &&
+        orders.length === 0
+    ) {
         return (
             <div className="rounded-xl border bg-card p-8 shadow-sm">
                 <div className="mx-auto max-w-md text-center">
@@ -875,9 +1413,13 @@ export default function OrdersTable() {
                     <button
                         type="button"
                         onClick={() =>
-                            fetchOrders(true)
+                            fetchOrders(
+                                true
+                            )
                         }
-                        disabled={refreshing}
+                        disabled={
+                            refreshing
+                        }
                         className="mt-5 inline-flex h-9 items-center gap-2 rounded-md border px-4 text-sm font-medium hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
                     >
                         {refreshing ? (
@@ -907,15 +1449,18 @@ export default function OrdersTable() {
                     </h1>
 
                     <p className="mt-1 text-sm text-muted-foreground">
-                        Manage customer orders, payments and
-                        delivery tracking.
+                        Manage customer orders,
+                        payments and delivery
+                        tracking.
                     </p>
                 </div>
 
                 <button
                     type="button"
                     onClick={() =>
-                        fetchOrders(true)
+                        fetchOrders(
+                            true
+                        )
                     }
                     disabled={refreshing}
                     className="inline-flex h-9 w-fit items-center gap-2 rounded-md border bg-background px-3 text-sm font-medium hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
@@ -946,7 +1491,9 @@ export default function OrdersTable() {
             <OrdersFilters
                 filters={filters}
                 sortOrder={sortOrder}
-                onFiltersChange={setFilters}
+                onFiltersChange={
+                    setFilters
+                }
                 onSortOrderChange={
                     setSortOrder
                 }
@@ -958,7 +1505,9 @@ export default function OrdersTable() {
                 <p className="text-sm text-muted-foreground">
                     Showing{" "}
                     <span className="font-medium text-foreground">
-                        {filteredOrders.length}
+                        {
+                            filteredOrders.length
+                        }
                     </span>{" "}
                     of{" "}
                     <span className="font-medium text-foreground">
@@ -970,7 +1519,8 @@ export default function OrdersTable() {
                 {filteredOrders.length !==
                     orders.length && (
                     <p className="text-xs text-muted-foreground">
-                        Filters are currently applied.
+                        Filters are currently
+                        applied.
                     </p>
                 )}
             </div>
@@ -986,65 +1536,113 @@ export default function OrdersTable() {
                 open={dialogOpen}
                 order={selectedOrder}
                 onClose={closeDialog}
-                editStatus={editStatus}
+
+                editStatus={
+                    editStatus
+                }
+
                 editPaymentStatus={
                     editPaymentStatus
                 }
-                onStatusChange={setEditStatus}
+
+                editAmountPaid={
+                    editAmountPaid
+                }
+
+                onStatusChange={
+                    setEditStatus
+                }
+
                 onPaymentStatusChange={
                     setEditPaymentStatus
                 }
-                onSaveOrder={handleSaveOrder}
-                orderSaving={orderSaving}
+
+                onAmountPaidChange={
+                    setEditAmountPaid
+                }
+
+                onSaveOrder={
+                    handleSaveOrder
+                }
+
+                orderSaving={
+                    orderSaving
+                }
+
                 orderHasChanges={
                     orderHasChanges
                 }
+
                 shipment={shipment}
+
                 shipmentLoading={
                     shipmentLoading
                 }
+
                 deliveryPartner={
                     deliveryPartner
                 }
+
                 trackingNumber={
                     trackingNumber
                 }
-                trackingUrl={trackingUrl}
+
+                trackingUrl={
+                    trackingUrl
+                }
+
                 deliveryNotes={
                     deliveryNotes
                 }
-                shippedAt={shippedAt}
+
+                shippedAt={
+                    shippedAt
+                }
+
                 outForDeliveryAt={
                     outForDeliveryAt
                 }
-                deliveredAt={deliveredAt}
+
+                deliveredAt={
+                    deliveredAt
+                }
+
                 onDeliveryPartnerChange={
                     setDeliveryPartner
                 }
+
                 onTrackingNumberChange={
                     setTrackingNumber
                 }
+
                 onTrackingUrlChange={
                     setTrackingUrl
                 }
+
                 onDeliveryNotesChange={
                     setDeliveryNotes
                 }
+
                 onShippedAtChange={
                     setShippedAt
                 }
+
                 onOutForDeliveryAtChange={
                     setOutForDeliveryAt
                 }
+
                 onDeliveredAtChange={
                     setDeliveredAt
                 }
+
                 onSaveShipment={
                     handleSaveShipment
                 }
+
                 shipmentSaving={
                     shipmentSaving
                 }
+
                 shipmentHasChanges={
                     shipmentHasChanges
                 }
