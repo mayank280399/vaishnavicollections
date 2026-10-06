@@ -13,10 +13,13 @@ import {
   Truck,
 } from "lucide-react";
 
+export const revalidate = 86400;
+
 export const metadata: Metadata = {
-  title: "Return & Refund Policy | Vaishnavi Collections",
+  title: "Return & Refund Policy",
   description:
     "Read the Vaishnavi Collections return, refund, exchange, cancellation, and damaged product policy.",
+  alternates: { canonical: "/refund-returns" },
 };
 
 const sections = [

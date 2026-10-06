@@ -8,10 +8,19 @@ import AboutMoreThanStore from "@/components/about/AboutMoreThanStore";
 import AboutNewBeginning from "@/components/about/AboutNewBeginning";
 import AboutStats from "@/components/about/AboutStats";
 import AboutValues from "@/components/about/AboutValues";
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public-server";
+import type { Metadata } from "next";
+
+export const revalidate = 86400;
+
+export const metadata: Metadata = {
+  title: "About Our Story",
+  description: "Learn about Vaishnavi Collections and our range of Laddu Gopal poshak, shringar, home décor and handmade accessories.",
+  alternates: { canonical: "/about" },
+};
 
 export default async function AboutPage() {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
   const { data: categories } = await supabase
     .from("product_categories")

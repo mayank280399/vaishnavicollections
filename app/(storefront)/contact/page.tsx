@@ -4,11 +4,20 @@ import ContactVisitStore from "@/components/contact/ContactVisitStore";
 import ContactHelp from "@/components/contact/ContactHelp";
 import ContactCTA from "@/components/contact/ContactCTA";
 
-import { createClient } from "@/lib/supabase/server";
+import { createPublicClient } from "@/lib/supabase/public-server";
+import type { Metadata } from "next";
+
+export const revalidate = 86400;
+
+export const metadata: Metadata = {
+  title: "Contact Us",
+  description: "Contact Vaishnavi Collections for help with products, orders, store visits and shipping across India.",
+  alternates: { canonical: "/contact" },
+};
 
 
 export default async function ContactPage() {
-  const supabase = await createClient();
+  const supabase = createPublicClient();
 
 const { data: settings, error } = await supabase
   .from("public_store_settings")
