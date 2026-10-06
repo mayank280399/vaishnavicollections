@@ -13,6 +13,8 @@ import {
   Truck,
 } from "lucide-react";
 
+export const revalidate = 86400;
+
 export const metadata: Metadata = {
   title: "Return & Refund Policy",
   description:

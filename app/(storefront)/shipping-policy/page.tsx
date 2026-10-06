@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+export const revalidate = 86400;
 import {
   MapPin,
   Package,

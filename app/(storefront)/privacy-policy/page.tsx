@@ -2,6 +2,8 @@
 import Link from "next/link";
 import type { Metadata } from "next";
 
+export const revalidate = 86400;
+
 export const metadata: Metadata = {
     title: "Privacy Policy",
     description: "Read how Vaishnavi Collections handles personal information when you use our website, account and services.",

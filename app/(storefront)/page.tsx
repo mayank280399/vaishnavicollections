@@ -9,6 +9,8 @@ import InstagramGallery from '@/components/InstagramGallery/InstagramGallery';
 import CallToAction from '@/components/CallToAction/CallToAction';
 import type { Metadata } from "next";
 
+export const revalidate = 86400;
+
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
