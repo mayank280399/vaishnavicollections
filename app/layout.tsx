@@ -4,6 +4,9 @@ import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-regis
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://vaishnavicollections.vercel.app/"),
+  verification: {
+    google: "ojJXy2jaFiCgc0NSQh9Ky9hYFIjKZBHBVdXPf2YpPCI",
+  },
   applicationName: "Vaishnavi Collections",
   title: {
     default: "Vaishnavi Collections | Laddu Gopal Poshak, Shringar & Home Décor",
