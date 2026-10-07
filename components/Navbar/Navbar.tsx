@@ -51,7 +51,7 @@ const navLinks = [
       },
       {
         label: "Made to Order",
-        href: "/contact",
+        href: "/handmade",
       },
     ],
   },
