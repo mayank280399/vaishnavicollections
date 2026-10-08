@@ -332,7 +332,7 @@ export default async function Footer() {
                 </Link>
 
                 <Link
-                  href="/products?category=laddu-gopal"
+                  href="/collections/laddu-gopal"
                   className="group flex items-center gap-1.5 text-sm text-white/55 transition-colors duration-200 hover:text-[#D4AF37]"
                 >
                   Laddu Gopal
