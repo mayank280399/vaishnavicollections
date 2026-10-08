@@ -356,7 +356,7 @@ export default function ShippingPolicyPage() {
                 </p>
 
                 <p className="mt-2 text-sm leading-6 text-slate-300">
-                  Gali No. 32, Indira Park,
+                  Gali No. 32, Indra Park,
                   <br />
                   Kailash Puri, Palam,
                   <br />
