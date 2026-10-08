@@ -321,8 +321,8 @@ export const slides: Slide[] = [
 export type Testimonial = {
   id: number;
   name: string;
-  role: string;
-  location: string;
+  // role: string;
+  // location: string;
   text: string;
   rating: number;
   avatar: string;
@@ -331,48 +331,30 @@ export type Testimonial = {
 export const testimonials: Testimonial[] = [
   {
     id: 1,
-    name: "Amara Okon",
-    role: "Interior Designer",
-    location: "New York, USA",
-    text: "Vaishnavi Collections consistently offers the most beautifully designed objects I've found online. The Arc Lamp is now a staple in every project I take on. Shipping was faster than expected.",
+    name: "Shalini Rajput",
+    // role: "Interior Designer",
+    // location: "New York, USA",
+    text: "Best quality bedsheets in an affordable price.",
     rating: 5,
-    avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=200&auto=format&fit=crop",
+    avatar: "",
   },
   {
     id: 2,
-    name: "Sebastian Müller",
-    role: "Architect",
-    location: "Berlin, Germany",
-    text: "The quality speaks for itself — you can feel the material thoughtfulness in every piece. The Sedona Side Table exceeded my expectations. Highly recommend to anyone serious about their space.",
+    name: "Kanika Tanwar",
+    // role: "Architect",
+    // location: "Berlin, Germany",
+    text: "We have bought bangels from this shop. Best quality in affordable price and the nature of the vendor is also nice.",
     rating: 5,
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?q=80&w=200&auto=format&fit=crop",
+    avatar: "",
   },
   {
     id: 3,
-    name: "Yuki Tanaka",
-    role: "Photographer",
-    location: "Tokyo, Japan",
-    text: "I was skeptical buying furniture online but the Noma Chair arrived impeccably packaged. The Danish cord weave is tighter and more refined than pieces I've purchased in-store for twice the price.",
+    name: "Gayatri",
+    // role: "Photographer",
+    // location: "Tokyo, Japan",
+    text: "Product is very nice... And also the dealing with customers... Thank U so much...",
     rating: 5,
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?q=80&w=200&auto=format&fit=crop",
-  },
-  {
-    id: 4,
-    name: "Fatima Hassan",
-    role: "Stylist",
-    location: "Dubai, UAE",
-    text: "The Ritual Ceramic Vase is stunning in person — the photography on the site does not even do it justice. Customer service was incredibly responsive when I had a question about sizing.",
-    rating: 5,
-    avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?q=80&w=200&auto=format&fit=crop",
-  },
-  {
-    id: 5,
-    name: "Liam Callahan",
-    role: "Product Designer",
-    location: "London, UK",
-    text: "Every piece I've ordered has been a perfect addition to my home. The attention to detail from packaging to product is remarkable. Vaishnavi Collections has become my default for home goods.",
-    rating: 5,
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?q=80&w=200&auto=format&fit=crop",
+    avatar: "",
   },
 ];
 

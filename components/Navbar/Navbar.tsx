@@ -35,7 +35,7 @@ const navLinks = [
       { label: "All Products", href: "/products" },
       {
         label: "Laddu Gopal",
-        href: "/products?category=Laddu%20Gopal",
+        href: "/collections/laddu-gopal",
       },
       {
         label: "Jewellery",

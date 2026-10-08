@@ -6,7 +6,6 @@ import Link from "next/link";
 const images = [
   { src: "/banner-image/banner-laddugopal.png", alt: "Laddu Gopal collection" },
   { src: "/banner-image/banner-scrunchies.png", alt: "Handmade hair accessories" },
-  { src: "/banner-image/banner-chair.jpg", alt: "Handcrafted details" },
   { src: "/banner-image/banner-cosmetics.png", alt: "Beauty collection" },
   { src: "/banner-image/Banner-homedecor.png", alt: "Home decor collection" },
 ];
