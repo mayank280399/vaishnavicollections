@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { DashboardFilters } from "./dashboard-filters";
-import { Hand } from "lucide-react";
 
 export function DashboardHeader() {
   const [userName, setUserName] = useState("Admin");
@@ -12,12 +11,8 @@ export function DashboardHeader() {
     const supabase = createClient();
 
     async function loadUser() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      const displayName =
-        user?.user_metadata?.display_name;
+      const {data: { user }} = await supabase.auth.getUser();
+      const displayName = user?.user_metadata?.display_name;
 
       if (displayName) {
         setUserName(displayName);
