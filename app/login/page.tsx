@@ -365,6 +365,14 @@ function LoginPageContent() {
     setLoading(true);
 
     try {
+      /*
+       * Supabase signup.
+       *
+       * IMPORTANT:
+       * When "Confirm email" is enabled in Supabase,
+       * signUp() sends the email confirmation OTP and
+       * returns session = null until the OTP is verified.
+       */
       const result = await supabase.auth.signUp({
         email: cleanEmail,
         password,
@@ -409,20 +417,34 @@ function LoginPageContent() {
         return;
       }
 
+      /*
+       * With Supabase email confirmation enabled:
+       *
+       * user  -> exists
+       * session -> null
+       *
+       * This means the account was created but email
+       * verification is still pending.
+       */
       if (!result.data.session) {
         setOtpSentTo(cleanEmail);
         setOtp("");
         setOtpStep(true);
-
         setResendCooldown(60);
 
         setSuccess(
-          "Aapke email par verification code bheja gaya hai.",
+          "Aapke email par 6-digit verification code bheja gaya hai.",
         );
 
         return;
       }
 
+      /*
+       * If email confirmation is disabled in Supabase,
+       * signup may immediately create a session.
+       *
+       * In that case there is no OTP verification step.
+       */
       const hasProfile =
         await verifyProfileWithRetry(
           result.data.user.id,
@@ -454,7 +476,7 @@ function LoginPageContent() {
 
   /*
    * ---------------------------------------------------------
-   * VERIFY EMAIL OTP
+   * VERIFY REGISTRATION EMAIL OTP
    * ---------------------------------------------------------
    */
 
@@ -484,16 +506,27 @@ function LoginPageContent() {
     setLoading(true);
 
     try {
+      /*
+       * IMPORTANT:
+       *
+       * This is a SIGNUP verification OTP.
+       *
+       * Use:
+       *   type: "signup"
+       *
+       * NOT:
+       *   type: "email"
+       */
       const verifyResult =
         await supabase.auth.verifyOtp({
           email: otpSentTo,
           token: cleanOtp,
-          type: "email",
+          type: "signup",
         });
 
       if (verifyResult.error) {
         console.error(
-          "Email OTP verification error:",
+          "Registration email OTP verification error:",
           verifyResult.error,
         );
 
@@ -533,6 +566,13 @@ function LoginPageContent() {
         return;
       }
 
+      /*
+       * The OTP verification creates/establishes the
+       * authenticated session.
+       *
+       * Now verify that our profile trigger has created
+       * the customer profile.
+       */
       const hasProfile =
         await verifyProfileWithRetry(user.id);
 
@@ -564,7 +604,7 @@ function LoginPageContent() {
 
   /*
    * ---------------------------------------------------------
-   * RESEND EMAIL OTP
+   * RESEND REGISTRATION EMAIL OTP
    * ---------------------------------------------------------
    */
 
@@ -585,6 +625,12 @@ function LoginPageContent() {
     setLoading(true);
 
     try {
+      /*
+       * IMPORTANT:
+       *
+       * type: "signup" tells Supabase that this is the
+       * registration/email-confirmation OTP.
+       */
       const resendResult =
         await supabase.auth.resend({
           type: "signup",
@@ -593,7 +639,7 @@ function LoginPageContent() {
 
       if (resendResult.error) {
         console.error(
-          "Resend email OTP error:",
+          "Resend registration email OTP error:",
           resendResult.error,
         );
 
@@ -695,6 +741,12 @@ function LoginPageContent() {
    * ---------------------------------------------------------
    * FORGOT PASSWORD
    * ---------------------------------------------------------
+   *
+   * Login page -> enter email -> reset email
+   * -> /auth/reset-password
+   *
+   * UI remains unchanged.
+   * ---------------------------------------------------------
    */
 
   async function handleForgotPassword() {
@@ -734,8 +786,13 @@ function LoginPageContent() {
         return;
       }
 
+      /*
+       * Supabase intentionally does not expose whether
+       * the email actually exists. This prevents account
+       * enumeration.
+       */
       setSuccess(
-        "Password reset link aapke email par bhej diya gaya. 📧",
+        "Agar is email se account registered hai, password reset link aapke email par bhej diya gaya hai. 📧",
       );
     } catch (err) {
       console.error(
