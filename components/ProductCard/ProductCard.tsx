@@ -61,8 +61,8 @@ export default function ProductCard({
   // PRODUCT DISPLAY DATA
   // ---------------------------------------------------------
 
-  const displayTitle =
-    product.product_title?.trim() ||
+  
+  const displayTitle =  product.product_title?.trim() ||
     product.name;
 
   const wishlisted = isFavorite(product.id);
@@ -202,17 +202,10 @@ export default function ProductCard({
 
         <div className="relative aspect-[1.2] overflow-hidden bg-[#f4f0e9] sm:aspect-[1.25]">
           <img
-            src={product.image}
-            alt={displayTitle}
-            loading={
-              index < 4
-                ? "eager"
-                : "lazy"
-            }
+            src={product.image} alt={displayTitle}
+            loading={ index < 4 ? "eager" : "lazy"}
             className={`h-full w-full object-cover transition duration-500 group-hover:scale-105 ${
-              isOutOfStock
-                ? "opacity-70"
-                : ""
+              isOutOfStock ? "opacity-70": ""
             }`}
           />
 

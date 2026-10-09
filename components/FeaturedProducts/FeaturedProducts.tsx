@@ -4,6 +4,7 @@ import FeaturedProductsClient from "./FeaturedProductsClient";
 type DbProduct = {
   id: string;
   name: string;
+  product_title: string;
   slug: string;
   selling_price: number | null;
   online_price: number | null;
@@ -101,6 +102,7 @@ export default async function FeaturedProducts() {
       return {
         id: product.id,
         slug:product.slug,
+        product_title: product.product_title,
         name: product.name,
         image: primaryImage.image_url,
         price,
