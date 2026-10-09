@@ -70,7 +70,7 @@ const { data: settings, error } = await supabase
 
     address:
       fullAddress ||
-      "Gali No. 32, Indira Park, Kailash Puri, Palam, New Delhi, Delhi, 110046",
+      "Gali No. 32, Indra Park, Kailash Puri, Palam, New Delhi, Delhi, 110046",
 
     mapsUrl:
       settings?.google_business_url || "",

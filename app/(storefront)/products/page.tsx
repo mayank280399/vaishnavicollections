@@ -1,4 +1,5 @@
 
+import { Suspense } from "react";
 import ProductsClient from "./ProductsClient";
 import type { Metadata } from "next";
 
@@ -10,6 +11,12 @@ export const metadata: Metadata = {
 
 export default function ProductsPage() {
   return (
+      <Suspense fallback={
+        <div className="min-h-[360px] bg-[#F8F7F4]" />
+      }
+    >
       <ProductsClient />
+    </Suspense>
+      
   );
 }

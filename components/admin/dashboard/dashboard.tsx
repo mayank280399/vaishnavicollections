@@ -38,10 +38,7 @@ export function Dashboard({ data }: DashboardProps) {
 
       {/* MAIN DASHBOARD + RIGHT RAIL */}
       <div
-        className="
-          mt-5 grid min-w-0 grid-cols-1 gap-4   
-        "
-      >
+        className="mt-5 grid min-w-0 grid-cols-1 gap-4">
         {/* =========================================
             MAIN DASHBOARD
         ========================================== */}

@@ -43,6 +43,31 @@ export function DashboardFilters() {
 
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  /*
+   * The dashboard defaults to "This Month".
+   *
+   * Previously, the UI displayed "This Month" when there was no
+   * range query parameter, but the URL itself remained without
+   * range=month. That meant the dashboard data layer could receive
+   * a different/default range than the filter UI.
+   *
+   * Normalize the URL on first load so the UI and data layer always
+   * use the same range.
+   */
+  useEffect(() => {
+    const range = searchParams.get("range");
+
+    if (range) {
+      return;
+    }
+
+    const params = new URLSearchParams(searchParams.toString());
+
+    params.set("range", "month");
+
+    router.replace(`${pathname}?${params.toString()}`);
+  }, [pathname, router, searchParams]);
+
   const currentRange =
     (searchParams.get("range") as RangeType) || "month";
 
@@ -66,7 +91,22 @@ export function DashboardFilters() {
     )?.label || "This Month";
 
   /**
-   * Close dropdown when clicking outside
+   * Keep custom date inputs synchronized with URL parameters.
+   */
+  useEffect(() => {
+    setCustomStart(searchParams.get("start") || "");
+    setCustomEnd(searchParams.get("end") || "");
+  }, [searchParams]);
+
+  /**
+   * Keep the custom panel state synchronized with the active range.
+   */
+  useEffect(() => {
+    setShowCustom(currentRange === "custom");
+  }, [currentRange]);
+
+  /**
+   * Close dropdown when clicking outside.
    */
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -92,7 +132,7 @@ export function DashboardFilters() {
   }, []);
 
   /**
-   * Close dropdown with Escape
+   * Close dropdown with Escape.
    */
   useEffect(() => {
     function handleEscape(event: KeyboardEvent) {
@@ -115,11 +155,12 @@ export function DashboardFilters() {
   }, []);
 
   /**
-   * Update URL for preset filters
+   * Update URL for preset filters.
    */
   function handleRangeChange(range: RangeType) {
     if (range === "custom") {
       setShowCustom(true);
+      setIsOpen(true);
       return;
     }
 
@@ -139,7 +180,7 @@ export function DashboardFilters() {
   }
 
   /**
-   * Apply custom date range
+   * Apply custom date range.
    */
   function handleCustomApply() {
     if (!customStart || !customEnd) {
