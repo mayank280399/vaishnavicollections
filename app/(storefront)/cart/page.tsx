@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -15,6 +15,7 @@ import {
 
 import { createClient } from "@/lib/supabase/client";
 import { useShopping } from "@/context/ShoppingContext";
+import { sendGAEvent } from "@next/third-parties/google";
 
 type CartProduct = {
   id: string;
@@ -81,6 +82,7 @@ export default function CartPage() {
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const reportedCartView = useRef(false);
 
   const supabase = useMemo(() => createClient(), []);
 
@@ -282,6 +284,22 @@ export default function CartPage() {
     );
   }, [cartItems]);
 
+  useEffect(() => {
+    if (shoppingLoading || loadingProducts || !cartProductItems.length || reportedCartView.current) return;
+    if (!window.dataLayer) return;
+    reportedCartView.current = true;
+    sendGAEvent("event", "view_cart", {
+      currency: "INR",
+      value: subtotal,
+      items: cartProductItems.map((item) => ({
+        item_id: item.id,
+        item_name: item.product_title?.trim() || item.name,
+        price: getProductPrice(item),
+        quantity: item.quantity,
+      })),
+    });
+  }, [cartProductItems, loadingProducts, shoppingLoading, subtotal]);
+
   /*
    * Handle quantity changes.
    */
@@ -301,6 +319,18 @@ export default function CartPage() {
         await removeCartItem(
           item.cartItemId,
         );
+        if (window.dataLayer) {
+          sendGAEvent("event", "remove_from_cart", {
+            currency: "INR",
+            value: getProductPrice(item) * item.quantity,
+            items: [{
+              item_id: item.id,
+              item_name: item.product_title?.trim() || item.name,
+              price: getProductPrice(item),
+              quantity: item.quantity,
+            }],
+          });
+        }
       } catch (error) {
         console.error(
           "Failed to remove cart item:",
@@ -374,9 +404,22 @@ export default function CartPage() {
     setRemovingId(cartItemId);
 
     try {
+      const item = cartProductItems.find((cartItem) => cartItem.cartItemId === cartItemId);
       await removeCartItem(
         cartItemId,
       );
+      if (item && window.dataLayer) {
+        sendGAEvent("event", "remove_from_cart", {
+          currency: "INR",
+          value: getProductPrice(item) * item.quantity,
+          items: [{
+            item_id: item.id,
+            item_name: item.product_title?.trim() || item.name,
+            price: getProductPrice(item),
+            quantity: item.quantity,
+          }],
+        });
+      }
     } catch (error) {
       console.error(
         "Failed to remove cart item:",
