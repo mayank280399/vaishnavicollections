@@ -135,6 +135,7 @@ async function getProducts(
     .select(`
       id,
       name,
+      product_title,
       slug,
       selling_price,
       online_price,
@@ -222,8 +223,9 @@ async function getProducts(
 
       return {
         id: String(product.id),
+        product_title: product.product_title,
         name: product.name,
-         slug: product.slug,
+        slug: product.slug,
         image,
         price: onlinePrice,
         originalPrice,

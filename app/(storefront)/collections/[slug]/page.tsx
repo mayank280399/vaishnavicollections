@@ -34,6 +34,7 @@ type Category = {
 
 type Product = {
   id: string;
+  product_title: string;
   name: string;
   slug: string;
   selling_price: number | null;
@@ -145,6 +146,7 @@ async function getProductsForCategories(
     .select(`
       id,
       name,
+      product_title,
       slug,
       selling_price,
       online_price,
@@ -215,6 +217,8 @@ async function getProductsForCategories(
       return {
         id: String(product.id),
         name: product.name,
+        product_title: product.product_title,
+        slug: product.slug,
         image: image.image_url,
         price,
         originalPrice: null,

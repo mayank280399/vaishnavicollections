@@ -120,7 +120,6 @@ export default async function FeaturedProducts() {
   if (!featured.length) {
     return null;
   }
-  console.log("Featured Products",featured);
 
   return <FeaturedProductsClient products={featured} />;
 }
