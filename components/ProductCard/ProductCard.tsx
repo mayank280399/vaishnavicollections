@@ -8,6 +8,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { useState } from "react";
+import { sendGAEvent } from "@next/third-parties/google";
 
 import { useShopping } from "@/context/ShoppingContext";
 
@@ -113,6 +114,19 @@ export default function ProductCard({
 
     try {
       await addToCart(product.id, 1);
+      if (typeof window !== "undefined" && window.dataLayer) {
+        sendGAEvent("event", "add_to_cart", {
+          currency: "INR",
+          value: product.price,
+          items: [{
+            item_id: product.id,
+            item_name: displayTitle,
+            ...(product.category ? { item_category: product.category } : {}),
+            price: product.price,
+            quantity: 1,
+          }],
+        });
+      }
 
       setAddedToCart(true);
     } catch (error) {

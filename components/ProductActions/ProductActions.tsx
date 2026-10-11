@@ -7,13 +7,16 @@ import {
   Share2,
   ShoppingBag,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { sendGAEvent } from "@next/third-parties/google";
 
 import { useShopping } from "@/context/ShoppingContext";
 
 interface ProductActionsProps {
   productId: string;
   productName: string;
+  productPrice: number;
+  productCategory?: string | null;
   stockQuantity: number | null;
   disabled?: boolean;
 }
@@ -21,6 +24,8 @@ interface ProductActionsProps {
 export default function ProductActions({
   productId,
   productName,
+  productPrice,
+  productCategory,
   stockQuantity,
   disabled = false,
 }: ProductActionsProps) {
@@ -34,6 +39,30 @@ export default function ProductActions({
   const [loading, setLoading] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [copied, setCopied] = useState(false);
+  const viewedProductId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (
+      viewedProductId.current === productId ||
+      typeof window === "undefined" ||
+      !window.dataLayer
+    ) {
+      return;
+    }
+
+    viewedProductId.current = productId;
+    sendGAEvent("event", "view_item", {
+      currency: "INR",
+      value: productPrice,
+      items: [{
+        item_id: productId,
+        item_name: productName,
+        ...(productCategory ? { item_category: productCategory } : {}),
+        price: productPrice,
+        quantity: 1,
+      }],
+    });
+  }, [productCategory, productId, productName, productPrice]);
 
   const cartItem = cartItems.find(
     (item) => item.product_id === productId,
@@ -57,6 +86,19 @@ export default function ProductActions({
       // Product page always adds ONE item.
       // Quantity is changed from the Cart page.
       await addToCart(productId, 1);
+      if (typeof window !== "undefined" && window.dataLayer) {
+        sendGAEvent("event", "add_to_cart", {
+          currency: "INR",
+          value: productPrice,
+          items: [{
+            item_id: productId,
+            item_name: productName,
+            ...(productCategory ? { item_category: productCategory } : {}),
+            price: productPrice,
+            quantity: 1,
+          }],
+        });
+      }
     } catch (error) {
       console.error(
         "Failed to add product to cart:",
@@ -101,10 +143,14 @@ export default function ProductActions({
   const handleShare = async () => {
     if (sharing) return;
 
-    const shareUrl =
-      typeof window !== "undefined"
-        ? window.location.href
-        : "";
+    const shareUrl = (() => {
+      if (typeof window === "undefined") return "";
+      const url = new URL(window.location.href);
+      url.searchParams.set("utm_source", "website");
+      url.searchParams.set("utm_medium", "share_button");
+      url.searchParams.set("utm_campaign", "product_share");
+      return url.toString();
+    })();
 
     if (!shareUrl) return;
 

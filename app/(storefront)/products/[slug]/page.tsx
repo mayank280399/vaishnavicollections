@@ -1004,6 +1004,14 @@ export default async function ProductPage({
 
             <ProductActions
               productId={product.id}
+              productPrice={
+                product.online_enabled &&
+                product.online_price !== null &&
+                product.online_price > 0
+                  ? product.online_price
+                  : product.selling_price
+              }
+              productCategory={category?.name}
               productName={
                 product.product_title ||
                 product.name
