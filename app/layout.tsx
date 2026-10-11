@@ -1,6 +1,7 @@
 ﻿import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
+import { GoogleAnalytics } from "@next/third-parties/google";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://vaishnavicollections.vercel.app/"),
@@ -64,7 +65,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body>{children}<ServiceWorkerRegistration /></body>
+      <body>
+        <GoogleAnalytics  gaId={process.env.NEXT_PUBLIC_GA_ID!} />
+        {children}
+        <ServiceWorkerRegistration /></body>
     </html>
   );
 }

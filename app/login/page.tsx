@@ -1,26 +1,9 @@
 "use client";
 
-import React, {
-  FormEvent,
-  Suspense,
-  useEffect,
-  useMemo,
-  useState,
-} from "react";
+import React, {FormEvent,Suspense, useEffect,useMemo, useState,} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  ArrowRight,
-  CheckCircle2,
-  Eye,
-  EyeOff,
-  Loader2,
-  Lock,
-  Mail,
-  User,
-} from "lucide-react";
-
+import { ArrowRight, CheckCircle2, Eye, EyeOff, Loader2, Lock, Mail, User,} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-
 type AuthMode = "login" | "register";
 
 function getSafeRedirect(value: string | null) {
@@ -206,13 +189,13 @@ function LoginPageContent() {
     const cleanEmail = email.trim().toLowerCase();
 
     if (!cleanEmail) {
-      setError("Apna email address enter kijiye.");
+      setError("Please enter your email address.");
       return false;
     }
 
     if (!isValidEmail(cleanEmail)) {
       setError(
-        "Please ek valid email address enter kijiye.",
+        "Please enter a valid email address.",
       );
       return false;
     }
@@ -240,7 +223,7 @@ function LoginPageContent() {
     }
 
     if (!password) {
-      setError("Password enter kijiye.");
+      setError("Please enter your password.");
       return;
     }
 
@@ -266,18 +249,18 @@ function LoginPageContent() {
           message.includes("invalid credentials")
         ) {
           setError(
-            "Email ya password sahi nahi hai. Please dobara check kijiye.",
+            "Email or password is incorrect. Please try again.",
           );
         } else if (
           message.includes("email not confirmed")
         ) {
           setError(
-            "Aapka email abhi verify nahi hua hai. Pehle email verify kijiye.",
+            "Your email has not been confirmed yet. Please verify your email first.",
           );
         } else {
           setError(
             result.error.message ||
-              "Login nahi ho paaya. Please dobara try kijiye.",
+              "Login failed. Please try again.",
           );
         }
 
@@ -286,7 +269,7 @@ function LoginPageContent() {
 
       if (!result.data.user) {
         setError(
-          "Login complete nahi ho paaya. Please dobara try kijiye.",
+          "Login failed. Please try again.",
         );
         return;
       }
@@ -297,7 +280,7 @@ function LoginPageContent() {
 
       if (!hasProfile) {
         setError(
-          "Account mil gaya, lekin profile setup complete nahi hua. Please dobara try kijiye.",
+          "Account found, but profile setup is not complete. Please try again.",
         );
         return;
       }
@@ -309,7 +292,7 @@ function LoginPageContent() {
       setError(
         err instanceof Error
           ? err.message
-          : "Kuch unexpected problem aa gayi. Please dobara try kijiye.",
+          : "An unexpected problem occurred. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -337,7 +320,7 @@ function LoginPageContent() {
     const cleanEmail = email.trim().toLowerCase();
 
     if (!trimmedName) {
-      setError("Apna naam enter kijiye.");
+      setError("Please enter your name.");
       return;
     }
 
@@ -346,7 +329,7 @@ function LoginPageContent() {
     }
 
     if (!password) {
-      setError("Create password.");
+      setError("Please create a password.");
       return;
     }
 
@@ -358,7 +341,7 @@ function LoginPageContent() {
     }
 
     if (password !== confirmPassword) {
-      setError("Dono passwords same nahi hain.");
+      setError("The passwords you entered do not match.");
       return;
     }
 
@@ -398,12 +381,12 @@ function LoginPageContent() {
           message.includes("user already registered")
         ) {
           setError(
-            "Ye email already registered hai. Login karke dekhiye.",
+            "This email is already registered. Please login instead.",
           );
         } else {
           setError(
             result.error.message ||
-              "Account create nahi ho paaya. Please dobara try kijiye.",
+              "Failed to create account. Please try again.",
           );
         }
 
@@ -412,7 +395,7 @@ function LoginPageContent() {
 
       if (!result.data.user) {
         setError(
-          "Account create nahi ho paaya. Please dobara try kijiye.",
+          "Failed to create account. Please try again.",
         );
         return;
       }
@@ -433,7 +416,7 @@ function LoginPageContent() {
         setResendCooldown(60);
 
         setSuccess(
-          "Aapke email par 6-digit verification code bheja gaya hai.",
+          "A verification code has been sent to your email.",
         );
 
         return;
@@ -452,7 +435,7 @@ function LoginPageContent() {
 
       if (!hasProfile) {
         setError(
-          "Account create ho gaya, lekin profile setup complete nahi hua. Please dobara login kijiye.",
+          "Account created, but profile setup is not complete. Please try again.",
         );
         return;
       }
@@ -467,7 +450,7 @@ function LoginPageContent() {
       setError(
         err instanceof Error
           ? err.message
-          : "Kuch unexpected problem aa gayi. Please dobara try kijiye.",
+          : "An unexpected problem occurred. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -491,14 +474,14 @@ function LoginPageContent() {
 
     if (cleanOtp.length !== 6) {
       setError(
-        "Please 6-digit verification code enter kijiye.",
+        "Please enter a 6-digit verification code.",
       );
       return;
     }
 
     if (!otpSentTo) {
       setError(
-        "Verification details missing hain. Please dobara try kijiye.",
+        "Verification details missing. Please try again.",
       );
       return;
     }
@@ -538,19 +521,19 @@ function LoginPageContent() {
           message.includes("otp expired")
         ) {
           setError(
-            "Ye verification code expire ho gaya hai. Please naya OTP resend kijiye.",
+            "Your verification code has expired. Please request a new OTP.",
           );
         } else if (
           message.includes("invalid") ||
           message.includes("token")
         ) {
           setError(
-            "Verification code galat hai. Please dobara check kijiye.",
+            "Verification code is invalid. Please check and try again.",
           );
         } else {
           setError(
             verifyResult.error.message ||
-              "Email verify nahi ho paaya. Please dobara try kijiye.",
+              "Failed to verify email. Please try again.",
           );
         }
 
@@ -561,7 +544,7 @@ function LoginPageContent() {
 
       if (!user) {
         setError(
-          "Verification complete nahi ho paayi. Please dobara try kijiye.",
+          "Verification could not be completed. Please try again.",
         );
         return;
       }
@@ -578,13 +561,13 @@ function LoginPageContent() {
 
       if (!hasProfile) {
         setError(
-          "Email successfully verify ho gaya, lekin profile setup complete nahi hua. Please thodi der baad login kijiye.",
+          "Email successfully verified, but profile setup is not complete. Please try again later.",
         );
         return;
       }
 
       setSuccess(
-        "Email successfully verify ho gaya! 🎉",
+        "Email successfully verified! 🎉",
       );
 
       await redirectAfterAuth(user.id);
@@ -595,7 +578,7 @@ function LoginPageContent() {
       );
 
       setError(
-        "Email verification me problem aa gayi. Please dobara try kijiye.",
+        "An unexpected problem occurred. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -617,7 +600,7 @@ function LoginPageContent() {
 
     if (!otpSentTo) {
       setError(
-        "Verification details missing hain. Please dobara registration kijiye.",
+        "Verification details missing. Please try again.",
       );
       return;
     }
@@ -645,7 +628,7 @@ function LoginPageContent() {
 
         setError(
           resendResult.error.message ||
-            "OTP resend nahi ho paaya. Please thodi der baad try kijiye.",
+            "Failed to resend OTP. Please try again later.",
         );
 
         return;
@@ -655,7 +638,7 @@ function LoginPageContent() {
       setResendCooldown(60);
 
       setSuccess(
-        "Naya OTP aapke email par bhej diya gaya hai.",
+        "A new OTP has been sent to your email.",
       );
     } catch (err) {
       console.error(
@@ -664,7 +647,7 @@ function LoginPageContent() {
       );
 
       setError(
-        "OTP resend me problem aa gayi. Please thodi der baad try kijiye.",
+        "An unexpected problem occurred. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -720,7 +703,7 @@ function LoginPageContent() {
 
         setError(
           googleError.message ||
-            "Google se login nahi ho paaya. Please dobara try kijiye.",
+            "Failed to login with Google. Please try again.",
         );
       }
     } catch (err) {
@@ -730,7 +713,7 @@ function LoginPageContent() {
       );
 
       setError(
-        "Google login me problem aa gayi. Please dobara try kijiye.",
+        "An unexpected problem occurred. Please try again.",
       );
     } finally {
       setGoogleLoading(false);
@@ -780,7 +763,7 @@ function LoginPageContent() {
 
         setError(
           resetError.message ||
-            "Password reset email send nahi ho paaya.",
+            "Failed to send password reset email.",
         );
 
         return;
@@ -792,7 +775,7 @@ function LoginPageContent() {
        * enumeration.
        */
       setSuccess(
-        "Agar is email se account registered hai, password reset link aapke email par bhej diya gaya hai. 📧",
+        "If an account exists with this email, a password reset link has been sent to your inbox. 📧",
       );
     } catch (err) {
       console.error(
@@ -801,7 +784,7 @@ function LoginPageContent() {
       );
 
       setError(
-        "Password reset me problem aa gayi. Please dobara try kijiye.",
+        "An unexpected problem occurred. Please try again.",
       );
     } finally {
       setLoading(false);
@@ -869,12 +852,12 @@ function LoginPageContent() {
             </div>
 
             <h1 className="text-2xl font-bold text-[#071A35] sm:text-3xl">
-              Verification code enter kijiye
+              Enter Verification Code
             </h1>
 
             <p className="mt-3 text-sm leading-6 text-gray-500">
-              Humne 6-digit verification code aapke
-              email address par bheja hai.
+              We've sent a 6-digit verification code to your
+              email address.
             </p>
 
             <div className="mt-5 flex items-center justify-between gap-3 rounded-2xl border border-gray-200 bg-gray-50 p-4">
