@@ -28,6 +28,7 @@ type PaymentStatus =
   | "PARTIALLY_PAID"
   | "PAID"
   | "FAILED"
+  | "PARTIALLY_REFUNDED"
   | "REFUNDED";
 
 type PaymentPlan =
@@ -158,6 +159,9 @@ function getPaymentStatusLabel(
     case "FAILED":
       return "Payment Failed";
 
+    case "PARTIALLY_REFUNDED":
+      return "Partially Refunded";
+
     case "REFUNDED":
       return "Refunded";
 
@@ -178,6 +182,9 @@ function getPaymentStatusClasses(
 
     case "REFUNDED":
       return "bg-purple-50 text-purple-700 border-purple-200";
+
+    case "PARTIALLY_REFUNDED":
+      return "bg-violet-50 text-violet-700 border-violet-200";
 
     case "FAILED":
       return "bg-red-50 text-red-700 border-red-200";
@@ -699,7 +706,7 @@ export default function OrdersPage() {
               </h2>
 
               <p className="mt-2 text-sm leading-6 text-slate-600">
-                You haven't placed an order with
+                You haven&apos;t placed an order with
                 Vaishnavi Collections yet.
               </p>
 

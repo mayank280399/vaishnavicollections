@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState,} from "react";
+import React, { useEffect, useMemo, useRef, useState,} from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft,  Loader2,} from "lucide-react";
@@ -57,6 +57,8 @@ export default function CheckoutPage() {
 
   const [customer, setCustomer] =
     useState<Customer | null>(null);
+
+  const customerPrefillLoaded = useRef(false);
 
   const [recipientMode, setRecipientMode] =
     useState<RecipientMode>("me");
@@ -243,58 +245,40 @@ export default function CheckoutPage() {
          * ------------------------------------------------
          */
 
-        setForm((current) => ({
-          ...current,
+        if (!customerPrefillLoaded.current) {
+          setForm((current) => ({
+            ...current,
 
-          customerName:
-            customerData?.display_name ??
-            user.user_metadata?.display_name ??
-            user.user_metadata?.full_name ??
-            current.customerName,
+            customerName:
+              customerData?.display_name ??
+              user.user_metadata?.display_name ??
+              user.user_metadata?.full_name ??
+              current.customerName,
 
-          customerPhone:
-            customerData?.phone ??
-            current.customerPhone,
+            customerPhone:
+              customerData?.phone ?? current.customerPhone,
+            addressLine1:
+              customerData?.address_line1 ?? current.addressLine1,
+            addressLine2:
+              customerData?.address_line2 ?? current.addressLine2,
+            city: customerData?.city ?? current.city,
+            state: customerData?.state ?? current.state,
+            postalCode:
+              customerData?.postal_code ?? current.postalCode,
+          }));
 
-          addressLine1:
-            customerData?.address_line1 ??
-            current.addressLine1,
-
-          addressLine2:
-            customerData?.address_line2 ??
-            current.addressLine2,
-
-          city:
-            customerData?.city ??
-            current.city,
-
-          state:
-            customerData?.state ??
-            current.state,
-
-          postalCode:
-            customerData?.postal_code ??
-            current.postalCode,
-        }));
-
-        /*
-         * Automatically recognise that the customer
-         * already has saved checkout information.
-         */
-
-        const hasSavedDetails =
-          Boolean(
+          const hasSavedDetails = Boolean(
             customerData?.display_name &&
-            customerData?.phone &&
-            customerData?.address_line1 &&
-            customerData?.city &&
-            customerData?.state &&
-            customerData?.postal_code,
+              customerData?.phone &&
+              customerData?.address_line1 &&
+              customerData?.city &&
+              customerData?.state &&
+              customerData?.postal_code,
           );
 
-        setSaveCustomerDetails(
-          hasSavedDetails,
-        );
+          setSaveCustomerDetails(hasSavedDetails);
+          customerPrefillLoaded.current = true;
+        }
 
         /*
          * ------------------------------------------------

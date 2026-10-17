@@ -142,7 +142,7 @@ export default function RefundReturnPolicyPage() {
             </p>
 
             <p className="mt-5 text-sm text-slate-400">
-              Last updated: 1 October 2026
+              Last updated: 11 October 2026
             </p>
           </div>
         </div>
@@ -173,7 +173,7 @@ export default function RefundReturnPolicyPage() {
           <HighlightCard
             icon={<ShieldCheck className="h-5 w-5" />}
             title="Unboxing Video"
-            description="Mandatory for return requests."
+            description="Required for eligible claims, subject to lawful exceptions."
           />
 
           <HighlightCard
@@ -266,18 +266,17 @@ export default function RefundReturnPolicyPage() {
               <PolicySection id="returns" title="1. Returns">
                 <p>
                   Eligible products can be returned within{" "}
-                  <strong>3 days of receiving your order</strong>.
+                  <strong>3 calendar days from the recorded delivery date</strong>.
                 </p>
 
                 <p>To be eligible for a return:</p>
 
                 <BulletList
                   items={[
-                    "The product must be unused and unworn.",
-                    "It must be in its original condition and packaging.",
+                    "The product should be unused and unworn and in its original condition and packaging, except where applicable consumer law or the nature of a defect requires otherwise.",
                     "All tags, accessories, parts, and other items supplied with the product should be returned.",
                     "The product should not have been washed, altered, damaged, or used.",
-                    "An unboxing video is mandatory for return requests. The video should clearly show the package from the time it is opened and should capture the product and its condition.",
+                    "An unboxing video is required for eligible claims and should show the package being opened and the product condition. Exceptions apply where required by applicable consumer law or the nature of the claim.",
                   ]}
                 />
 
@@ -294,7 +293,7 @@ export default function RefundReturnPolicyPage() {
                   If your order arrives damaged, defective, or you receive a
                   product different from what you ordered, please contact
                   Vaishnavi Collections as soon as possible and preferably
-                  within <strong>3 days of delivery</strong>.
+                  within <strong>3 calendar days of recorded delivery</strong>, subject to applicable consumer law.
                 </p>
 
                 <p>
@@ -366,14 +365,16 @@ export default function RefundReturnPolicyPage() {
 
                 <ol className="space-y-3 pl-5">
                   <li>
-                    Contact Vaishnavi Collections customer support through{" "}
-                    <strong>WhatsApp</strong> within 3 days of receiving your
-                    order.
+                    Contact Vaishnavi Collections through the support details
+                    below within 3 calendar days of the recorded delivery date.
+                    If the delivery date is missing or incorrect, contact us so
+                    it can be verified.
                   </li>
 
                   <li>
-                    Share your <strong>order number</strong> and details of the
-                    product you want to return.
+                    Share your order number, affected item and quantity, and
+                    reason. Do not include your UPI ID in the initial request;
+                    we will ask for it only after approval.
                   </li>
 
                   <li>
@@ -382,7 +383,10 @@ export default function RefundReturnPolicyPage() {
                   </li>
 
                   <li>
-                    Provide the required <strong>unboxing video</strong>.
+                    Provide the required <strong>unboxing video</strong> and
+                    supporting photos/videos for an eligible claim, subject to
+                    the exceptions above. Contact support for instructions on
+                    securely sharing the evidence.
                   </li>
 
                   <li>
@@ -402,8 +406,8 @@ export default function RefundReturnPolicyPage() {
                 </Notice>
 
                 <p>
-                  Once a return has been approved, the return shipment should
-                  be arranged within <strong>7 days of return approval</strong>.
+                  Once a return has been approved, dispatch it within{" "}
+                  <strong>7 calendar days</strong>, unless we agree otherwise.
                 </p>
               </PolicySection>
 
@@ -419,21 +423,18 @@ export default function RefundReturnPolicyPage() {
                 </p>
 
                 <p>
-                  For an approved refund, the refund amount will normally be
-                  credited to your{" "}
-                  <strong>Vaishnavi Collections Wallet</strong>.
-                </p>
-
-                <p>
-                  If you prefer to receive the refund directly, you may provide
-                  your <strong>UPI ID or payment QR code</strong>.
+                  An approved refund is sent manually by UPI to the
+                  customer&apos;s UPI ID. We will request the UPI ID only after
+                  the return has been approved. We do not provide wallet or
+                  store-credit refunds.
                 </p>
 
                 <p>
                   For an approved direct refund, we aim to process the refund
-                  within{" "}
-                  <strong>3 days of receiving the returned product</strong>,
-                  subject to successful verification.
+                  within <strong>3 calendar days after the returned product is
+                  received and inspected</strong>, subject to verification and
+                  applicable law. A refund is not complete until we confirm the
+                  manual transfer and provide its transaction reference.
                 </p>
 
                 <p>
@@ -477,7 +478,7 @@ export default function RefundReturnPolicyPage() {
                 <p>
                   <strong>
                     Shipping charges and Cash on Delivery (COD) charges are
-                    generally non-refundable.
+                    generally non-refundable where permitted by applicable law.
                   </strong>
                 </p>
 
@@ -490,7 +491,8 @@ export default function RefundReturnPolicyPage() {
 
                 <p>
                   For customer-initiated returns, applicable return shipping
-                  costs may be deducted from the refundable amount.
+                  costs may be the customer&apos;s responsibility where
+                  permitted by law, taking the reason for return into account.
                 </p>
               </PolicySection>
 
@@ -515,8 +517,8 @@ export default function RefundReturnPolicyPage() {
                 <p>
                   For customer-requested exchanges,{" "}
                   <strong>
-                    return shipping and forward shipping charges will be borne
-                    by the customer
+                    return and forward shipping charges may be the
+                    customer&apos;s responsibility where permitted by law
                   </strong>
                   .
                 </p>
@@ -595,9 +597,10 @@ export default function RefundReturnPolicyPage() {
                 />
 
                 <Notice>
-                  An unboxing video is mandatory for return requests and may be
-                  required when reviewing claims relating to missing, damaged,
-                  defective, or incorrect products.
+                  An unboxing video is required for eligible claims. Exceptions
+                  apply where required by applicable consumer law or the nature
+                  of a defect or claim. A missing video does not remove any
+                  rights available under applicable law.
                 </Notice>
               </PolicySection>
 
