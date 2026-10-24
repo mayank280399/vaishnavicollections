@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -13,6 +14,7 @@ import ProductActions from "@/components/ProductActions/ProductActions";
 import type { StorefrontProduct } from "@/components/ProductCard/ProductCard";
 import SimilarProducts from "@/components/SimilarProducts/page";
 import RelatedProducts from "@/components/RelatedProducts/page";
+import StorefrontRouteLoading from "@/components/(storefront)/collection/StorefrontRouteLoading";
 
 interface ProductImage {
   id: string;
@@ -300,7 +302,7 @@ function mapToStorefrontProduct(
    PAGE
 ========================================================= */
 
-export default async function ProductPage({
+async function ProductContent({
   params,
 }: PageProps) {
   const { slug } = await params;
@@ -1157,5 +1159,18 @@ export default async function ProductPage({
         />
       </div>
     </main>
+  );
+}
+
+/**
+ * Render the route shell immediately and stream the Supabase-backed
+ * product content behind a Suspense boundary. The storefront layout
+ * (including its header and navigation) stays visible while this loads.
+ */
+export default function ProductPage({ params }: PageProps) {
+  return (
+    <Suspense fallback={<StorefrontRouteLoading variant="product" />}>
+      <ProductContent params={params} />
+    </Suspense>
   );
 }
