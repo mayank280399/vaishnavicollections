@@ -379,27 +379,61 @@ async function SubcategoryContent({
     );
 
   const canonical = `${SITE_URL}/collections/${encodeURIComponent(parent.slug)}/${encodeURIComponent(subcategory.slug)}`;
-  const breadcrumbStructuredData = {
+  const subcategoryStructuredData = {
     "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
+    "@graph": [
       {
-        "@type": "ListItem",
-        position: 1,
-        name: "Home",
-        item: SITE_URL + "/",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: SITE_URL + "/",
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: parent.name,
+            item: `${SITE_URL}/collections/${encodeURIComponent(parent.slug)}`,
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: subcategory.name,
+            item: canonical,
+          },
+        ],
       },
       {
-        "@type": "ListItem",
-        position: 2,
-        name: parent.name,
-        item: `${SITE_URL}/collections/${encodeURIComponent(parent.slug)}`,
-      },
-      {
-        "@type": "ListItem",
-        position: 3,
+        "@type": "CollectionPage",
+        "@id": `${canonical}#collection`,
         name: subcategory.name,
-        item: canonical,
+        url: canonical,
+        ...(subcategory.description?.trim()
+          ? { description: subcategory.description.trim() }
+          : {}),
+        ...(subcategory.image_url
+          ? { primaryImageOfPage: subcategory.image_url }
+          : {}),
+        isPartOf: {
+          "@id": `${SITE_URL}/#website`,
+        },
+        mainEntity: {
+          "@type": "ItemList",
+          numberOfItems: products.length,
+          itemListElement: products.map((product, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            url: `${SITE_URL}/products/${encodeURIComponent(product.slug)}`,
+            item: {
+              "@type": "Product",
+              name: product.product_title || product.name,
+              url: `${SITE_URL}/products/${encodeURIComponent(product.slug)}`,
+              image: product.image,
+            },
+          })),
+        },
       },
     ],
   };
@@ -409,7 +443,7 @@ async function SubcategoryContent({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(breadcrumbStructuredData).replace(/</g, "\\u003c"),
+          __html: JSON.stringify(subcategoryStructuredData).replace(/</g, "\\u003c"),
         }}
       />
       {/* ===================================================
