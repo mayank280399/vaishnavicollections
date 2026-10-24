@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import StorefrontRouteLoading from "@/components/(storefront)/collection/StorefrontRouteLoading";
 import {
   ChevronRight,
   Home,
@@ -300,7 +302,7 @@ export async function generateMetadata({
    PAGE
 ========================================================= */
 
-export default async function ParentCollectionPage({
+async function ParentCollectionContent({
   params,
 }: PageProps) {
   const { slug } = await params;
@@ -449,5 +451,17 @@ export default async function ParentCollectionPage({
         </div>
       </section>
     </main>
+  );
+}
+
+/**
+ * Keep the shared storefront layout visible and show the collection
+ * shell immediately while category, subcategory, and product data loads.
+ */
+export default function ParentCollectionPage({ params }: PageProps) {
+  return (
+    <Suspense fallback={<StorefrontRouteLoading variant="collection" />}>
+      <ParentCollectionContent params={params} />
+    </Suspense>
   );
 }
