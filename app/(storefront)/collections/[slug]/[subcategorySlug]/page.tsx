@@ -286,7 +286,7 @@ export async function generateMetadata({
   }
 
   const title =
-    `${subcategory.name} | ${parent.name}`;
+    `Shop ${subcategory.name} Online | ${parent.name}`;
 
   const description =
     subcategory.description ||
