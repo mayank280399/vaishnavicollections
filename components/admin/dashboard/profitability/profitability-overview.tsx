@@ -25,16 +25,13 @@ function formatCurrency(value: number) {
 export function ProfitabilityOverview({ data }: Props) {
   const revenue = data.totalSales;
   const expenses = data.totalExpenses;
+  const purchases = data.totalPurchases;
   const grossProfit = data.grossProfit;
   const netProfit = data.cashSurplus;
 
-  const margin =
-    revenue > 0
-      ? (netProfit / revenue) * 100
-      : 0;
-
+  const margin = revenue > 0 ? (netProfit / revenue) * 100  : 0;
   const isProfit = netProfit >= 0;
-
+  const moneyoutflow = expenses + purchases;
   return (
     <DashboardCard className="h-full p-4 sm:p-5">
       <div className="flex items-center justify-between">
@@ -54,7 +51,7 @@ export function ProfitabilityOverview({ data }: Props) {
       <div className="mt-5 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-xs text-slate-500">
-            Revenue
+            Earning (Money Inflow)
           </span>
 
           <span className="text-xs font-semibold text-slate-800">
@@ -64,11 +61,11 @@ export function ProfitabilityOverview({ data }: Props) {
 
         <div className="flex items-center justify-between">
           <span className="text-xs text-slate-500">
-            Expenses
+            Expenses (Money Outflow)
           </span>
 
           <span className="text-xs font-semibold text-slate-800">
-            {formatCurrency(expenses)}
+            {formatCurrency(moneyoutflow)}
           </span>
         </div>
 
@@ -84,12 +81,7 @@ export function ProfitabilityOverview({ data }: Props) {
           </div>
         </div>
 
-        <div
-          className={[
-            "rounded-lg p-3",
-            isProfit ? "bg-emerald-50" : "bg-red-50",
-          ].join(" ")}
-        >
+        <div className={["rounded-lg p-3", isProfit ? "bg-emerald-50" : "bg-red-50"].join(" ")}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               {isProfit ? (

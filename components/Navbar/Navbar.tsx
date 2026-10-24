@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter} from "next/navigation";
 import { useEffect, useState } from "react";
+import NotificationBell from "@/components/notifications/NotificationBell";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Search,
@@ -407,7 +408,8 @@ export default function Navbar() {
             >
               <Search size={20} />
             </Link>
-
+          {/* Notifications */}
+          {user && <NotificationBell />}
             {/* Wishlist - Desktop only */}
             <Link
               href="/wishlist"
