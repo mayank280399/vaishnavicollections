@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -13,6 +14,7 @@ import ProductActions from "@/components/ProductActions/ProductActions";
 import type { StorefrontProduct } from "@/components/ProductCard/ProductCard";
 import SimilarProducts from "@/components/SimilarProducts/page";
 import RelatedProducts from "@/components/RelatedProducts/page";
+import StorefrontRouteLoading from "@/components/(storefront)/collection/StorefrontRouteLoading";
 
 interface ProductImage {
   id: string;
@@ -300,7 +302,7 @@ function mapToStorefrontProduct(
    PAGE
 ========================================================= */
 
-export default async function ProductPage({
+async function ProductContent({
   params,
 }: PageProps) {
   const { slug } = await params;
@@ -353,45 +355,28 @@ export default async function ProductPage({
   const product = productData as Product;
 
   /* =======================================================
-     PRODUCT IMAGES
+     PRODUCT IMAGES + CATEGORY
+
+     These reads are independent after the current product is
+     known, so run them together instead of serially.
   ======================================================= */
 
-  const {
-    data: productImagesData,
-    error: productImagesError,
-  } = await supabase
-    .from("product_images")
-    .select(
-      `
-        id,
-        image_url,
-        is_primary
-      `,
-    )
-    .eq("product_id", product.id)
-    .order("is_primary", {
-      ascending: false,
-    });
-
-  if (productImagesError) {
-    console.error(
-      "Product images error:",
-      productImagesError,
-    );
-  }
-
-  const images: ProductImage[] =
-    productImagesData || [];
-
-  /* =======================================================
-     CURRENT CATEGORY / SUBCATEGORY
-  ======================================================= */
-
-  const { data: categoryData } =
-    await supabase
-      .from("product_categories")
-      .select(
-        `
+  const [productImagesResult, categoryResult] =
+    await Promise.all([
+      supabase
+        .from("product_images")
+        .select(`
+          id,
+          image_url,
+          is_primary
+        `)
+        .eq("product_id", product.id)
+        .order("is_primary", {
+          ascending: false,
+        }),
+      supabase
+        .from("product_categories")
+        .select(`
           id,
           name,
           slug,
@@ -399,14 +384,24 @@ export default async function ProductPage({
           image_url,
           parent_id,
           active
-        `,
-      )
-      .eq("id", product.category_id)
-      .eq("active", true)
-      .maybeSingle();
+        `)
+        .eq("id", product.category_id)
+        .eq("active", true)
+        .maybeSingle(),
+    ]);
+
+  if (productImagesResult.error) {
+    console.error(
+      "Product images error:",
+      productImagesResult.error,
+    );
+  }
+
+  const images: ProductImage[] =
+    productImagesResult.data || [];
 
   const category =
-    categoryData as Category | null;
+    categoryResult.data as Category | null;
 
   /* =======================================================
      PARENT CATEGORY
@@ -679,12 +674,94 @@ export default async function ProductPage({
     product.stock_quantity === null ||
     product.stock_quantity > 0;
 
+  const productName = product.product_title || product.name;
+  const productUrl = `https://vaishnavicollections.vercel.app/products/${encodeURIComponent(product.slug)}`;
+  const productImages = images
+    .map((image) => image.image_url)
+    .filter((imageUrl) => Boolean(imageUrl));
+  const productBreadcrumbItems = [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: "https://vaishnavicollections.vercel.app/",
+    },
+    ...(parentCategory
+      ? [{
+          "@type": "ListItem",
+          position: 2,
+          name: parentCategory.name,
+          item: `https://vaishnavicollections.vercel.app/collections/${encodeURIComponent(parentCategory.slug)}`,
+        }]
+      : []),
+    ...(category && category.id !== parentCategory?.id
+      ? [{
+          "@type": "ListItem",
+          position: parentCategory ? 3 : 2,
+          name: category.name,
+          item: `https://vaishnavicollections.vercel.app/collections/${encodeURIComponent(parentCategory?.slug ?? category.slug)}${parentCategory ? `/${encodeURIComponent(category.slug)}` : ""}`,
+        }]
+      : []),
+    {
+      "@type": "ListItem",
+      position: (parentCategory ? (category && category.id !== parentCategory.id ? 4 : 3) : 2),
+      name: productName,
+      item: productUrl,
+    },
+  ];
+  const productStructuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Product",
+        "@id": `${productUrl}#product`,
+        name: productName,
+        url: productUrl,
+        ...(product.description?.trim()
+          ? { description: product.description.trim() }
+          : {}),
+        ...(productImages.length ? { image: productImages } : {}),
+        ...(product.sku ? { sku: product.sku } : {}),
+        category: category?.name ?? parentCategory?.name,
+        brand: {
+          "@type": "Brand",
+          name: "Vaishnavi Collections",
+        },
+        offers: {
+          "@type": "Offer",
+          url: productUrl,
+          priceCurrency: "INR",
+          price: Number(price).toFixed(2),
+          availability: isInStock
+            ? "https://schema.org/InStock"
+            : "https://schema.org/OutOfStock",
+          itemCondition: "https://schema.org/NewCondition",
+          seller: {
+            "@type": "Organization",
+            "@id": "https://vaishnavicollections.vercel.app/#organization",
+            name: "Vaishnavi Collections",
+          },
+        },
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: productBreadcrumbItems,
+      },
+    ],
+  };
+
   /* =======================================================
      PAGE
   ======================================================= */
 
   return (
     <main className="min-w-0 bg-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(productStructuredData).replace(/</g, "\\u003c"),
+        }}
+      />
       <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
 
         {/* =================================================
@@ -1164,5 +1241,18 @@ export default async function ProductPage({
         />
       </div>
     </main>
+  );
+}
+
+/**
+ * Render the route shell immediately and stream the Supabase-backed
+ * product content behind a Suspense boundary. The storefront layout
+ * (including its header and navigation) stays visible while this loads.
+ */
+export default function ProductPage({ params }: PageProps) {
+  return (
+    <Suspense fallback={<StorefrontRouteLoading variant="product" />}>
+      <ProductContent params={params} />
+    </Suspense>
   );
 }

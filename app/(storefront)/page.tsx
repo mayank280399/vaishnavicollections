@@ -12,6 +12,9 @@ import type { Metadata } from "next";
 export const revalidate = 86400;
 
 export const metadata: Metadata = {
+  title: "Laddu Gopal Poshak & Shringar Online",
+  description:
+    "Shop Laddu Gopal Ji poshak, shringar, mukut and jewellery, plus home décor, beauty products and handmade hair accessories. Affordable prices and Pan India shipping.",
   alternates: { canonical: "/" },
 };
 

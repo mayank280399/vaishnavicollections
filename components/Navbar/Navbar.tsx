@@ -286,7 +286,7 @@ export default function Navbar() {
                 height={55}
                 className={[
                   "h-auto w-auto object-contain transition-all duration-300",
-                  "max-h-10 max-w-[145px]",
+                  "max-h-10 max-w-[180px]",
                   "sm:max-h-12 sm:max-w-[200px]",
                   "lg:max-h-14 lg:max-w-[220px]",
                 ].join(" ")}
