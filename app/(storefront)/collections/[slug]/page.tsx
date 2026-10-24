@@ -74,7 +74,6 @@ async function getParentCategory(
     console.error("Parent collection error:", error);
     return null;
   }
-  console.log("Parent collection data:", data);
   return data as Category | null;
 }
 
