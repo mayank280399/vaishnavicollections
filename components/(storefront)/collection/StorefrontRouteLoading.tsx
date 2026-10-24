@@ -16,8 +16,10 @@ export default function StorefrontRouteLoading({
 }: StorefrontRouteLoadingProps) {
   if (variant === "product") {
     return (
-      <main
-        aria-label="Loading product"
+      <div
+        role="status"
+        aria-live="polite"
+        aria-label="Loading product details"
         aria-busy="true"
         className="min-h-screen bg-[#F8F7F4] px-4 py-6 sm:px-6 lg:px-8"
       >
@@ -39,12 +41,14 @@ export default function StorefrontRouteLoading({
             </div>
           </div>
         </div>
-      </main>
+      </div>
     );
   }
 
   return (
-    <main
+    <div
+      role="status"
+      aria-live="polite"
       aria-label="Loading collection"
       aria-busy="true"
       className="min-h-screen bg-[#F8F7F4]"
@@ -70,6 +74,6 @@ export default function StorefrontRouteLoading({
           ))}
         </div>
       </div>
-    </main>
+    </div>
   );
 }
