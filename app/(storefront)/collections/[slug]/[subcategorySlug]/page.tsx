@@ -378,8 +378,40 @@ async function SubcategoryContent({
       subcategory.name,
     );
 
+  const canonical = `${SITE_URL}/collections/${encodeURIComponent(parent.slug)}/${encodeURIComponent(subcategory.slug)}`;
+  const breadcrumbStructuredData = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: SITE_URL + "/",
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: parent.name,
+        item: `${SITE_URL}/collections/${encodeURIComponent(parent.slug)}`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: subcategory.name,
+        item: canonical,
+      },
+    ],
+  };
+
   return (
     <main className="min-h-screen bg-[#F8F7F4]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbStructuredData).replace(/</g, "\\u003c"),
+        }}
+      />
       {/* ===================================================
         HERO
     =================================================== */}
