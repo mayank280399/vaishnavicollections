@@ -25,7 +25,6 @@ export default function CollectionSubcategoryCard({
       href={`/collections/${encodeURIComponent(
         parentSlug,
       )}/${encodeURIComponent(category.slug)}`}
-      prefetch
       className="group overflow-hidden rounded-2xl border border-[#e9e1d4] bg-white shadow-sm transition-all duration-300 hover:-translate-y-1 hover:border-[#d7bd7b] hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-[#b18425]/40 focus:ring-offset-2"
     >
       {/* Image */}
