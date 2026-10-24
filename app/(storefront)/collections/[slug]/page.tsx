@@ -1,7 +1,9 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import StorefrontRouteLoading from "@/components/(storefront)/collection/StorefrontRouteLoading";
 import {
   ChevronRight,
   Home,
@@ -242,7 +244,7 @@ export async function generateMetadata({
     };
   }
 
-  const title = category.name;
+  const title = `Shop ${category.name} Online`;
 
   const description =
     category.description?.trim() ||
@@ -300,7 +302,7 @@ export async function generateMetadata({
    PAGE
 ========================================================= */
 
-export default async function ParentCollectionPage({
+async function ParentCollectionContent({
   params,
 }: PageProps) {
   const { slug } = await params;
@@ -327,21 +329,55 @@ export default async function ParentCollectionPage({
     category.slug,
   )}`;
 
-  const breadcrumbSchema = {
+  const collectionStructuredData = {
     "@context": "https://schema.org",
-    "@type": "BreadcrumbList",
-    itemListElement: [
+    "@graph": [
       {
-        "@type": "ListItem",
-        position: 1,
-        name: "Home",
-        item: SITE_URL,
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: SITE_URL,
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: category.name,
+            item: canonical,
+          },
+        ],
       },
       {
-        "@type": "ListItem",
-        position: 2,
+        "@type": "CollectionPage",
+        "@id": `${canonical}#collection`,
         name: category.name,
-        item: canonical,
+        url: canonical,
+        ...(category.description?.trim()
+          ? { description: category.description.trim() }
+          : {}),
+        ...(category.image_url
+          ? { primaryImageOfPage: category.image_url }
+          : {}),
+        isPartOf: {
+          "@id": `${SITE_URL}/#website`,
+        },
+        mainEntity: {
+          "@type": "ItemList",
+          numberOfItems: products.length,
+          itemListElement: products.map((product, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            url: `${SITE_URL}/products/${encodeURIComponent(product.slug)}`,
+            item: {
+              "@type": "Product",
+              name: product.product_title || product.name,
+              url: `${SITE_URL}/products/${encodeURIComponent(product.slug)}`,
+              image: product.image,
+            },
+          })),
+        },
       },
     ],
   };
@@ -352,7 +388,7 @@ export default async function ParentCollectionPage({
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify(breadcrumbSchema),
+          __html: JSON.stringify(collectionStructuredData).replace(/</g, "\\u003c"),
         }} />
 
       {/* =====================================================
@@ -449,5 +485,17 @@ export default async function ParentCollectionPage({
         </div>
       </section>
     </main>
+  );
+}
+
+/**
+ * Keep the shared storefront layout visible and show the collection
+ * shell immediately while category, subcategory, and product data loads.
+ */
+export default function ParentCollectionPage({ params }: PageProps) {
+  return (
+    <Suspense fallback={<StorefrontRouteLoading variant="collection" />}>
+      <ParentCollectionContent params={params} />
+    </Suspense>
   );
 }

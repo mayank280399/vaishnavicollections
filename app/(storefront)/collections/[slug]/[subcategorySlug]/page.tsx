@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -6,6 +7,7 @@ import ProductCard, { type StorefrontProduct} from "@/components/ProductCard/Pro
 import CollectionBanner from "@/components/(storefront)/collection/CollectionBanner";
 import BreadCrumb from "@/components/(storefront)/collection/BreadCrumb";
 import { ShoppingBag } from "lucide-react";
+import StorefrontRouteLoading from "@/components/(storefront)/collection/StorefrontRouteLoading";
 
 
 type PageProps = {
@@ -284,7 +286,7 @@ export async function generateMetadata({
   }
 
   const title =
-    `${subcategory.name} | ${parent.name}`;
+    `Shop ${subcategory.name} Online | ${parent.name}`;
 
   const description =
     subcategory.description ||
@@ -331,7 +333,7 @@ export async function generateMetadata({
    PAGE
 ========================================================= */
 
-export default async function SubcategoryPage({
+async function SubcategoryContent({
   params,
 }: PageProps) {
   const {
@@ -376,8 +378,74 @@ export default async function SubcategoryPage({
       subcategory.name,
     );
 
+  const canonical = `${SITE_URL}/collections/${encodeURIComponent(parent.slug)}/${encodeURIComponent(subcategory.slug)}`;
+  const subcategoryStructuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          {
+            "@type": "ListItem",
+            position: 1,
+            name: "Home",
+            item: SITE_URL + "/",
+          },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: parent.name,
+            item: `${SITE_URL}/collections/${encodeURIComponent(parent.slug)}`,
+          },
+          {
+            "@type": "ListItem",
+            position: 3,
+            name: subcategory.name,
+            item: canonical,
+          },
+        ],
+      },
+      {
+        "@type": "CollectionPage",
+        "@id": `${canonical}#collection`,
+        name: subcategory.name,
+        url: canonical,
+        ...(subcategory.description?.trim()
+          ? { description: subcategory.description.trim() }
+          : {}),
+        ...(subcategory.image_url
+          ? { primaryImageOfPage: subcategory.image_url }
+          : {}),
+        isPartOf: {
+          "@id": `${SITE_URL}/#website`,
+        },
+        mainEntity: {
+          "@type": "ItemList",
+          numberOfItems: products.length,
+          itemListElement: products.map((product, index) => ({
+            "@type": "ListItem",
+            position: index + 1,
+            url: `${SITE_URL}/products/${encodeURIComponent(product.slug)}`,
+            item: {
+              "@type": "Product",
+              name: product.product_title || product.name,
+              url: `${SITE_URL}/products/${encodeURIComponent(product.slug)}`,
+              image: product.image,
+            },
+          })),
+        },
+      },
+    ],
+  };
+
   return (
     <main className="min-h-screen bg-[#F8F7F4]">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(subcategoryStructuredData).replace(/</g, "\\u003c"),
+        }}
+      />
       {/* ===================================================
         HERO
     =================================================== */}
@@ -458,5 +526,17 @@ export default async function SubcategoryPage({
         </div>
       </section>
     </main>
+  );
+}
+
+/**
+ * Keep the shared storefront layout visible and stream subcategory
+ * data behind a branded shell instead of blocking the whole route.
+ */
+export default function SubcategoryPage({ params }: PageProps) {
+  return (
+    <Suspense fallback={<StorefrontRouteLoading variant="collection" />}>
+      <SubcategoryContent params={params} />
+    </Suspense>
   );
 }
