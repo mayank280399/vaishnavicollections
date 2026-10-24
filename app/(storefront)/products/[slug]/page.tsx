@@ -1081,6 +1081,12 @@ async function ProductContent({
 
             <ProductActions
               productId={product.id}
+              productSlug={product.slug}
+              productImage={
+                images.find((image) => image.is_primary)?.image_url ||
+                images[0]?.image_url ||
+                null
+              }
               productPrice={
                 product.online_enabled &&
                 product.online_price !== null &&
