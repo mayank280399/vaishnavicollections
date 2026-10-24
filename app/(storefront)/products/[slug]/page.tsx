@@ -674,12 +674,94 @@ async function ProductContent({
     product.stock_quantity === null ||
     product.stock_quantity > 0;
 
+  const productName = product.product_title || product.name;
+  const productUrl = `https://vaishnavicollections.vercel.app/products/${encodeURIComponent(product.slug)}`;
+  const productImages = images
+    .map((image) => image.image_url)
+    .filter((imageUrl) => Boolean(imageUrl));
+  const productBreadcrumbItems = [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "Home",
+      item: "https://vaishnavicollections.vercel.app/",
+    },
+    ...(parentCategory
+      ? [{
+          "@type": "ListItem",
+          position: 2,
+          name: parentCategory.name,
+          item: `https://vaishnavicollections.vercel.app/collections/${encodeURIComponent(parentCategory.slug)}`,
+        }]
+      : []),
+    ...(category && category.id !== parentCategory?.id
+      ? [{
+          "@type": "ListItem",
+          position: parentCategory ? 3 : 2,
+          name: category.name,
+          item: `https://vaishnavicollections.vercel.app/collections/${encodeURIComponent(parentCategory?.slug ?? category.slug)}${parentCategory ? `/${encodeURIComponent(category.slug)}` : ""}`,
+        }]
+      : []),
+    {
+      "@type": "ListItem",
+      position: (parentCategory ? (category && category.id !== parentCategory.id ? 4 : 3) : 2),
+      name: productName,
+      item: productUrl,
+    },
+  ];
+  const productStructuredData = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Product",
+        "@id": `${productUrl}#product`,
+        name: productName,
+        url: productUrl,
+        ...(product.description?.trim()
+          ? { description: product.description.trim() }
+          : {}),
+        ...(productImages.length ? { image: productImages } : {}),
+        ...(product.sku ? { sku: product.sku } : {}),
+        category: category?.name ?? parentCategory?.name,
+        brand: {
+          "@type": "Brand",
+          name: "Vaishnavi Collections",
+        },
+        offers: {
+          "@type": "Offer",
+          url: productUrl,
+          priceCurrency: "INR",
+          price: Number(price).toFixed(2),
+          availability: isInStock
+            ? "https://schema.org/InStock"
+            : "https://schema.org/OutOfStock",
+          itemCondition: "https://schema.org/NewCondition",
+          seller: {
+            "@type": "Organization",
+            "@id": "https://vaishnavicollections.vercel.app/#organization",
+            name: "Vaishnavi Collections",
+          },
+        },
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: productBreadcrumbItems,
+      },
+    ],
+  };
+
   /* =======================================================
      PAGE
   ======================================================= */
 
   return (
     <main className="min-w-0 bg-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(productStructuredData).replace(/</g, "\\u003c"),
+        }}
+      />
       <div className="mx-auto w-full max-w-7xl px-4 py-5 sm:px-6 lg:px-8">
 
         {/* =================================================
