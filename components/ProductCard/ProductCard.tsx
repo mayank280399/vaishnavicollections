@@ -200,8 +200,8 @@ export default function ProductCard({
           : {}
       }
       transition={{
-        duration: 0.45,
-        delay: index * 0.05,
+        duration: 0.2,
+        delay: Math.min(index * 0.015, 0.09),
       }}
       className="group relative h-full overflow-hidden rounded-xl border border-[#ece8e0] bg-white shadow-sm transition duration-300 hover:-translate-y-1 hover:shadow-lg"
     >
@@ -210,7 +210,8 @@ export default function ProductCard({
       <Link
         href={`/products/${product.slug}`}
         className="block"
-        aria-label={`View ${displayTitle}`}
+        prefetch
+        aria-label={`View ${displayTitle}` }
       >
         {/* Product Image */}
 
