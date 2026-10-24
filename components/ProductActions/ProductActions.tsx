@@ -253,7 +253,7 @@ export default function ProductActions({
   };
 
   return (
-    <div className="mt-6 grid grid-cols-1 gap-3 sm:mt-7 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-stretch">
+    <div className="mt-6 grid grid-cols-2 gap-2.5 sm:mt-7 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto] sm:items-stretch">
       {/* Add to Cart */}
       <button
         type="button"
@@ -265,6 +265,7 @@ export default function ProductActions({
         }
         className="
           flex
+          col-span-2
           min-h-12
           w-full
           items-center
@@ -337,6 +338,9 @@ export default function ProductActions({
             wishlisted ? "fill-current" : ""
           }`}
         />
+        <span className="text-xs font-semibold sm:hidden">
+          {wishlisted ? "Saved" : "Wishlist"}
+        </span>
       </button>
 
       {/* Share via device share sheet; includes the product photo where supported */}
@@ -379,7 +383,7 @@ export default function ProductActions({
         ) : (
           <>
             <Share2 className="h-5 w-5" />
-            <span className="hidden sm:inline">
+            <span className="sm:hidden">
               Share
             </span>
           </>
