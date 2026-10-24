@@ -381,9 +381,7 @@ export default function ProductActions({
       </button>
 
       {/* Explicit channels allow accurate campaign attribution */}
-      <button
-        type="button"
-        onClick={handleWhatsAppShare}
+      <button type="button" onClick={handleWhatsAppShare}
         aria-label="Share product on WhatsApp"
         title="Share on WhatsApp"
         className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#25D366]/40 bg-[#25D366]/10 px-4 text-sm font-semibold text-[#128C4A] transition hover:bg-[#25D366]/15 active:scale-95 sm:px-3"
@@ -392,11 +390,7 @@ export default function ProductActions({
         <span className="sm:hidden">WhatsApp</span>
       </button>
 
-      <button
-        type="button"
-        onClick={handleCopyLink}
-        aria-label="Copy product link"
-        title="Copy tracked product link"
+      <button type="button" onClick={handleCopyLink} aria-label="Copy product link" title="Copy tracked product link"
         className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:border-[#D4AF37] hover:text-[#071A35] active:scale-95 sm:px-3"
       >
         {copied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}

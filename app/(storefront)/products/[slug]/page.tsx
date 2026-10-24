@@ -1,12 +1,7 @@
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  ChevronRight,
-  Heart,
-  ShieldCheck,
-  Truck,
-} from "lucide-react";
+import { ChevronRight, Heart, ShieldCheck, Truck } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
 import ProductGallery from "@/components/ProductGallery/ProductGallery";
