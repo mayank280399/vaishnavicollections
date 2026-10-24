@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -6,6 +7,7 @@ import ProductCard, { type StorefrontProduct} from "@/components/ProductCard/Pro
 import CollectionBanner from "@/components/(storefront)/collection/CollectionBanner";
 import BreadCrumb from "@/components/(storefront)/collection/BreadCrumb";
 import { ShoppingBag } from "lucide-react";
+import StorefrontRouteLoading from "@/components/(storefront)/collection/StorefrontRouteLoading";
 
 
 type PageProps = {
@@ -331,7 +333,7 @@ export async function generateMetadata({
    PAGE
 ========================================================= */
 
-export default async function SubcategoryPage({
+async function SubcategoryContent({
   params,
 }: PageProps) {
   const {
@@ -458,5 +460,17 @@ export default async function SubcategoryPage({
         </div>
       </section>
     </main>
+  );
+}
+
+/**
+ * Keep the shared storefront layout visible and stream subcategory
+ * data behind a branded shell instead of blocking the whole route.
+ */
+export default function SubcategoryPage({ params }: PageProps) {
+  return (
+    <Suspense fallback={<StorefrontRouteLoading variant="collection" />}>
+      <SubcategoryContent params={params} />
+    </Suspense>
   );
 }
