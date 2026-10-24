@@ -51,6 +51,35 @@ export const metadata: Metadata = {
   },
 };
 
+const siteStructuredData = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://vaishnavicollections.vercel.app/#organization",
+      name: "Vaishnavi Collections",
+      url: "https://vaishnavicollections.vercel.app/",
+      logo: {
+        "@type": "ImageObject",
+        url: "https://vaishnavicollections.vercel.app/vc-round-logo.png",
+      },
+      sameAs: [
+        "https://www.instagram.com/vaishnavicollectionsofficial/",
+      ],
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://vaishnavicollections.vercel.app/#website",
+      url: "https://vaishnavicollections.vercel.app/",
+      name: "Vaishnavi Collections",
+      publisher: {
+        "@id": "https://vaishnavicollections.vercel.app/#organization",
+      },
+      inLanguage: "en-IN",
+    },
+  ],
+};
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -67,8 +96,15 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <GA4Tracking gaId={process.env.NEXT_PUBLIC_GA_ID} />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(siteStructuredData).replace(/</g, "\\u003c"),
+          }}
+        />
         {children}
-        <ServiceWorkerRegistration /></body>
+        <ServiceWorkerRegistration />
+      </body>
     </html>
   );
 }
