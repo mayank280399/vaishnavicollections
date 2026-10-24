@@ -176,6 +176,40 @@ function LoginPageContent() {
       return;
     }
 
+    /*
+     * The server creates the welcome notification at most once.
+     * If this is the customer's first authenticated visit after
+     * this feature is enabled, send them to their account page.
+     * A notification failure must not block a valid login.
+     */
+    try {
+      const response = await fetch("/api/notifications/welcome", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: "{}",
+        cache: "no-store",
+      });
+
+      if (response.ok) {
+        const result: { firstLogin?: boolean } = await response.json();
+
+        if (result.firstLogin) {
+          router.replace("/account");
+          return;
+        }
+      } else {
+        console.error(
+          "Welcome notification could not be ensured:",
+          await response.text(),
+        );
+      }
+    } catch (notificationError) {
+      console.error(
+        "Welcome notification request failed:",
+        notificationError,
+      );
+    }
+
     router.replace(redirectPath);
   }
 

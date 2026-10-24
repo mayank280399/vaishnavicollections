@@ -1,6 +1,12 @@
+
 export type RevenuePoint = {
   date: string;
   revenue: number;
+};
+
+export type PurchaseTrendPoint = {
+  period: string;
+  amount: number;
 };
 
 export type SalesExpensePoint = {
@@ -25,10 +31,6 @@ export type RecentSale = {
   paymentMethod: string;
 };
 
-/* -------------------------------------------------------------------------- */
-/* SALES                                                                       */
-/* -------------------------------------------------------------------------- */
-
 export type SalesCategoryPoint = {
   category: string;
   revenue: number;
@@ -39,10 +41,6 @@ export type PaymentMethodPoint = {
   amount: number;
 };
 
-/* -------------------------------------------------------------------------- */
-/* INVENTORY                                                                   */
-/* -------------------------------------------------------------------------- */
-
 export type InventoryOverview = {
   totalProducts: number;
   unitsInStock: number;
@@ -50,10 +48,6 @@ export type InventoryOverview = {
   lowStock: number;
   outOfStock: number;
 };
-
-/* -------------------------------------------------------------------------- */
-/* CUSTOMERS                                                                   */
-/* -------------------------------------------------------------------------- */
 
 export type CustomerGrowthPoint = {
   period: string;
@@ -65,18 +59,10 @@ export type CustomerSourcePoint = {
   customers: number;
 };
 
-/* -------------------------------------------------------------------------- */
-/* EXPENSES                                                                    */
-/* -------------------------------------------------------------------------- */
-
 export type ExpenseCategoryPoint = {
   category: string;
   amount: number;
 };
-
-/* -------------------------------------------------------------------------- */
-/* PROFITABILITY                                                               */
-/* -------------------------------------------------------------------------- */
 
 export type ProfitabilityData = {
   revenue: number;
@@ -86,55 +72,62 @@ export type ProfitabilityData = {
   netMargin: number;
 };
 
-/* -------------------------------------------------------------------------- */
-/* DASHBOARD DATA                                                              */
-/* -------------------------------------------------------------------------- */
+export type DashboardAlertSeverity = "critical" | "warning" | "info";
+
+export type DashboardAlert = {
+  id: string;
+  title: string;
+  description: string;
+  count: number;
+  severity: DashboardAlertSeverity;
+  href: string;
+};
+
+export type DashboardActivityType =
+  | "sale"
+  | "customer"
+  | "order"
+  | "return"
+  | "refund";
+
+export type DashboardActivity = {
+  id: string;
+  type: DashboardActivityType;
+  title: string;
+  description: string;
+  timestamp: string;
+  href: string;
+};
 
 export type DashboardData = {
-  /* ------------------------------ KPI CARDS ------------------------------ */
-
   totalSales: number;
   totalPurchases: number;
   totalExpenses: number;
   grossProfit: number;
-   cashSurplus: number;
+  cashSurplus: number;
 
   revenueChange: number;
   expenseChange: number;
   profitChange: number;
   grossProfitChange: number;
 
-  /* ------------------------------ SALES ---------------------------------- */
-
   revenueTrend: RevenuePoint[];
-
+  purchaseTrend: PurchaseTrendPoint[];
   salesVsExpenses: SalesExpensePoint[];
-
   salesByCategory: SalesCategoryPoint[];
-
   paymentMethods: PaymentMethodPoint[];
 
-  /* ------------------------------ PRODUCTS -------------------------------- */
-
   topProducts: DashboardProduct[];
-
   recentSales: RecentSale[];
-
-  /* ------------------------------ INVENTORY ------------------------------- */
 
   inventory: InventoryOverview;
 
-  /* ------------------------------ CUSTOMERS ------------------------------- */
-
   customerGrowth: CustomerGrowthPoint[];
-
   customerSources: CustomerSourcePoint[];
 
-  /* ------------------------------ EXPENSES -------------------------------- */
-
   expensesByCategory: ExpenseCategoryPoint[];
-
-  /* ------------------------------ PROFITABILITY --------------------------- */
-
   profitability: ProfitabilityData;
+
+  alerts: DashboardAlert[];
+  recentActivity: DashboardActivity[];
 };

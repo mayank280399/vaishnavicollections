@@ -2,29 +2,22 @@
 
 import { DashboardHeader } from "./dashboard-header";
 import { FinancialKpiGrid } from "./financial/financial-kpi-grid";
-
 import { SalesTrend } from "./sales/sales-trend";
 import { SalesByCategory } from "./sales/sales-by-category";
 import { PaymentMethodBreakdown } from "./sales/payment-method-breakdown";
-
 import { InventoryOverview } from "./inventory/inventory-overview";
-
 import { TopSellingProducts } from "./products/top-selling-products";
 import { RecentSales } from "./products/recent-sales";
-
 import { CustomerGrowth } from "./customers/customer-growth";
 import { CustomerSource } from "./customers/customer-source";
-
 import { ExpensesByCategory } from "./expenses/expenses-by-category";
-
 import { ProfitabilityOverview } from "./profitability/profitability-overview";
-
 import { QuickActions } from "./quick-actions/quick-actions";
 import { AlertsActionRequired } from "./alerts/alerts-action-required";
 import { RecentActivity } from "./activity/recent-activity";
 import { LoyaltyProgram } from "./loyalty/loyalty-program";
-
 import type { DashboardData } from "@/lib/dashboard/types";
+import { PurchasesOverview } from "../purchases/purchases-overview";
 
 type DashboardProps = {
   data: DashboardData;
@@ -113,12 +106,14 @@ export function Dashboard({ data }: DashboardProps) {
             </div>
 
             <div className="min-w-0 lg:col-span-3">
-              <ProfitabilityOverview data={data} />
+              {/* <QuickActions /> */}
+               <PurchasesOverview data={data} />
             </div>
           </section>
           <section className="mt-4 grid min-w-0 grid-cols-1 gap-4 lg:grid-cols-12">
             <div className="min-w-0 lg:col-span-3">
-              <QuickActions />
+              
+              <ProfitabilityOverview data={data} />
             </div>  
             <div className="min-w-0 lg:col-span-3">
               <AlertsActionRequired data={data} />
