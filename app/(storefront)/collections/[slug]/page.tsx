@@ -244,7 +244,7 @@ export async function generateMetadata({
     };
   }
 
-  const title = category.name;
+  const title = `Shop ${category.name} Online`;
 
   const description =
     category.description?.trim() ||
