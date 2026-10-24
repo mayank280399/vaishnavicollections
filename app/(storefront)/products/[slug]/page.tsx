@@ -353,45 +353,28 @@ export default async function ProductPage({
   const product = productData as Product;
 
   /* =======================================================
-     PRODUCT IMAGES
+     PRODUCT IMAGES + CATEGORY
+
+     These reads are independent after the current product is
+     known, so run them together instead of serially.
   ======================================================= */
 
-  const {
-    data: productImagesData,
-    error: productImagesError,
-  } = await supabase
-    .from("product_images")
-    .select(
-      `
-        id,
-        image_url,
-        is_primary
-      `,
-    )
-    .eq("product_id", product.id)
-    .order("is_primary", {
-      ascending: false,
-    });
-
-  if (productImagesError) {
-    console.error(
-      "Product images error:",
-      productImagesError,
-    );
-  }
-
-  const images: ProductImage[] =
-    productImagesData || [];
-
-  /* =======================================================
-     CURRENT CATEGORY / SUBCATEGORY
-  ======================================================= */
-
-  const { data: categoryData } =
-    await supabase
-      .from("product_categories")
-      .select(
-        `
+  const [productImagesResult, categoryResult] =
+    await Promise.all([
+      supabase
+        .from("product_images")
+        .select(`
+          id,
+          image_url,
+          is_primary
+        `)
+        .eq("product_id", product.id)
+        .order("is_primary", {
+          ascending: false,
+        }),
+      supabase
+        .from("product_categories")
+        .select(`
           id,
           name,
           slug,
@@ -399,14 +382,24 @@ export default async function ProductPage({
           image_url,
           parent_id,
           active
-        `,
-      )
-      .eq("id", product.category_id)
-      .eq("active", true)
-      .maybeSingle();
+        `)
+        .eq("id", product.category_id)
+        .eq("active", true)
+        .maybeSingle(),
+    ]);
+
+  if (productImagesResult.error) {
+    console.error(
+      "Product images error:",
+      productImagesResult.error,
+    );
+  }
+
+  const images: ProductImage[] =
+    productImagesResult.data || [];
 
   const category =
-    categoryData as Category | null;
+    categoryResult.data as Category | null;
 
   /* =======================================================
      PARENT CATEGORY
