@@ -210,7 +210,6 @@ export default function ProductCard({
       <Link
         href={`/products/${product.slug}`}
         className="block"
-        prefetch
         aria-label={`View ${displayTitle}` }
       >
         {/* Product Image */}
