@@ -2,8 +2,10 @@
 
 import {
   Check,
+  Copy,
   Heart,
   Loader2,
+  MessageCircle,
   Share2,
   ShoppingBag,
 } from "lucide-react";
@@ -17,6 +19,8 @@ interface ProductActionsProps {
   productName: string;
   productPrice: number;
   productCategory?: string | null;
+  productSlug: string;
+  productImage?: string | null;
   stockQuantity: number | null;
   disabled?: boolean;
 }
@@ -26,6 +30,8 @@ export default function ProductActions({
   productName,
   productPrice,
   productCategory,
+  productSlug,
+  productImage,
   stockQuantity,
   disabled = false,
 }: ProductActionsProps) {
@@ -140,63 +146,114 @@ export default function ProductActions({
     }
   };
 
+  const buildShareUrl = (source: string) => {
+    if (typeof window === "undefined") return "";
+    const url = new URL(
+      `/products/${encodeURIComponent(productSlug)}`,
+      window.location.origin,
+    );
+    url.searchParams.set("utm_source", source);
+    url.searchParams.set("utm_medium", "social");
+    url.searchParams.set("utm_campaign", "product_share");
+    url.searchParams.set("utm_content", productSlug);
+    return url.toString();
+  };
+
   const handleShare = async () => {
     if (sharing) return;
-
-    const shareUrl = (() => {
-      if (typeof window === "undefined") return "";
-      const url = new URL(window.location.href);
-      url.searchParams.set("utm_source", "website");
-      url.searchParams.set("utm_medium", "share_button");
-      url.searchParams.set("utm_campaign", "product_share");
-      return url.toString();
-    })();
-
+    const shareUrl = buildShareUrl("native_share");
     if (!shareUrl) return;
 
     setSharing(true);
-
     try {
-      if (
-        typeof navigator !== "undefined" &&
-        typeof navigator.share === "function"
-      ) {
+      let imageFile: File | undefined;
+      if (productImage && typeof navigator !== "undefined" &&
+          typeof navigator.canShare === "function" &&
+          typeof File !== "undefined") {
+        try {
+          const imageResponse = await fetch(productImage, { mode: "cors" });
+          if (imageResponse.ok) {
+            const blob = await imageResponse.blob();
+            const mimeType = blob.type || "image/jpeg";
+            const extension = mimeType.includes("png") ? "png" :
+              mimeType.includes("webp") ? "webp" : "jpg";
+            imageFile = new File([blob], `${productSlug}.${extension}`, { type: mimeType });
+          }
+        } catch {
+          // Some image hosts do not permit cross-origin downloads; URL sharing remains available.
+        }
+      }
+
+      const shareData: ShareData = {
+        title: productName,
+        text: `Check out ${productName} at Vaishnavi Collections. ${shareUrl}`,
+        url: shareUrl,
+      };
+
+      if (imageFile && navigator.canShare?.({ files: [imageFile] })) {
         await navigator.share({
           title: productName,
-          text: `Check out ${productName} at Vaishnavi Collections.`,
-          url: shareUrl,
+          text: `Check out ${productName} at Vaishnavi Collections: ${shareUrl}`,
+          files: [imageFile],
         });
-
-        return;
+      } else if (typeof navigator.share === "function") {
+        await navigator.share(shareData);
+      } else {
+        await navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 2500);
       }
-
-      await navigator.clipboard.writeText(shareUrl);
-
-      setCopied(true);
-
-      setTimeout(() => {
-        setCopied(false);
-      }, 2000);
     } catch (error) {
-      // User cancelled the native share dialog.
-      if (
-        error instanceof DOMException &&
-        error.name === "AbortError"
-      ) {
-        return;
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      console.error("Failed to share product:", error);
+      try {
+        await navigator.clipboard.writeText(shareUrl);
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 2500);
+      } catch {
+        alert("Unable to share this product on this browser. Please copy the page link from your address bar.");
       }
-
-      console.error(
-        "Failed to share product:",
-        error,
-      );
     } finally {
       setSharing(false);
     }
   };
 
+  const handleWhatsAppShare = () => {
+    const shareUrl = buildShareUrl("whatsapp");
+    if (!shareUrl) return;
+    const message = `Check out ${productName} at Vaishnavi Collections. ${shareUrl}`;
+    window.open(
+      `https://wa.me/?text=${encodeURIComponent(message)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  };
+
+  const handleFacebookShare = () => {
+    const shareUrl = buildShareUrl("facebook");
+    if (!shareUrl) return;
+    window.open(
+      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+  };
+
+  const handleCopyLink = async () => {
+    const shareUrl = buildShareUrl("copy_link");
+    if (!shareUrl) return;
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2500);
+    } catch (error) {
+      console.error("Failed to copy product link:", error);
+      alert("Unable to copy automatically. Please copy the page link from your address bar.");
+    }
+  };
+
   return (
-    <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+    <div className="mt-6 grid grid-cols-1 gap-3 sm:mt-7 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto] sm:items-stretch">
       {/* Add to Cart */}
       <button
         type="button"
@@ -208,19 +265,20 @@ export default function ProductActions({
         }
         className="
           flex
-          min-h-11
-          flex-1
+          min-h-12
+          w-full
           items-center
           justify-center
           gap-2
-          rounded-lg
-          bg-[#0f2747]
+          rounded-xl
+          bg-[#071A35]
           px-5
           text-sm
           font-medium
           text-white
           transition
-          hover:bg-[#17365f]
+          hover:bg-[#102b50]
+          active:scale-[0.99]
           disabled:cursor-not-allowed
           disabled:bg-slate-100
           disabled:text-slate-400
@@ -255,14 +313,16 @@ export default function ProductActions({
         }
         className={`
           flex
-          h-11
-          w-11
+          h-12
+          w-full
           shrink-0
+          sm:w-12
           items-center
           justify-center
-          rounded-lg
+          rounded-xl
           border
           transition
+          active:scale-95
           disabled:cursor-not-allowed
           disabled:opacity-50
           ${
@@ -279,7 +339,7 @@ export default function ProductActions({
         />
       </button>
 
-      {/* Share */}
+      {/* Share via device share sheet; includes the product photo where supported */}
       <button
         type="button"
         onClick={handleShare}
@@ -287,16 +347,18 @@ export default function ProductActions({
         aria-label="Share product"
         className="
           flex
-          h-11
-          min-w-11
+          h-12
+          min-w-0
           shrink-0
+          sm:min-w-12
           items-center
           justify-center
           gap-2
-          rounded-lg
+          rounded-xl
           border
           border-slate-200
           px-3
+          active:scale-95
           text-slate-700
           transition
           hover:border-[#c9a227]
@@ -322,6 +384,29 @@ export default function ProductActions({
             </span>
           </>
         )}
+      </button>
+
+      {/* Explicit channels allow accurate campaign attribution */}
+      <button
+        type="button"
+        onClick={handleWhatsAppShare}
+        aria-label="Share product on WhatsApp"
+        title="Share on WhatsApp"
+        className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-[#25D366]/40 bg-[#25D366]/10 px-4 text-sm font-semibold text-[#128C4A] transition hover:bg-[#25D366]/15 active:scale-95 sm:px-3"
+      >
+        <MessageCircle className="h-5 w-5" />
+        <span className="sm:hidden">WhatsApp</span>
+      </button>
+
+      <button
+        type="button"
+        onClick={handleCopyLink}
+        aria-label="Copy product link"
+        title="Copy tracked product link"
+        className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 transition hover:border-[#D4AF37] hover:text-[#071A35] active:scale-95 sm:px-3"
+      >
+        {copied ? <Check className="h-5 w-5" /> : <Copy className="h-5 w-5" />}
+        <span className="sm:hidden">{copied ? "Copied!" : "Copy link"}</span>
       </button>
     </div>
   );
