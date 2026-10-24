@@ -72,6 +72,7 @@ export function CategoriesPage() {
               parent_id,
               is_top_collection,
               image_url,
+              banner_image_url,
               sort_order,
               created_at,
               updated_at
@@ -366,21 +367,11 @@ export function CategoriesPage() {
     try {
       const categoryData = {
         name: formData.name,
-
         slug: formData.slug,
-
-        description:
-          formData.description ||
-          null,
-
-        category_type:
-          formData.category_type,
-
-        parent_id:
-          formData.parent_id,
-
-        active:
-          formData.active,
+        description: formData.description || null,
+        category_type: formData.category_type,
+        parent_id:formData.parent_id,
+        active:formData.active,
 
         /*
          * Show Subcategory
@@ -397,11 +388,9 @@ export function CategoriesPage() {
         /*
          * Top Collection fields
          */
-        is_top_collection:
-          formData.is_top_collection,
-
-        image_url:
-          formData.image_url,
+        is_top_collection:formData.is_top_collection,
+        image_url:formData.image_url,
+        banner_image_url:formData.banner_image_url,
 
         sort_order:
           formData.is_top_collection
