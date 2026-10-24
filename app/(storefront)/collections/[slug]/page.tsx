@@ -9,11 +9,10 @@ import {
 } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import CollectionSubcategoryCard, { CollectionSubcategory } from "@/components/collection/CollectionSubcategoryCard";
-import CollectionProductGrid, { CollectionProduct } from "@/components/collection/CollectionProductGrid";
-
-
-
+import CollectionSubcategoryCard, { CollectionSubcategory } from "@/components/(storefront)/collection/CollectionSubcategoryCard";
+import CollectionProductGrid, { CollectionProduct } from "@/components/(storefront)/collection/CollectionProductGrid";
+import CollectionBanner from "@/components/(storefront)/collection/CollectionBanner";
+import BreadCrumb from "@/components/(storefront)/collection/BreadCrumb";
 
 type PageProps = {
   params: Promise<{
@@ -26,24 +25,11 @@ type Category = {
   name: string;
   slug: string;
   description: string | null;
+  banner_image_url : string | null;
   image_url: string | null;
   parent_id: string | null;
   category_type: string;
   active: boolean;
-};
-
-type Product = {
-  id: string;
-  product_title: string;
-  name: string;
-  slug: string;
-  selling_price: number | null;
-  online_price: number | null;
-  online_enabled: boolean | null;
-  stock_quantity: number | null;
-  visibility: string | null;
-  featured: boolean | null;
-  category_id: string | null;
 };
 
 type ProductImage = {
@@ -71,6 +57,7 @@ async function getParentCategory(
       slug,
       description,
       image_url,
+      banner_image_url,
       parent_id,
       category_type,
       active
@@ -85,7 +72,7 @@ async function getParentCategory(
     console.error("Parent collection error:", error);
     return null;
   }
-
+  console.log("Parent collection data:", data);
   return data as Category | null;
 }
 
@@ -105,7 +92,8 @@ async function getSubcategories(
       name,
       slug,
       description,
-      image_url
+      image_url,
+      banner_image_url
     `)
     .eq("parent_id", parentId)
     .eq("category_type", "PRODUCT")
@@ -368,76 +356,22 @@ export default async function ParentCollectionPage({
         }} />
 
       {/* =====================================================
-        BREADCRUMB
-    ====================================================== */}
-      <nav
-        aria-label="Breadcrumb"
-        className="border-b border-[#1B263B]/10 bg-white px-4 py-3 sm:px-6 lg:px-8"
-      >
-        <div className="mx-auto flex max-w-7xl items-center gap-1.5 overflow-x-auto whitespace-nowrap text-xs text-[#1B263B]/55">
-          <Link
-            href="/"
-            className="inline-flex shrink-0 items-center gap-1 transition hover:text-[#C88A3D]"
-          >
-            <Home size={13} />
-            Home
-          </Link>
-
-          <ChevronRight size={13} />
-
-          <span className="font-medium text-[#1B263B]">
-            {category.name}
-          </span>
-        </div>
-      </nav>
-
-      {/* =====================================================
         HERO
     ====================================================== */}
-      <section className="bg-[#10233e]">
-        <div className="mx-auto grid max-w-7xl lg:grid-cols-[1.1fr_0.9fr]">
-          <div className="flex items-center px-5 py-12 sm:px-8 sm:py-16 lg:px-12 lg:py-20">
-            <div className="max-w-2xl">
-              <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#b18425] sm:text-xs">
-                Vaishnavi Collections
-              </p>
+   
+      <CollectionBanner
+        title={category.name}
+        description={category.description ?? undefined}
+        productCount={products.length}
+        bannerImageUrl={category.banner_image_url ?? category.image_url ?? undefined} />
 
-              <h1 className="mt-3 text-3xl font-semibold tracking-tight text-white sm:text-4xl lg:text-5xl">
-                {category.name}
-              </h1>
+        
+      {/* =====================================================
+        BREADCRUMB
+    ====================================================== */}
+    <BreadCrumb subcategory={category.name} />
+    
 
-              {category.description && (
-                <p className="mt-4 max-w-xl text-sm leading-6 text-white/70 sm:text-base sm:leading-7">
-                  {category.description}
-                </p>
-              )}
-
-              <div className="mt-6 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#d7bd7b]">
-                <ShoppingBag size={15} />
-
-                {products.length}{" "}
-                {products.length === 1
-                  ? "product"
-                  : "products"}
-              </div>
-            </div>
-          </div>
-
-          {category.image_url && (
-            <div className="relative min-h-[260px] overflow-hidden sm:min-h-[340px] lg:min-h-[400px]">
-              <Image
-                src={category.image_url}
-                alt={`${category.name} collection`}
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 45vw"
-                className="object-cover" />
-
-              <div className="absolute inset-0 bg-gradient-to-r from-[#10233e] via-transparent to-transparent lg:from-[#10233e]/60" />
-            </div>
-          )}
-        </div>
-      </section>
 
       {/* =====================================================
         SUBCATEGORIES

@@ -1,18 +1,11 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  ChevronRight,
-  Home,
-  ShoppingBag,
-} from "lucide-react";
-
 import { createClient } from "@/lib/supabase/server";
-
-import ProductCard, {
-  type StorefrontProduct,
-} from "@/components/ProductCard/ProductCard";
+import ProductCard, { type StorefrontProduct} from "@/components/ProductCard/ProductCard";
+import CollectionBanner from "@/components/(storefront)/collection/CollectionBanner";
+import BreadCrumb from "@/components/(storefront)/collection/BreadCrumb";
+import { ShoppingBag } from "lucide-react";
 
 
 type PageProps = {
@@ -28,6 +21,7 @@ type Category = {
   slug: string;
   description: string | null;
   image_url: string | null;
+  banner_image_url: string | null;
   parent_id: string | null;
 };
 
@@ -69,6 +63,7 @@ async function getParentCategory(
       slug,
       description,
       image_url,
+      banner_image_url,
       parent_id
     `)
     .eq("slug", slug)
@@ -103,6 +98,7 @@ async function getSubcategory(
       slug,
       description,
       image_url,
+      banner_image_url,
       parent_id
     `)
     .eq("slug", subcategorySlug)
@@ -383,88 +379,21 @@ export default async function SubcategoryPage({
   return (
     <main className="min-h-screen bg-[#F8F7F4]">
       {/* ===================================================
-        BREADCRUMB
-    =================================================== */}
-
-      <nav
-        aria-label="Breadcrumb"
-        className="border-b border-[#10233e]/10 bg-white px-4 py-3 sm:px-6 lg:px-8"
-      >
-        <div className="mx-auto flex max-w-7xl items-center gap-1.5 overflow-x-auto whitespace-nowrap text-xs text-[#10233e]/55">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1 hover:text-[#b18425]"
-          >
-            <Home size={13} />
-            Home
-          </Link>
-
-          <ChevronRight size={13} />
-
-          <Link
-            href={`/collections/${parent.slug}`}
-            className="hover:text-[#b18425]"
-          >
-            {parent.name}
-          </Link>
-
-          <ChevronRight size={13} />
-
-          <span className="font-medium text-[#10233e]">
-            {subcategory.name}
-          </span>
-        </div>
-      </nav>
-
-      {/* ===================================================
         HERO
     =================================================== */}
 
-      <section className="bg-[#10233e]">
-        <div className="mx-auto grid max-w-7xl lg:grid-cols-2">
-          <div className="flex items-center px-5 py-12 sm:px-8 sm:py-16 lg:px-12">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-[#b18425] sm:text-xs">
-                {parent.name}
-              </p>
+      <CollectionBanner
+        title={subcategory.name}
+        description={subcategory.description ?? undefined}
+        bannerImageUrl={subcategory.banner_image_url ?? undefined}
+        eyebrow={parent.name}
+        productCount={products.length} />
 
-              <h1 className="mt-3 text-3xl font-semibold text-white sm:text-4xl lg:text-5xl">
-                {subcategory.name}
-              </h1>
-
-              {subcategory.description && (
-                <p className="mt-4 max-w-xl text-sm leading-6 text-white/70 sm:text-base">
-                  {subcategory.description}
-                </p>
-              )}
-
-              <div className="mt-6 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#d7bd7b]">
-                <ShoppingBag size={15} />
-
-                {products.length}{" "}
-                {products.length === 1
-                  ? "Product"
-                  : "Products"}
-              </div>
-            </div>
-          </div>
-
-          {subcategory.image_url && (
-            <div className="relative min-h-[260px] overflow-hidden sm:min-h-[340px]">
-              <Image
-                src={subcategory.image_url}
-                alt={`${subcategory.name} - ${parent.name}`}
-                fill
-                priority
-                sizes="(max-width: 1024px) 100vw, 50vw"
-                className="object-cover" />
-
-              <div className="absolute inset-0 bg-gradient-to-r from-[#10233e] via-transparent to-transparent" />
-            </div>
-          )}
-        </div>
-      </section>
-
+     {/* ===================================================
+        BREADCRUMB
+    =================================================== */}
+      <BreadCrumb subcategory={subcategory.name} parent={parent} />
+  
       {/* ===================================================
         PRODUCTS
     =================================================== */}

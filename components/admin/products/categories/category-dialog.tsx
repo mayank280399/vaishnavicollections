@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -49,40 +50,36 @@ export function CategoryDialog({
 }: CategoryDialogProps) {
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
-  const [description, setDescription] =
-    useState("");
+  const [description, setDescription] = useState("");
 
   const [categoryType, setCategoryType] =
-    useState<"PRODUCT" | "SERVICE">(
-      "PRODUCT"
-    );
+    useState<"PRODUCT" | "SERVICE">("PRODUCT");
 
-  const [parentId, setParentId] =
-    useState("");
-
-  const [active, setActive] =
-    useState(true);
-
+  const [parentId, setParentId] = useState("");
+  const [active, setActive] = useState(true);
   const [showSubcategory, setShowSubcategory] =
     useState(true);
-
   const [isTopCollection, setIsTopCollection] =
     useState(false);
 
+  // Existing category-card image state.
   const [imageUrl, setImageUrl] =
     useState<string | null>(null);
-
   const [selectedImage, setSelectedImage] =
     useState<File | null>(null);
-
   const [imagePreview, setImagePreview] =
     useState<string | null>(null);
 
-  const [sortOrder, setSortOrder] =
-    useState(0);
+  // Separate banner image state.
+  const [bannerImageUrl, setBannerImageUrl] =
+    useState<string | null>(null);
+  const [selectedBannerImage, setSelectedBannerImage] =
+    useState<File | null>(null);
+  const [bannerImagePreview, setBannerImagePreview] =
+    useState<string | null>(null);
 
-  const [saving, setSaving] =
-    useState(false);
+  const [sortOrder, setSortOrder] = useState(0);
+  const [saving, setSaving] = useState(false);
 
   /*
    * Only top-level categories can be selected
@@ -101,9 +98,7 @@ export function CategoryDialog({
   /*
    * Generate a URL-friendly slug.
    */
-  function generateSlug(
-    value: string
-  ) {
+  function generateSlug(value: string) {
     return value
       .toLowerCase()
       .trim()
@@ -124,27 +119,20 @@ export function CategoryDialog({
       setName(category.name);
       setSlug(category.slug);
 
-      setDescription(
-        category.description ?? ""
-      );
+      setDescription(category.description ?? "");
 
       setCategoryType(
-        category.category_type ===
-          "SERVICE"
+        category.category_type === "SERVICE"
           ? "SERVICE"
           : "PRODUCT"
       );
 
-      setParentId(
-        category.parent_id ?? ""
-      );
-
+      setParentId(category.parent_id ?? "");
       setActive(category.active);
 
       /*
        * Existing categories created before
-       * show_subcategory was added will default
-       * to true.
+       * show_subcategory was added default to true.
        */
       setShowSubcategory(
         category.show_subcategory ?? true
@@ -154,60 +142,55 @@ export function CategoryDialog({
         category.is_top_collection ?? false
       );
 
-      setImageUrl(
-        category.image_url ?? null
-      );
-
-      setImagePreview(
-        category.image_url ?? null
-      );
-
-      setSortOrder(
-        category.sort_order ?? 0
-      );
-
+      // Existing category-card image.
+      setImageUrl(category.image_url ?? null);
+      setImagePreview(category.image_url ?? null);
       setSelectedImage(null);
+
+      // Existing banner image.
+      setBannerImageUrl(
+        category.banner_image_url ?? null
+      );
+      setBannerImagePreview(
+        category.banner_image_url ?? null
+      );
+      setSelectedBannerImage(null);
+
+      setSortOrder(category.sort_order ?? 0);
     } else {
       setName("");
       setSlug("");
       setDescription("");
 
       setCategoryType("PRODUCT");
-
-      setParentId(
-        selectedParent?.id ?? ""
-      );
-
+      setParentId(selectedParent?.id ?? "");
       setActive(true);
 
       /*
-       * New subcategories are visible by
-       * default unless the user turns this off.
+       * New subcategories are visible by default
+       * unless the user turns this off.
        */
       setShowSubcategory(true);
-
       setIsTopCollection(false);
 
+      // Reset category-card image.
       setImageUrl(null);
-
       setImagePreview(null);
-
       setSelectedImage(null);
+
+      // Reset banner image.
+      setBannerImageUrl(null);
+      setBannerImagePreview(null);
+      setSelectedBannerImage(null);
 
       setSortOrder(0);
     }
-  }, [
-    open,
-    category,
-    selectedParent,
-  ]);
+  }, [open, category, selectedParent]);
 
   /*
    * Automatically generate slug while creating.
    */
-  function handleNameChange(
-    value: string
-  ) {
+  function handleNameChange(value: string) {
     setName(value);
 
     if (!category) {
@@ -216,53 +199,86 @@ export function CategoryDialog({
   }
 
   /*
-   * Handle category image selection.
+   * Validate an image file.
+   * Used independently by both image fields.
+   */
+  function validateImageFile(file: File): boolean {
+    if (!file.type.startsWith("image/")) {
+      alert("Please select a valid image file.");
+      return false;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image must be smaller than 5 MB.");
+      return false;
+    }
+
+    return true;
+  }
+
+  /*
+   * Handle category-card image selection.
    */
   function handleImageChange(
     event: React.ChangeEvent<HTMLInputElement>
   ) {
-    const file =
-      event.target.files?.[0];
+    const file = event.target.files?.[0];
 
     if (!file) {
       return;
     }
 
-    /*
-     * Validate image type.
-     */
-    if (!file.type.startsWith("image/")) {
-      alert(
-        "Please select a valid image file."
-      );
-      event.target.value = "";
-      return;
-    }
-
-    /*
-     * Keep category images reasonably sized.
-     */
-    if (file.size > 5 * 1024 * 1024) {
-      alert(
-        "Category image must be smaller than 5 MB."
-      );
+    if (!validateImageFile(file)) {
       event.target.value = "";
       return;
     }
 
     setSelectedImage(file);
 
-    const previewUrl =
-      URL.createObjectURL(file);
-
-    setImagePreview(previewUrl);
+    setImagePreview(URL.createObjectURL(file));
   }
 
   /*
-   * Upload category image to Supabase Storage.
+   * Handle banner image selection.
    */
-  async function uploadCategoryImage(
-    file: File
+  function handleBannerImageChange(
+    event: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (!validateImageFile(file)) {
+      event.target.value = "";
+      return;
+    }
+
+    setSelectedBannerImage(file);
+
+    setBannerImagePreview(URL.createObjectURL(file));
+  }
+
+  /*
+   * Remove the banner from this form.
+   * The database is updated when the form is saved.
+   */
+  function handleRemoveBannerImage() {
+    setSelectedBannerImage(null);
+    setBannerImageUrl(null);
+    setBannerImagePreview(null);
+  }
+
+  /*
+   * Upload an image to Supabase Storage.
+   *
+   * Category images keep their existing root-level
+   * path. Banner images are stored under /banners.
+   */
+  async function uploadImage(
+    file: File,
+    folder?: string
   ): Promise<string> {
     const fileExtension =
       file.name.split(".").pop()?.toLowerCase() ||
@@ -277,7 +293,9 @@ export function CategoryDialog({
     const fileName =
       `${safeName || "category"}-${crypto.randomUUID()}.${fileExtension}`;
 
-    const filePath = fileName;
+    const filePath = folder
+      ? `${folder}/${fileName}`
+      : fileName;
 
     const { error: uploadError } =
       await supabase.storage
@@ -291,11 +309,10 @@ export function CategoryDialog({
       throw uploadError;
     }
 
-    const {
-      data: publicUrlData,
-    } = supabase.storage
-      .from("category-images")
-      .getPublicUrl(filePath);
+    const { data: publicUrlData } =
+      supabase.storage
+        .from("category-images")
+        .getPublicUrl(filePath);
 
     return publicUrlData.publicUrl;
   }
@@ -308,8 +325,7 @@ export function CategoryDialog({
   ) {
     event.preventDefault();
 
-    const trimmedName =
-      name.trim();
+    const trimmedName = name.trim();
 
     if (!trimmedName) {
       alert("Category name is required.");
@@ -317,8 +333,7 @@ export function CategoryDialog({
     }
 
     const finalSlug =
-      slug.trim() ||
-      generateSlug(trimmedName);
+      slug.trim() || generateSlug(trimmedName);
 
     if (!finalSlug) {
       alert("Category slug is required.");
@@ -329,10 +344,9 @@ export function CategoryDialog({
      * Top Collections are only intended
      * for top-level categories.
      */
-    const finalIsTopCollection =
-      parentId
-        ? false
-        : isTopCollection;
+    const finalIsTopCollection = parentId
+      ? false
+      : isTopCollection;
 
     /*
      * Show Subcategory only applies to
@@ -342,56 +356,53 @@ export function CategoryDialog({
      * because this field controls subcategory
      * visibility, not category visibility.
      */
-    const finalShowSubcategory =
-      parentId
-        ? showSubcategory
-        : true;
+    const finalShowSubcategory = parentId
+      ? showSubcategory
+      : true;
 
     setSaving(true);
 
     try {
-      let finalImageUrl =
-        imageUrl;
+      let finalImageUrl = imageUrl;
+      let finalBannerImageUrl = bannerImageUrl;
 
       /*
-       * Upload a new image only when
-       * the user selected one.
+       * Upload a new category-card image only
+       * when the user selected one.
        */
       if (selectedImage) {
-        finalImageUrl =
-          await uploadCategoryImage(
-            selectedImage
-          );
+        finalImageUrl = await uploadImage(selectedImage);
+      }
+
+      /*
+       * Upload a new banner only when the user
+       * selected one. If the banner was removed,
+       * finalBannerImageUrl remains null.
+       */
+      if (selectedBannerImage) {
+        finalBannerImageUrl = await uploadImage(
+          selectedBannerImage,
+          "banners"
+        );
       }
 
       await onSubmit({
         name: trimmedName,
         slug: finalSlug,
-        description:
-          description.trim(),
+        description: description.trim(),
         category_type: categoryType,
-        parent_id:
-          parentId || null,
+        parent_id: parentId || null,
         active,
-        show_subcategory:
-          finalShowSubcategory,
-        is_top_collection:
-          finalIsTopCollection,
-        image_url:
-          finalImageUrl,
-        sort_order:
-          finalIsTopCollection
-            ? Math.max(
-                0,
-                Number(sortOrder) || 0
-              )
-            : 0,
+        show_subcategory: finalShowSubcategory,
+        is_top_collection: finalIsTopCollection,
+        image_url: finalImageUrl,
+        banner_image_url: finalBannerImageUrl,
+        sort_order: finalIsTopCollection
+          ? Math.max(0, Number(sortOrder) || 0)
+          : 0,
       });
     } catch (error) {
-      console.error(
-        "Failed to save category:",
-        error
-      );
+      console.error("Failed to save category:", error);
 
       alert(
         error instanceof Error
@@ -403,14 +414,11 @@ export function CategoryDialog({
     }
   }
 
-  const isEditing =
-    Boolean(category);
+  const isEditing = Boolean(category);
 
-  const isSubcategory =
-    Boolean(
-      category?.parent_id ||
-        selectedParent
-    );
+  const isSubcategory = Boolean(
+    category?.parent_id || selectedParent
+  );
 
   const title = isEditing
     ? category?.parent_id
@@ -420,23 +428,20 @@ export function CategoryDialog({
       ? "Add Subcategory"
       : "Add Category";
 
-  const descriptionText =
-    isEditing
-      ? "Update the category details below."
-      : isSubcategory
-        ? "Create a subcategory under the selected parent category."
-        : "Create a new product category.";
+  const descriptionText = isEditing
+    ? "Update the category details below."
+    : isSubcategory
+      ? "Create a subcategory under the selected parent category."
+      : "Create a new product category.";
 
   return (
     <Dialog
       open={open}
       onOpenChange={onOpenChange}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto bg-white sm:max-w-lg">
+      <DialogContent className="max-h-[90vh] overflow-y-auto bg-white sm:max-w-lg !max-w-[1400px]">
         <DialogHeader>
-          <DialogTitle>
-            {title}
-          </DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
 
           <DialogDescription>
             {descriptionText}
@@ -457,9 +462,7 @@ export function CategoryDialog({
               id="category-name"
               value={name}
               onChange={(event) =>
-                handleNameChange(
-                  event.target.value
-                )
+                handleNameChange(event.target.value)
               }
               placeholder="e.g. Laddu Gopal Poshak & Shringar"
               autoFocus
@@ -477,11 +480,7 @@ export function CategoryDialog({
               id="category-slug"
               value={slug}
               onChange={(event) =>
-                setSlug(
-                  generateSlug(
-                    event.target.value
-                  )
-                )
+                setSlug(generateSlug(event.target.value))
               }
               placeholder="e.g. laddu-gopal-poshak-shringar"
               disabled={saving}
@@ -503,9 +502,7 @@ export function CategoryDialog({
               id="category-description"
               value={description}
               onChange={(event) =>
-                setDescription(
-                  event.target.value
-                )
+                setDescription(event.target.value)
               }
               placeholder="Optional category description..."
               rows={3}
@@ -525,21 +522,14 @@ export function CategoryDialog({
               value={categoryType}
               onChange={(event) =>
                 setCategoryType(
-                  event.target.value as
-                    | "PRODUCT"
-                    | "SERVICE"
+                  event.target.value as "PRODUCT" | "SERVICE"
                 )
               }
               disabled={saving}
               className="flex h-10 w-full rounded-md border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
             >
-              <option value="PRODUCT">
-                Product
-              </option>
-
-              <option value="SERVICE">
-                Service
-              </option>
+              <option value="PRODUCT">Product</option>
+              <option value="SERVICE">Service</option>
             </select>
           </div>
 
@@ -553,8 +543,7 @@ export function CategoryDialog({
               id="category-parent"
               value={parentId}
               onChange={(event) => {
-                const nextParentId =
-                  event.target.value;
+                const nextParentId = event.target.value;
 
                 setParentId(nextParentId);
 
@@ -574,29 +563,25 @@ export function CategoryDialog({
                 None — Top Level Category
               </option>
 
-              {parentCategories.map(
-                (item) => (
-                  <option
-                    key={item.id}
-                    value={item.id}
-                  >
-                    {item.name}
-                  </option>
-                )
-              )}
+              {parentCategories.map((item) => (
+                <option
+                  key={item.id}
+                  value={item.id}
+                >
+                  {item.name}
+                </option>
+              ))}
             </select>
 
-            {selectedParent &&
-              !category && (
-                <p className="text-xs text-muted-foreground">
-                  This subcategory will be
-                  created under{" "}
-                  <span className="font-medium text-foreground">
-                    {selectedParent.name}
-                  </span>
-                  .
-                </p>
-              )}
+            {selectedParent && !category && (
+              <p className="text-xs text-muted-foreground">
+                This subcategory will be created under{" "}
+                <span className="font-medium text-foreground">
+                  {selectedParent.name}
+                </span>
+                .
+              </p>
+            )}
 
             {!selectedParent && (
               <p className="text-xs text-muted-foreground">
@@ -606,7 +591,7 @@ export function CategoryDialog({
             )}
           </div>
 
-          {/* Category Image */}
+          {/* Category Image — existing functionality */}
           <div className="space-y-3">
             <div>
               <Label htmlFor="category-image">
@@ -623,10 +608,7 @@ export function CategoryDialog({
               <div className="overflow-hidden rounded-xl border bg-muted">
                 <img
                   src={imagePreview}
-                  alt={
-                    name ||
-                    "Category preview"
-                  }
+                  alt={name || "Category preview"}
                   className="h-48 w-full object-cover"
                 />
               </div>
@@ -636,9 +618,7 @@ export function CategoryDialog({
               id="category-image"
               type="file"
               accept="image/*"
-              onChange={
-                handleImageChange
-              }
+              onChange={handleImageChange}
               disabled={saving}
               className="cursor-pointer"
             />
@@ -649,12 +629,73 @@ export function CategoryDialog({
             </p>
           </div>
 
+          {/* Banner Image — new functionality */}
+          <div className="space-y-3 rounded-xl border p-4">
+            <div>
+              <Label htmlFor="category-banner-image">
+                Banner Image
+              </Label>
+
+              <p className="mt-1 text-xs text-muted-foreground">
+                Optional. Used for the category or
+                collection banner on the storefront.
+                This is separate from the Category Image.
+              </p>
+            </div>
+
+            {bannerImagePreview ? (
+              <div className="space-y-2">
+                <div className="overflow-hidden rounded-xl border bg-muted">
+                  <img
+                    src={bannerImagePreview}
+                    alt={`${name || "Category"} banner preview`}
+                    className="max-h-64 w-full object-cover"
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleRemoveBannerImage}
+                    disabled={saving}
+                  >
+                    Remove Banner
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex min-h-28 items-center justify-center rounded-xl border border-dashed bg-muted/30 p-4 text-center">
+                <div>
+                  <p className="text-sm font-medium">
+                    No banner image selected
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Choose an image below to add a banner.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            <Input
+              id="category-banner-image"
+              type="file"
+              accept="image/*"
+              onChange={handleBannerImageChange}
+              disabled={saving}
+              className="cursor-pointer"
+            />
+
+            <p className="text-xs text-muted-foreground">
+              Recommended: a wide landscape image.
+              JPG, PNG or WebP. Maximum 5 MB.
+            </p>
+          </div>
+
           {/* Top Collection */}
           <div
             className={`rounded-xl border p-4 ${
-              isSubcategory
-                ? "bg-muted/40"
-                : ""
+              isSubcategory ? "bg-muted/40" : ""
             }`}
           >
             <label
@@ -669,19 +710,12 @@ export function CategoryDialog({
                 id="category-top-collection"
                 type="checkbox"
                 checked={
-                  isSubcategory
-                    ? false
-                    : isTopCollection
+                  isSubcategory ? false : isTopCollection
                 }
                 onChange={(event) =>
-                  setIsTopCollection(
-                    event.target.checked
-                  )
+                  setIsTopCollection(event.target.checked)
                 }
-                disabled={
-                  saving ||
-                  isSubcategory
-                }
+                disabled={saving || isSubcategory}
                 className="mt-0.5 h-4 w-4 rounded border"
               />
 
@@ -691,15 +725,14 @@ export function CategoryDialog({
                 </p>
 
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Show this category in the
-                  Top Collections section
-                  on the storefront.
+                  Show this category in the Top Collections
+                  section on the storefront.
                 </p>
 
                 {isSubcategory && (
                   <p className="mt-2 text-xs font-medium text-muted-foreground">
-                    Top Collections can only
-                    contain top-level categories.
+                    Top Collections can only contain
+                    top-level categories.
                   </p>
                 )}
               </div>
@@ -707,36 +740,30 @@ export function CategoryDialog({
           </div>
 
           {/* Display Order */}
-          {!isSubcategory &&
-            isTopCollection && (
-              <div className="space-y-2">
-                <Label htmlFor="category-sort-order">
-                  Display Order
-                </Label>
+          {!isSubcategory && isTopCollection && (
+            <div className="space-y-2">
+              <Label htmlFor="category-sort-order">
+                Display Order
+              </Label>
 
-                <Input
-                  id="category-sort-order"
-                  type="number"
-                  min={0}
-                  step={1}
-                  value={sortOrder}
-                  onChange={(event) =>
-                    setSortOrder(
-                      Number(
-                        event.target.value
-                      )
-                    )
-                  }
-                  disabled={saving}
-                  placeholder="1"
-                />
+              <Input
+                id="category-sort-order"
+                type="number"
+                min={0}
+                step={1}
+                value={sortOrder}
+                onChange={(event) =>
+                  setSortOrder(Number(event.target.value))
+                }
+                disabled={saving}
+                placeholder="1"
+              />
 
-                <p className="text-xs text-muted-foreground">
-                  Lower numbers appear first in
-                  Top Collections.
-                </p>
-              </div>
-            )}
+              <p className="text-xs text-muted-foreground">
+                Lower numbers appear first in Top Collections.
+              </p>
+            </div>
+          )}
 
           {/* Active */}
           <div className="rounded-xl border p-4">
@@ -749,9 +776,7 @@ export function CategoryDialog({
                 type="checkbox"
                 checked={active}
                 onChange={(event) =>
-                  setActive(
-                    event.target.checked
-                  )
+                  setActive(event.target.checked)
                 }
                 disabled={saving}
                 className="mt-0.5 h-4 w-4 rounded border"
@@ -763,8 +788,7 @@ export function CategoryDialog({
                 </p>
 
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Active categories can be
-                  assigned to products.
+                  Active categories can be assigned to products.
                 </p>
               </div>
             </label>
@@ -782,9 +806,7 @@ export function CategoryDialog({
                   type="checkbox"
                   checked={showSubcategory}
                   onChange={(event) =>
-                    setShowSubcategory(
-                      event.target.checked
-                    )
+                    setShowSubcategory(event.target.checked)
                   }
                   disabled={saving}
                   className="mt-0.5 h-4 w-4 rounded border"
@@ -796,8 +818,8 @@ export function CategoryDialog({
                   </p>
 
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Show this subcategory on the
-                    storefront category page.
+                    Show this subcategory on the storefront
+                    category page.
                   </p>
                 </div>
               </label>
@@ -809,9 +831,7 @@ export function CategoryDialog({
             <Button
               type="button"
               variant="outline"
-              onClick={() =>
-                onOpenChange(false)
-              }
+              onClick={() => onOpenChange(false)}
               disabled={saving}
             >
               Cancel
@@ -819,10 +839,7 @@ export function CategoryDialog({
 
             <Button
               type="submit"
-              disabled={
-                saving ||
-                !name.trim()
-              }
+              disabled={saving || !name.trim()}
             >
               {saving
                 ? "Saving..."
