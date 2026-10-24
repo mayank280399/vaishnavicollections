@@ -229,16 +229,6 @@ export default function ProductActions({
     );
   };
 
-  const handleFacebookShare = () => {
-    const shareUrl = buildShareUrl("facebook");
-    if (!shareUrl) return;
-    window.open(
-      `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`,
-      "_blank",
-      "noopener,noreferrer",
-    );
-  };
-
   const handleCopyLink = async () => {
     const shareUrl = buildShareUrl("copy_link");
     if (!shareUrl) return;
