@@ -34,7 +34,31 @@ function worksheet(name: string, rows: Row[]): string {
   return `<Worksheet ss:Name="${xmlEscape(name.slice(0, 31))}"><Table><Row>${safeKeys.map((key) => `<Cell><Data ss:Type="String">${xmlEscape(key)}</Data></Cell>`).join("")}</Row>${rows.map((row) => `<Row>${safeKeys.map((key) => cell(row[key])).join("")}</Row>`).join("")}</Table></Worksheet>`;
 }
 
-async function fetchAllPages<T>(buildQuery: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>): Promise<T[]> {\n  const pageSize = 1000;\n  const all: T[] = [];\n  for (let offset = 0; ; offset += pageSize) {\n    const { data, error } = await buildQuery(offset, offset + pageSize - 1);\n    if (error) throw new Error(error.message);\n    const page = data ?? [];\n    all.push(...page);\n    if (page.length < pageSize) return all;\n  }\n}\n\nfunction normalizeRows(data: unknown[] | null): Row[] {
+async function fetchAllPages<T>(
+  buildQuery: (from: number, to: number) => PromiseLike<{
+    data: T[] | null;
+    error: { message: string } | null;
+  }>,
+): Promise<T[]> {
+  const pageSize = 1000;
+  const all: T[] = [];
+
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await buildQuery(
+      offset,
+      offset + pageSize - 1,
+    );
+
+    if (error) throw new Error(error.message);
+
+    const page = data ?? [];
+    all.push(...page);
+
+    if (page.length < pageSize) return all;
+  }
+}
+
+function normalizeRows(data: unknown[] | null): Row[] {
   return (data ?? []).map((item) => {
     const row = item && typeof item === "object" ? item as Row : { value: item };
     return Object.fromEntries(Object.entries(row).map(([key, value]) => [
