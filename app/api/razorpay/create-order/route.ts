@@ -147,6 +147,25 @@ export async function POST(
     // --------------------------------------------------
 
     if (order.razorpay_order_id) {
+      // Avoid opening Checkout again if Razorpay already captured a payment
+      // but the browser callback/webhook has not yet updated our database.
+      const existingPayments = await razorpay.orders.fetchPayments(
+        order.razorpay_order_id,
+      );
+      const capturedPayment = existingPayments.items?.some(
+        (payment) => payment.status === "captured",
+      );
+
+      if (capturedPayment) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "A payment has already been captured for this order. Refresh the order page shortly while we confirm it.",
+          },
+          { status: 409 },
+        );
+      }
+
       return NextResponse.json({
         success: true,
         razorpayOrderId:
