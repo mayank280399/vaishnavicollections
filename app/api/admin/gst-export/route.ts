@@ -92,12 +92,17 @@ export async function GET(request: NextRequest) {
       fetchAllPages<Row>((fromRow, toRow) => supabase.from("purchases").select("*").gte("purchased_at", start).lt("purchased_at", endExclusive).order("purchased_at", { ascending: true }).range(fromRow, toRow)),
       fetchAllPages<Row>((fromRow, toRow) => supabase.from("purchase_items").select("*").range(fromRow, toRow)),
       fetchAllPages<Row>((fromRow, toRow) => supabase.from("expenses").select("*").gte("expense_date", from).lte("expense_date", to).order("expense_date", { ascending: true }).range(fromRow, toRow)),
+      fetchAllPages<Row>((fromRow, toRow) => supabase.from("return_requests").select("*").gte("created_at", start).lt("created_at", endExclusive).order("created_at", { ascending: true }).range(fromRow, toRow)),
+      fetchAllPages<Row>((fromRow, toRow) => supabase.from("refunds").select("*").gte("created_at", start).lt("created_at", endExclusive).order("created_at", { ascending: true }).range(fromRow, toRow)),
+      fetchAllPages<Row>((fromRow, toRow) => supabase.from("return_request_items").select("*").range(fromRow, toRow)),
     ]);
 
     const saleIds = new Set(sales.map((row) => String(row.id)));
     const purchaseIds = new Set(purchases.map((row) => String(row.id)));
     const saleItems = saleItemsAll.filter((row) => saleIds.has(String(row.sale_id)));
     const purchaseItems = purchaseItemsAll.filter((row) => purchaseIds.has(String(row.purchase_id)));
+    const returnRequestIds = new Set(returnRequests.map((row) => String(row.id)));
+    const returnItems = returnItemsAll.filter((row) => returnRequestIds.has(String(row.return_request_id)));
     const orderItems = onlineOrders.flatMap((order) => {
       const items = Array.isArray(order.order_items) ? order.order_items as Row[] : [];
       return items.map((item) => ({ order_number: order.order_number, order_created_at: order.created_at, order_status: order.status, payment_status: order.payment_status, ...item }));
