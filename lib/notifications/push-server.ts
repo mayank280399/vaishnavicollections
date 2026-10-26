@@ -35,10 +35,11 @@ function safeClickUrl(value?: string) {
 
   try {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://vaishnavicollections.vercel.app";
-    const url = new URL(value, siteUrl);
+    const siteOrigin = new URL(siteUrl).origin;
+    const url = new URL(value, siteOrigin);
 
     if (
-      url.origin !== siteUrl &&
+      url.origin !== siteOrigin &&
       url.origin !== "https://vaishnavicollections.vercel.app"
     ) {
       return "/account";
