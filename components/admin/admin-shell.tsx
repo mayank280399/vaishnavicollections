@@ -10,6 +10,7 @@ import {
   ChevronDown,
   CircleDollarSign,
   FolderTree,
+  FileSpreadsheet,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -112,6 +113,11 @@ const navigation: NavigationItem[] = [
     name: "Reports",
     href: "/admin/reports",
     icon: BarChart3,
+  },
+  {
+    name: "GST Export",
+    href: "/admin/gst-reports",
+    icon: FileSpreadsheet,
   },
   {
     name: "Settings",
