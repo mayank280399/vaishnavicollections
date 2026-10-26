@@ -1,352 +1,114 @@
 "use client";
 
-
-import { ArrowLeft, Check, CreditCard, MessageCircle, Smartphone,} from "lucide-react";
-
-import {  SectionIcon,  StepError,  TextareaField,} from "./CheckoutUI";
-
-import type { CheckoutPaymentOption, FormState,} from "@/lib/checkout/types";
-
-export type CheckoutPaymentMethod = CheckoutPaymentOption;
+import { ArrowLeft, Check, CreditCard, ShieldCheck } from "lucide-react";
+import { SectionIcon, StepError, TextareaField } from "./CheckoutUI";
+import type { CheckoutPaymentOption, FormState } from "@/lib/checkout/types";
 
 type CheckoutPlaceOrderStepProps = {
   form: FormState;
   error: string;
   submitting: boolean;
-
-  paymentMethod: CheckoutPaymentMethod;
+  paymentMethod: CheckoutPaymentOption;
   total: number;
   partialPaymentAmount: number;
-
-  onPaymentMethodChange: (
-    method: CheckoutPaymentMethod,
-  ) => void;
-
-  onFieldChange: (
-    field: keyof FormState,
-    value: string,
-  ) => void;
-
+  onPaymentMethodChange: (method: CheckoutPaymentOption) => void;
+  onFieldChange: (field: keyof FormState, value: string) => void;
   onBack: () => void;
 };
+
+function formatPrice(value: number) {
+  return new Intl.NumberFormat("en-IN", {
+    style: "currency",
+    currency: "INR",
+    maximumFractionDigits: 2,
+  }).format(value);
+}
 
 export default function CheckoutPlaceOrderStep({
   form,
   error,
   submitting,
-  paymentMethod,
   total,
-  partialPaymentAmount,
-  onPaymentMethodChange,
   onFieldChange,
   onBack,
 }: CheckoutPlaceOrderStepProps) {
-  const isFullPayment = paymentMethod === "upi_full";
-  const isPartialPayment = paymentMethod === "upi_partial";
-
-  const advanceAmount = Math.min(
-    partialPaymentAmount,
-    total,
-  );
-
-  const remainingAmount = Math.max(
-    total - advanceAmount,
-    0,
-  );
-
   return (
     <section className="rounded-[1.75rem] bg-white p-5 shadow-sm sm:p-6">
       <div className="flex items-start gap-3">
         <SectionIcon>
           <CreditCard className="h-5 w-5" />
         </SectionIcon>
-
-        <div>
+        <div className="min-w-0">
           <p className="text-xs font-semibold uppercase tracking-wide text-[#b89445]">
-            Step 3 · Payment
+            Step 3 · Secure Payment
           </p>
-
           <h2 className="mt-1 text-lg font-bold text-slate-900">
-            Choose your payment option
+            Pay securely with Razorpay
           </h2>
-
           <p className="mt-1 text-sm leading-5 text-slate-500">
-            Pay securely through UPI. Your order will be created
-            first and you&apos;ll then receive the payment details.
+            Complete your full payment using UPI, debit or credit cards,
+            netbanking, or other methods available in Razorpay Checkout.
           </p>
         </div>
       </div>
 
-      <div className="mt-5 space-y-4">
-        {/* Payment options */}
-        <div>
-          <p className="mb-3 text-sm font-semibold text-slate-800">
-            Payment option
-          </p>
-
-          <div className="space-y-3">
-            {/* Full UPI Payment */}
-            <button
-              type="button"
-              onClick={() =>
-                onPaymentMethodChange("upi_full")
-              }
-              disabled={submitting}
-              aria-pressed={isFullPayment}
-              className={[
-                "w-full rounded-2xl border p-4 text-left transition",
-                "disabled:cursor-not-allowed disabled:opacity-60",
-                isFullPayment
-                  ? "border-[#d4af37] bg-[#fffaf0] shadow-sm"
-                  : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50",
-              ].join(" ")}
-            >
-              <div className="flex items-start gap-3">
-                <div
-                  className={[
-                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
-                    isFullPayment
-                      ? "bg-[#0f1f3d] text-[#d4af37]"
-                      : "bg-slate-100 text-slate-500",
-                  ].join(" ")}
-                >
-                  <Smartphone className="h-5 w-5" />
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-bold text-slate-900">
-                      Full UPI Payment
-                    </p>
-
-                    {isFullPayment && (
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#d4af37] text-[#0f1f3d]">
-                        <Check className="h-4 w-4" />
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="mt-1 text-xs leading-5 text-slate-500">
-                    Pay the complete order amount through UPI.
-                  </p>
-
-                  <p className="mt-2 text-sm font-bold text-[#0f1f3d]">
-                    ₹{total.toLocaleString("en-IN")}
-                  </p>
-
-                  {isFullPayment && (
-                    <div className="mt-3 rounded-xl border border-[#eadfb9] bg-white/70 px-3 py-2.5">
-                      <p className="text-xs leading-5 text-slate-600">
-                        After your order is created, we&apos;ll show
-                        the UPI payment details and QR code.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </button>
-
-            {/* Partial UPI Payment */}
-            <button
-              type="button"
-              onClick={() =>
-                onPaymentMethodChange("upi_partial")
-              }
-              disabled={submitting}
-              aria-pressed={isPartialPayment}
-              className={[
-                "w-full rounded-2xl border p-4 text-left transition",
-                "disabled:cursor-not-allowed disabled:opacity-60",
-                isPartialPayment
-                  ? "border-[#d4af37] bg-[#fffaf0] shadow-sm"
-                  : "border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50",
-              ].join(" ")}
-            >
-              <div className="flex items-start gap-3">
-                <div
-                  className={[
-                    "flex h-11 w-11 shrink-0 items-center justify-center rounded-xl",
-                    isPartialPayment
-                      ? "bg-[#0f1f3d] text-[#d4af37]"
-                      : "bg-slate-100 text-slate-500",
-                  ].join(" ")}
-                >
-                  <CreditCard className="h-5 w-5" />
-                </div>
-
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-3">
-                    <p className="text-sm font-bold text-slate-900">
-                      Partial UPI Advance
-                    </p>
-
-                    {isPartialPayment && (
-                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#d4af37] text-[#0f1f3d]">
-                        <Check className="h-4 w-4" />
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="mt-1 text-xs leading-5 text-slate-500">
-                    Pay a small advance now and the remaining amount
-                    later.
-                  </p>
-
-                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
-                    <p className="text-sm font-bold text-[#0f1f3d]">
-                      Pay now ₹
-                      {advanceAmount.toLocaleString("en-IN")}
-                    </p>
-
-                    <p className="text-xs font-medium text-slate-500">
-                      Remaining ₹
-                      {remainingAmount.toLocaleString("en-IN")}
-                    </p>
-                  </div>
-
-                  {isPartialPayment && (
-                    <div className="mt-3 rounded-xl border border-[#eadfb9] bg-white/70 px-3 py-2.5">
-                      <p className="text-xs leading-5 text-slate-600">
-                        Your order will be created with the advance
-                        payment pending verification. The remaining
-                        amount will be due later.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </button>
+      <div className="mt-5 rounded-2xl border border-[#D4AF37]/50 bg-[#fffaf0] p-4 sm:p-5">
+        <div className="flex items-start gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#071A35] text-[#D4AF37]">
+            <ShieldCheck className="h-5 w-5" />
           </div>
-        </div>
-
-        {/* Selected payment summary */}
-        <div className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">
-                Selected
-              </p>
-
-              <p className="mt-1 text-sm font-bold text-slate-900">
-                {isFullPayment
-                  ? "Full UPI Payment"
-                  : "Partial UPI Advance"}
-              </p>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-bold text-[#071A35]">Razorpay Secure Checkout</p>
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#D4AF37] text-[#071A35]">
+                <Check className="h-4 w-4" />
+              </span>
             </div>
-
-            <div className="text-right">
-              <p className="text-xs text-slate-400">
-                {isFullPayment
-                  ? "Pay now"
-                  : "Advance"}
-              </p>
-
-              <p className="mt-1 text-base font-bold text-[#0f1f3d]">
-                ₹
-                {(isFullPayment
-                  ? total
-                  : advanceAmount
-                ).toLocaleString("en-IN")}
-              </p>
-            </div>
-          </div>
-
-          {isPartialPayment && (
-            <div className="mt-3 flex items-center justify-between border-t border-slate-200 pt-3">
-              <p className="text-xs text-slate-500">
-                Remaining amount
-              </p>
-
-              <p className="text-sm font-semibold text-slate-700">
-                ₹{remainingAmount.toLocaleString("en-IN")}
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Payment process information */}
-        <div className="rounded-2xl border border-[#eadfb9] bg-[#fffaf0] p-4">
-          <div className="flex items-start gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#0f1f3d] text-[#d4af37]">
-              <Smartphone className="h-4 w-4" />
-            </div>
-
-            <div>
-              <p className="text-sm font-bold text-slate-900">
-                How UPI payment works
-              </p>
-
-              <ol className="mt-2 space-y-1.5 text-xs leading-5 text-slate-600">
-                <li>
-                  1. We create your order and provide your VC order
-                  ID.
-                </li>
-
-                <li>
-                  2. You pay the selected amount using the displayed
-                  UPI QR/details.
-                </li>
-
-                <li>
-                  3. Tap the WhatsApp confirmation button after
-                  making the payment.
-                </li>
-
-                <li>
-                  4. We verify the payment and confirm your order.
-                </li>
-              </ol>
-
-              <p className="mt-3 text-xs font-medium leading-5 text-[#8b6f24]">
-                Your order is not automatically marked as paid just
-                because you click the payment confirmation button.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Notes */}
-        <div>
-          <div className="mb-3 flex items-center gap-2">
-            <MessageCircle className="h-4 w-4 text-[#b89445]" />
-
-            <p className="text-sm font-semibold text-slate-800">
-              Order notes
+            <p className="mt-1 text-sm leading-5 text-slate-600">
+              Your order is created first. You will continue to Razorpay to
+              complete payment, and the order will only be marked paid after
+              the server verifies the transaction.
             </p>
-
-            <span className="text-xs text-slate-400">
-              Optional
-            </span>
+            <p className="mt-3 text-xl font-extrabold text-[#071A35]">
+              {formatPrice(total)}
+            </p>
+            <p className="mt-1 text-xs text-slate-500">Full order amount · INR</p>
           </div>
-
-          <TextareaField
-            label="Anything we should know?"
-            value={form.notes}
-            placeholder="Delivery instructions or special notes"
-            onChange={(value: string) => {
-              onFieldChange("notes", value);
-            }}
-          />
         </div>
-
-        <StepError message={error} />
-
-        {/* Back */}
-        <button
-          type="button"
-          onClick={onBack}
-          disabled={submitting}
-          className="flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          Back to Delivery
-        </button>
-
-        <p className="text-center text-xs text-slate-400">
-          Your order will be created first. You&apos;ll then be taken
-          to the UPI payment instructions.
-        </p>
       </div>
+
+      <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+        <p className="text-sm font-semibold text-slate-800">What happens next?</p>
+        <ol className="mt-2 space-y-1.5 text-xs leading-5 text-slate-600">
+          <li>1. We securely create your order.</li>
+          <li>2. Open Razorpay Checkout and choose an available payment method.</li>
+          <li>3. Our server verifies the payment before confirming the payment status.</li>
+        </ol>
+      </div>
+
+      <div className="mt-5">
+        <TextareaField
+          label="Order notes (optional)"
+          value={form.notes}
+          placeholder="Delivery instructions or special notes"
+          onChange={(value: string) => onFieldChange("notes", value)}
+        />
+      </div>
+
+      <StepError message={error} />
+
+      <button
+        type="button"
+        onClick={onBack}
+        disabled={submitting}
+        className="mt-5 flex w-full items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-white px-5 py-3.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Back to Delivery
+      </button>
+      <p className="mt-4 text-center text-xs text-slate-400">
+        By continuing, you agree to complete payment securely through Razorpay.
+      </p>
     </section>
   );
 }
