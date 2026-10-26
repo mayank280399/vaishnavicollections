@@ -88,6 +88,7 @@ export async function POST(
           order_number,
           status,
           payment_status,
+          payment_method,
           total_amount,
           razorpay_order_id
         `
@@ -128,7 +129,8 @@ export async function POST(
 
     if (
       order.status !== "PENDING" ||
-      order.payment_status !== "PENDING"
+      order.payment_status !== "PENDING" ||
+      (order.payment_method !== "UPI" && order.payment_method !== "RAZORPAY")
     ) {
       return NextResponse.json(
         {
