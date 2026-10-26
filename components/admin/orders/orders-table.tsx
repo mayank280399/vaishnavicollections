@@ -1178,6 +1178,32 @@ export default function OrdersTable() {
                     }
                 }
 
+                if (orderStatusChanged) {
+                    try {
+                        const notificationResponse = await fetch(
+                            "/api/notifications/order-status",
+                            {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json" },
+                                body: JSON.stringify({ orderId: selectedOrder.id }),
+                            },
+                        );
+
+                        if (!notificationResponse.ok) {
+                            const notificationPayload = await notificationResponse.json().catch(() => null);
+                            console.error(
+                                "Order status was saved, but the customer notification could not be sent:",
+                                notificationPayload?.error,
+                            );
+                        }
+                    } catch (notificationError) {
+                        console.error(
+                            "Order status was saved, but the customer notification request failed:",
+                            notificationError,
+                        );
+                    }
+                }
+
                 /* ------------------------------------------------------
                  * Shipment timestamps
                  * ------------------------------------------------------ */
