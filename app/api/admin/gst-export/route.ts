@@ -29,8 +29,6 @@ function cell(value: unknown): string {
 function worksheet(name: string, rows: Row[]): string {
   const keys = Array.from(new Set(rows.flatMap((row) => Object.keys(row))));
   const safeKeys = keys.length ? keys : ["No records"];
-  const header = `<Row>${safeKeys.map((key) => cell(key)).join("")}</Row>`;
-  const body = rows.map((row) => `<Row>${safeKeys.map((key) => cell(row[key])).join("")}</Row>`).join("");
   return `<Worksheet ss:Name="${xmlEscape(name.slice(0, 31))}"><Table><Row>${safeKeys.map((key) => `<Cell><Data ss:Type="String">${xmlEscape(key)}</Data></Cell>`).join("")}</Row>${rows.map((row) => `<Row>${safeKeys.map((key) => cell(row[key])).join("")}</Row>`).join("")}</Table></Worksheet>`;
 }
 
