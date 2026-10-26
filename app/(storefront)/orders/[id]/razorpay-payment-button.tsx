@@ -145,7 +145,6 @@ export default function RazorpayPaymentButton({
         setMessage("");
       });
       razorpay.open();
-      setBusy(false);
     } catch (paymentError) {
       setError(paymentError instanceof Error ? paymentError.message : "Unable to open Razorpay Checkout.");
       setBusy(false);
