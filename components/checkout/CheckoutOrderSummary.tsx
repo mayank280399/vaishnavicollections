@@ -3,7 +3,7 @@
 
 import React from "react";
 import { CheckCircle2, ChevronDown, CreditCard, Loader2, PackageCheck, ShieldCheck, ShoppingBag } from "lucide-react";
-import type { CheckoutItem, CheckoutPaymentOption} from "@/lib/checkout/types";
+import type { CheckoutItem } from "@/lib/checkout/types";
 import { TrustItem } from "./CheckoutUI";
 
 type CheckoutOrderSummaryProps = {
@@ -16,7 +16,6 @@ type CheckoutOrderSummaryProps = {
   submitting: boolean;
   showOrderItems: boolean;
   checkoutComplete: boolean;
-  paymentMethod: CheckoutPaymentOption;
   onToggleItems: () => void;
   onSubmit: (
     event: React.FormEvent<HTMLFormElement>,
@@ -46,7 +45,6 @@ export default function CheckoutOrderSummary({
   submitting,
   showOrderItems,
   checkoutComplete,
-  paymentMethod,
   onToggleItems,
   onSubmit,
 }: CheckoutOrderSummaryProps) {
