@@ -27,7 +27,7 @@ export default function Home() {
       <CustomOrderBanner />
       <FeaturedProducts />
       <ShopByNeed />
-      <LoyaltyBenefits />
+      {/* <LoyaltyBenefits /> */}
       <VCRewardsHomeBanner />
       <Testimonials />
       <InstagramGallery />
