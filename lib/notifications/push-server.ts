@@ -20,9 +20,9 @@ function configureVapid() {
 
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY;
-  const subject = process.env.VAPID_SUBJECT;
+  const subject = process.env.VAPID_SUBJECT || "mailto:support@vaishnavicollections.com";
 
-  if (!publicKey || !privateKey || !subject) {
+  if (!publicKey || !privateKey) {
     throw new Error("Web Push VAPID configuration is missing.");
   }
 
@@ -34,10 +34,11 @@ function safeClickUrl(value?: string) {
   if (!value) return "/account";
 
   try {
-    const url = new URL(value, process.env.NEXT_PUBLIC_SITE_URL);
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://vaishnavicollections.vercel.app";
+    const url = new URL(value, siteUrl);
 
     if (
-      url.origin !== process.env.NEXT_PUBLIC_SITE_URL &&
+      url.origin !== siteUrl &&
       url.origin !== "https://vaishnavicollections.vercel.app"
     ) {
       return "/account";
