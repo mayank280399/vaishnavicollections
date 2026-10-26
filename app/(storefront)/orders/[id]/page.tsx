@@ -311,12 +311,6 @@ export default async function OrderDetailsPage({ params, searchParams,}: PagePro
 
 
 
-  const isUpiOrder =
-
-    order.payment_method === "UPI";
-
-
-
   const isPaymentPending =
 
     order.payment_status === "PENDING" ||
