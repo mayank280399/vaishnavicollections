@@ -15,6 +15,7 @@ import {
   Menu,
   PackageCheck,
   Receipt,
+  BadgePercent,
   Settings,
   ShieldCheck,
   ShoppingBag,
@@ -102,6 +103,11 @@ const navigation: NavigationItem[] = [
     name: "Loyalty",
     href: "/admin/loyalty",
     icon: Sparkles,
+  },
+  {
+    name: "Promotions",
+    href: "/admin/promotions",
+    icon: BadgePercent,
   },
   {
     name: "Inventory",
