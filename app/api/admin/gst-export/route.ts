@@ -34,7 +34,7 @@ function worksheet(name: string, rows: Row[]): string {
   return `<Worksheet ss:Name="${xmlEscape(name.slice(0, 31))}"><Table><Row>${safeKeys.map((key) => `<Cell><Data ss:Type="String">${xmlEscape(key)}</Data></Cell>`).join("")}</Row>${rows.map((row) => `<Row>${safeKeys.map((key) => cell(row[key])).join("")}</Row>`).join("")}</Table></Worksheet>`;
 }
 
-function normalizeRows(data: unknown[] | null): Row[] {
+async function fetchAllPages<T>(buildQuery: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>): Promise<T[]> {\n  const pageSize = 1000;\n  const all: T[] = [];\n  for (let offset = 0; ; offset += pageSize) {\n    const { data, error } = await buildQuery(offset, offset + pageSize - 1);\n    if (error) throw new Error(error.message);\n    const page = data ?? [];\n    all.push(...page);\n    if (page.length < pageSize) return all;\n  }\n}\n\nfunction normalizeRows(data: unknown[] | null): Row[] {
   return (data ?? []).map((item) => {
     const row = item && typeof item === "object" ? item as Row : { value: item };
     return Object.fromEntries(Object.entries(row).map(([key, value]) => [
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     .maybeSingle();
 
   if (profileError) return NextResponse.json({ error: "Unable to verify your account permissions." }, { status: 500 });
-  if (!profile?.role || !["ADMIN", "OWNER", "STAFF"].includes(String(profile.role).toUpperCase())) {
+  if (!profile?.role || !["ADMIN", "OWNER"].includes(String(profile.role).toUpperCase())) {
     return NextResponse.json({ error: "You do not have permission to export accounting reports." }, { status: 403 });
   }
 
@@ -85,30 +85,19 @@ export async function GET(request: NextRequest) {
   const endExclusive = new Date(new Date(`${to}T00:00:00+05:30`).getTime() + 86400000).toISOString();
 
   try {
-    const [salesResult, saleItemsResult, onlineOrdersResult, purchasesResult, purchaseItemsResult, expensesResult] = await Promise.all([
-      supabase.from("sales").select("*").gte("purchased_at", start).lt("purchased_at", endExclusive).order("purchased_at", { ascending: true }),
-      supabase.from("sale_items").select("*"),
-      supabase.from("orders").select("id,order_number,status,payment_status,payment_method,payment_plan,subtotal,shipping_amount,discount_amount,total_amount,amount_paid,amount_due,customer_name,customer_phone,shipping_address_line1,shipping_address_line2,shipping_city,shipping_state,shipping_postal_code,shipping_country,notes,created_at,updated_at,order_items(id,product_name,product_sku,quantity,unit_price,total_price)").gte("created_at", start).lt("created_at", endExclusive).order("created_at", { ascending: true }),
-      supabase.from("purchases").select("*").gte("purchased_at", start).lt("purchased_at", endExclusive).order("purchased_at", { ascending: true }),
-      supabase.from("purchase_items").select("*"),
-      supabase.from("expenses").select("*").gte("expense_date", from).lte("expense_date", to).order("expense_date", { ascending: true }),
+    const [sales, saleItemsAll, onlineOrders, purchases, purchaseItemsAll, expenses] = await Promise.all([
+      fetchAllPages<Row>((fromRow, toRow) => supabase.from("sales").select("*").gte("purchased_at", start).lt("purchased_at", endExclusive).order("purchased_at", { ascending: true }).range(fromRow, toRow)),
+      fetchAllPages<Row>((fromRow, toRow) => supabase.from("sale_items").select("*").range(fromRow, toRow)),
+      fetchAllPages<Row>((fromRow, toRow) => supabase.from("orders").select("id,order_number,status,payment_status,payment_method,payment_plan,subtotal,shipping_amount,discount_amount,total_amount,amount_paid,amount_due,customer_name,customer_phone,shipping_address_line1,shipping_address_line2,shipping_city,shipping_state,shipping_postal_code,shipping_country,notes,created_at,updated_at,order_items(id,product_name,product_sku,quantity,unit_price,total_price)").gte("created_at", start).lt("created_at", endExclusive).order("created_at", { ascending: true }).range(fromRow, toRow)),
+      fetchAllPages<Row>((fromRow, toRow) => supabase.from("purchases").select("*").gte("purchased_at", start).lt("purchased_at", endExclusive).order("purchased_at", { ascending: true }).range(fromRow, toRow)),
+      fetchAllPages<Row>((fromRow, toRow) => supabase.from("purchase_items").select("*").range(fromRow, toRow)),
+      fetchAllPages<Row>((fromRow, toRow) => supabase.from("expenses").select("*").gte("expense_date", from).lte("expense_date", to).order("expense_date", { ascending: true }).range(fromRow, toRow)),
     ]);
 
-    const errors = [salesResult, saleItemsResult, onlineOrdersResult, purchasesResult, purchaseItemsResult, expensesResult]
-      .filter((result) => result.error);
-    if (errors.length) {
-      console.error("GST export query error:", errors.map((result) => result.error?.message));
-      return NextResponse.json({ error: "Some accounting data could not be loaded. Check the database permissions and schema, then try again." }, { status: 500 });
-    }
-
-    const sales = (salesResult.data ?? []) as Row[];
-    const onlineOrders = (onlineOrdersResult.data ?? []) as Row[];
-    const purchases = (purchasesResult.data ?? []) as Row[];
-    const expenses = (expensesResult.data ?? []) as Row[];
     const saleIds = new Set(sales.map((row) => String(row.id)));
     const purchaseIds = new Set(purchases.map((row) => String(row.id)));
-    const saleItems = ((saleItemsResult.data ?? []) as Row[]).filter((row) => saleIds.has(String(row.sale_id)));
-    const purchaseItems = ((purchaseItemsResult.data ?? []) as Row[]).filter((row) => purchaseIds.has(String(row.purchase_id)));
+    const saleItems = saleItemsAll.filter((row) => saleIds.has(String(row.sale_id)));
+    const purchaseItems = purchaseItemsAll.filter((row) => purchaseIds.has(String(row.purchase_id)));
     const orderItems = onlineOrders.flatMap((order) => {
       const items = Array.isArray(order.order_items) ? order.order_items as Row[] : [];
       return items.map((item) => ({ order_number: order.order_number, order_created_at: order.created_at, order_status: order.status, payment_status: order.payment_status, ...item }));
@@ -118,7 +107,7 @@ export async function GET(request: NextRequest) {
     const summary: Row[] = [
       { Metric: "Reporting period", Value: `${from} to ${to}` },
       { Metric: "GST registration effective date", Value: "2026-10-26" },
-      { Metric: "POS sales records (includes recorded statuses)", Value: sales.length },
+      { Metric: "POS sales records (includes recorded statuses)", Value: sales.length },\n      { Metric: "Note on source records", Value: "POS sales and website orders are exported separately. Ask the CA to reconcile them and confirm whether the two sources overlap before calculating taxable turnover." },
       { Metric: "POS sales total_amount (not GST-calculated)", Value: Number(sum(sales, "total_amount").toFixed(2)) },
       { Metric: "Website orders", Value: onlineOrders.length },
       { Metric: "Website order total_amount (not GST-calculated)", Value: Number(sum(onlineOrders, "total_amount").toFixed(2)) },
