@@ -1,13 +1,7 @@
 import Link from "next/link";
-import {
-  ArrowUpRight,
-  Facebook,
-  Instagram,
-  MapPin,
-  Play,
-  Star,
-  Youtube,
-} from "lucide-react";
+import type { ComponentType } from "react";
+import { ArrowUpRight, MapPin, Play, Star } from "lucide-react";
+import { FaFacebookF, FaInstagram, FaYoutube } from "react-icons/fa";
 import { getAppSettings } from "@/lib/settings/queries";
 
 type SocialLink = {
@@ -15,7 +9,7 @@ type SocialLink = {
   description: string;
   action: string;
   href: string;
-  icon: typeof Instagram;
+  icon: ComponentType<{ className?: string }>;
   enabled: boolean;
 };
 
@@ -40,7 +34,7 @@ export default async function InstagramGallery() {
       description: "New arrivals & behind the scenes",
       action: "Follow us",
       href: safeExternalUrl(settings?.instagram_url) || "",
-      icon: Instagram,
+      icon: FaInstagram,
       enabled: Boolean(settings?.instagram_enabled && safeExternalUrl(settings?.instagram_url)),
     },
     {
@@ -48,7 +42,7 @@ export default async function InstagramGallery() {
       description: "Watch videos & product highlights",
       action: "Watch videos",
       href: safeExternalUrl(settings?.youtube_url) || "",
-      icon: Youtube,
+      icon: FaYoutube,
       enabled: Boolean(settings?.youtube_enabled && safeExternalUrl(settings?.youtube_url)),
     },
     {
@@ -56,7 +50,7 @@ export default async function InstagramGallery() {
       description: "Updates from our community",
       action: "Visit page",
       href: safeExternalUrl(settings?.facebook_url) || "",
-      icon: Facebook,
+      icon: FaFacebookF,
       enabled: Boolean(settings?.facebook_enabled && safeExternalUrl(settings?.facebook_url)),
     },
     {
@@ -110,7 +104,7 @@ export default async function InstagramGallery() {
                 className="group flex min-h-[112px] min-w-0 items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.045] p-4 transition duration-200 hover:-translate-y-0.5 hover:border-[#D4AF37]/45 hover:bg-white/[0.075] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#D4AF37] focus-visible:ring-offset-2 focus-visible:ring-offset-[#071A35] sm:min-h-[132px] sm:p-5"
               >
                 <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-[#D4AF37]/25 bg-[#D4AF37]/10 text-[#D4AF37] transition group-hover:bg-[#D4AF37] group-hover:text-[#071A35] sm:size-14">
-                  <Icon className="size-6 sm:size-7" strokeWidth={1.8} />
+                  <Icon className="size-6 sm:size-7" />
                 </span>
                 <span className="min-w-0 flex-1">
                   <span className="block text-base font-semibold tracking-tight text-white sm:text-[17px]">
