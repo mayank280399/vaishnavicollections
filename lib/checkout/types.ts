@@ -17,13 +17,9 @@ export type PaymentMethod =
 
 /**
  * Payment option selected during checkout.
- *
- * This is a frontend checkout choice and is intentionally
- * separate from PaymentMethod.
+ * The online storefront accepts full payment through Razorpay.
  */
-export type CheckoutPaymentOption =
-  | "upi_full"
-  | "upi_partial";
+export type CheckoutPaymentOption = "razorpay_full";
 
 export type CreateOrderInput = {
   customerName: string;
@@ -41,7 +37,8 @@ export type CreateOrderInput = {
   /**
    * Database payment method.
    *
-   * For the current checkout this will be "UPI".
+   * The existing online-order RPC creates the pending order before
+   * Razorpay Checkout; the verified gateway method is saved later.
    */
   paymentMethod: PaymentMethod;
 
