@@ -315,19 +315,26 @@ export default function AccountPage() {
           .limit(10),
 
         supabase
-          .from("sales")
+          .from("orders")
           .select(`
             id,
-            sale_number,
+            order_number,
             total_amount,
             status,
             created_at
           `)
-          .eq("customer_id", customer.id)
+          .eq("user_id", user.id)
           .order("created_at", {
             ascending: false,
           })
-          .limit(5),
+          .limit(5)
+          .then(({ data, error }) => ({
+            data: data?.map((order) => ({
+              ...order,
+              sale_number: order.order_number,
+            })) ?? null,
+            error,
+          })),
       ]);
 
       // ---------------------------------------------------------
