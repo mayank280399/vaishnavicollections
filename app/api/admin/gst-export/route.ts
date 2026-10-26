@@ -131,7 +131,10 @@ export async function GET(request: NextRequest) {
       worksheet("Website Order Items", normalizeRows(orderItems)),
       worksheet("Purchases", normalizeRows(purchases)),
       worksheet("Purchase Items", normalizeRows(purchaseItems)),
-      worksheet("Expenses", normalizeRows(expenses)),\n      worksheet("Return Requests", normalizeRows(returnRequests)),\n      worksheet("Return Items", normalizeRows(returnItems)),\n      worksheet("Refunds", normalizeRows(refunds)),
+      worksheet("Expenses", normalizeRows(expenses)),
+      worksheet("Return Requests", normalizeRows(returnRequests)),
+      worksheet("Return Items", normalizeRows(returnItems)),
+      worksheet("Refunds", normalizeRows(refunds)),
     ];
     const workbook = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">${sheets.join("")}</Workbook>`;
     const filename = `vaishnavi-collections-gst-source-report-${from}-to-${to}.xls`;
