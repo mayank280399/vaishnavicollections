@@ -44,7 +44,7 @@ begin
   if exists (
     select 1 from public.reward_transactions t
      where t.reference_type = 'ONLINE_ORDER'
-       and t.reference_id = new.id
+       and t.reference_id::text = new.id::text
   ) then
     return new;
   end if;
