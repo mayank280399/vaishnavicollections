@@ -311,11 +311,12 @@ export default async function OrderDetailsPage({ params, searchParams,}: PagePro
 
 
 
+  const isOnlinePaymentOrder =
+    order.payment_method === "UPI" ||
+    order.payment_method === "RAZORPAY";
+
   const isPaymentPending =
-
-    order.payment_status === "PENDING" ||
-
-    order.payment_status === "PARTIALLY_PAID";
+    order.payment_status === "PENDING";
 
 
 
@@ -527,7 +528,7 @@ export default async function OrderDetailsPage({ params, searchParams,}: PagePro
       <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 sm:py-8">
 
         {/* Razorpay Payment */}
-        {isPaymentPending && !isCancelled && (
+        {isOnlinePaymentOrder && isPaymentPending && !isCancelled && (
           <section className="mb-6 overflow-hidden rounded-3xl border border-[#D4AF37]/30 bg-white shadow-sm">
             <div className="border-b border-[#D4AF37]/20 bg-[#071A35] px-5 py-5 text-white sm:px-6">
               <div className="flex items-start gap-3">
