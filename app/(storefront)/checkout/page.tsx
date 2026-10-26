@@ -73,40 +73,14 @@ export default function CheckoutPage() {
    * Payment option
    * --------------------------------------------------
    *
-   * The customer can currently choose:
-   *
-   * - Full UPI payment
-   * - Partial UPI advance
-   *
-   * Both are stored in the database as:
-   *
-   * payment_method = "UPI"
-   *
-   * The full/partial distinction is handled by the
-   * checkout payment option.
+   * Razorpay is the only online checkout method. The customer
+   * pays the full order amount through Razorpay Checkout.
    */
 
   const [
     paymentMethod,
     setPaymentMethod,
-  ] = useState<CheckoutPaymentOption>(
-    "upi_full",
-  );
-
-  /*
-   * --------------------------------------------------
-   * Partial payment
-   * --------------------------------------------------
-   *
-   * For now the advance is ₹149.
-   *
-   * We cap it at the order total so an order below
-   * ₹149 never asks the customer to pay more than
-   * the actual order amount.
-   *
-   * This can later be moved to app_settings so it
-   * can be changed without touching the code.
-   */
+  ] = useState<CheckoutPaymentOption>("razorpay_full");
 
   const PARTIAL_PAYMENT_AMOUNT = 149;
 
@@ -877,28 +851,9 @@ export default function CheckoutPage() {
      * Make sure a valid payment option is selected.
      */
 
-    if (
-      paymentMethod !== "upi_full" &&
-      paymentMethod !== "upi_partial"
-    ) {
+    if (paymentMethod !== "razorpay_full") {
       setError(
         "Please select a payment option.",
-      );
-
-      return;
-    }
-
-    /*
-     * Prevent a partial payment from being
-     * greater than the order total.
-     */
-
-    if (
-      paymentMethod === "upi_partial" &&
-      partialPaymentAmount <= 0
-    ) {
-      setError(
-        "Unable to calculate the partial payment amount.",
       );
 
       return;
@@ -990,26 +945,17 @@ export default function CheckoutPage() {
        * The next screen will show:
        *
        * - VC order number
-       * - UPI QR
-       * - UPI ID/payment details
-       * - amount to pay
-       * - remaining amount for partial payment
-       * - WhatsApp payment confirmation
+       * - Razorpay Checkout button
+       * - payment status and retry option
        *
-       * The query parameters allow the next screen to
-       * know which payment option the customer selected.
-       *
-       * IMPORTANT:
-       * These parameters are NOT treated as payment proof.
-       * The database remains PENDING until payment is
-       * verified.
+       * Payment is not considered complete until the
+       * server verifies the Razorpay signature and captured
+       * payment status.
        */
 
-      const paymentQuery =
-        new URLSearchParams({
-          payment: "upi",
-          option: paymentMethod,
-        });
+      const paymentQuery = new URLSearchParams({
+        payment: "razorpay",
+      });
 
       router.replace(
         `/orders/${result.orderId}?${paymentQuery.toString()}`,
