@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { useRouter } from "next/navigation";
 import { ArrowRight, LogIn, ShieldCheck, Sparkles } from "lucide-react";
 
 import RewardsJoinHero from "./RewardsJoinHero";
@@ -8,12 +9,14 @@ import RewardsHowItWorks from "./RewardsHowItWorks";
 import RewardsBenefitCard from "./RewardsBenefitCard";
 
 export default function RewardsJoinPage() {
+  const router = useRouter();
+
   const handleJoin = () => {
   window.location.href = "/login?redirect=/account&rewards=1&source=physicalshop";
 };
 
   const handleLogin = () => {
-    // Existing login route will be connected here.
+    router.push("/login?redirect=/account");
   };
 
   return (
