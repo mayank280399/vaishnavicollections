@@ -4,6 +4,7 @@ import Razorpay from "razorpay";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notifyOrderPaymentReceived } from "@/lib/notifications/order-events";
 
 export async function POST(request: Request) {
   try {
@@ -156,6 +157,12 @@ export async function POST(request: Request) {
         { success: false, error: "Payment verification is being processed. Refresh the order page shortly." },
         { status: 409 },
       );
+    }
+
+    try {
+      await notifyOrderPaymentReceived(order.id);
+    } catch (notificationError) {
+      console.error("Verified-payment notification failed:", notificationError);
     }
 
     return NextResponse.json({ success: true });
