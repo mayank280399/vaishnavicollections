@@ -112,13 +112,16 @@ export async function GET(request: NextRequest) {
     const summary: Row[] = [
       { Metric: "Reporting period", Value: `${from} to ${to}` },
       { Metric: "GST registration effective date", Value: "2026-10-26" },
-      { Metric: "POS sales records (includes recorded statuses)", Value: sales.length },\n      { Metric: "Note on source records", Value: "POS sales and website orders are exported separately. Ask the CA to reconcile them and confirm whether the two sources overlap before calculating taxable turnover." },
+      { Metric: "POS sales records (includes recorded statuses)", Value: sales.length },
+      { Metric: "Note on source records", Value: "POS sales and website orders are exported separately. Ask the CA to reconcile them and confirm whether the two sources overlap before calculating taxable turnover." },
       { Metric: "POS sales total_amount (not GST-calculated)", Value: Number(sum(sales, "total_amount").toFixed(2)) },
       { Metric: "Website orders", Value: onlineOrders.length },
       { Metric: "Website order total_amount (not GST-calculated)", Value: Number(sum(onlineOrders, "total_amount").toFixed(2)) },
       { Metric: "Purchases", Value: purchases.length },
       { Metric: "Purchase total_amount", Value: Number(sum(purchases, "total_amount").toFixed(2)) },
-      { Metric: "Return requests", Value: returnRequests.length },\n      { Metric: "Refund records", Value: refunds.length },\n      { Metric: "Expenses", Value: expenses.length },
+      { Metric: "Return requests", Value: returnRequests.length },
+      { Metric: "Refund records", Value: refunds.length },
+      { Metric: "Expenses", Value: expenses.length },
       { Metric: "Expense amount", Value: Number(sum(expenses, "amount").toFixed(2)) },
       { Metric: "Important", Value: "This workbook is a source-record export, not a filed GST return. GST rates, HSN, taxable value, CGST/SGST/IGST, credit eligibility, invoice treatment and adjustments must be checked by your CA. Do not treat totals as GST liability." },
     ];
