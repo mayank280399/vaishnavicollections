@@ -2,6 +2,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { notifyStaffNewOrder } from "@/lib/notifications/order-events";
 
 import type {
   CreateOrderInput,
@@ -247,9 +248,18 @@ export async function createOrder(input: CreateOrderInput) {
       };
     }
 
+    const orderId = data as string;
+
+    // Order creation must succeed even if a browser push provider is temporarily unavailable.
+    try {
+      await notifyStaffNewOrder(orderId);
+    } catch (notificationError) {
+      console.error("New-order notification failed:", notificationError);
+    }
+
     return {
       success: true,
-      orderId: data as string,
+      orderId,
       paymentOption: input.paymentOption,
       paymentPlan,
     };
