@@ -108,7 +108,7 @@ export default function GstExportClient() {
         <div className="rounded-2xl border border-slate-200 bg-white p-4">
           <div className="flex items-center gap-2 text-slate-900"><ShieldCheck className="size-5 text-brand-gold" /><h2 className="font-semibold">Included worksheets</h2></div>
           <ul className="mt-3 space-y-2 text-sm text-slate-600">
-            {["Summary & notes", "Physical shop / POS sales", "POS sale items", "Website orders & payment status", "Website order items", "Supplier purchases", "Purchase items", "Business expenses"].map((item) => <li key={item} className="flex items-start gap-2"><span className="mt-1 text-brand-gold">✓</span><span>{item}</span></li>)}
+            {["Summary & notes", "Physical shop / POS sales", "POS sale items", "Website orders & payment status", "Website order items", "Supplier purchases", "Purchase items", "Business expenses", "Return requests & items", "Refund records"].map((item) => <li key={item} className="flex items-start gap-2"><span className="mt-1 text-brand-gold">✓</span><span>{item}</span></li>)}
           </ul>
         </div>
         <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
