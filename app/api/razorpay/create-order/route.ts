@@ -4,15 +4,26 @@ import Razorpay from "razorpay";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID!,
-  key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
+function getRazorpay() {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+  if (!keyId || !keySecret) {
+    throw new Error("Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.");
+  }
+
+  return {
+    client: new Razorpay({ key_id: keyId, key_secret: keySecret }),
+    keyId,
+  };
+}
 
 export async function POST(
   request: Request
 ) {
   try {
+    const { client: razorpay, keyId } = getRazorpay();
+
     // --------------------------------------------------
     // 1. Authenticate customer
     // --------------------------------------------------
@@ -144,6 +155,7 @@ export async function POST(
               100
           ),
         currency: "INR",
+        keyId,
         orderId: order.id,
         orderNumber:
           order.order_number,
@@ -246,6 +258,7 @@ export async function POST(
         razorpayOrder.id,
       amount: amountInPaise,
       currency: "INR",
+      keyId,
       orderId: order.id,
       orderNumber:
         order.order_number,
