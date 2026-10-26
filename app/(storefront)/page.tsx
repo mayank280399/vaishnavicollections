@@ -4,6 +4,7 @@ import FeaturedProducts from '@/components/FeaturedProducts/FeaturedProducts';
 import CustomOrderBanner from '@/components/CustomOrderBanner/CustomOrderBanner';
 import ShopByNeed from '@/components/ShopByNeed/ShopByNeed';
 import LoyaltyBenefits from '@/components/LoyaltyBenefits/LoyaltyBenefits';
+import VCRewardsHomeBanner from '@/components/VCRewardsHomeBanner/VCRewardsHomeBanner';
 import Testimonials from '@/components/Testimonials/Testimonials';
 import InstagramGallery from '@/components/InstagramGallery/InstagramGallery';
 import CallToAction from '@/components/CallToAction/CallToAction';
@@ -27,6 +28,7 @@ export default function Home() {
       <FeaturedProducts />
       <ShopByNeed />
       <LoyaltyBenefits />
+      <VCRewardsHomeBanner />
       <Testimonials />
       <InstagramGallery />
       <CallToAction />
