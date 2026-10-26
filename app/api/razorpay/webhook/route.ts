@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { notifyOrderPaymentReceived } from "@/lib/notifications/order-events";
 
 function paymentMethodFor(method: string | undefined) {
   switch (String(method || "").toLowerCase()) {
@@ -130,6 +131,14 @@ export async function POST(request: Request) {
     if (updateError) {
       console.error("Razorpay webhook failed to update VC order:", updateError);
       return NextResponse.json({ error: "Unable to update order payment status." }, { status: 500 });
+    }
+
+    if (updated) {
+      try {
+        await notifyOrderPaymentReceived(order.id);
+      } catch (notificationError) {
+        console.error("Webhook payment notification failed:", notificationError);
+      }
     }
 
     return NextResponse.json({ received: true, processed: Boolean(updated) });
