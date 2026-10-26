@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import ReturnsRefundsClient from "./returns-refunds-client";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ export const revalidate = 0;
 type AnyRow = Record<string, any>;
 
 const EVIDENCE_BUCKET = "return-evidence";
-const EVIDENCE_URL_EXPIRY_SECONDS = 5 * 60;
+const EVIDENCE_URL_EXPIRY_SECONDS = 60 * 60;
 
 type QueryResult = {
   data: AnyRow[] | null;
@@ -275,9 +276,14 @@ export default async function ReturnsRefundsPage() {
     ),
   ];
 
+  // Use the server-only service client after the staff role check above.
+  // The evidence bucket is private and storage RLS may allow uploaders only;
+  // staff must still be able to review videos without making the bucket public.
+  const storageAdmin = createAdminClient();
+
   const evidenceEntries = await Promise.all(
     evidencePaths.map(async (path) => {
-      const { data, error } = await supabase.storage
+      const { data, error } = await storageAdmin.storage
         .from(EVIDENCE_BUCKET)
         .createSignedUrl(path, EVIDENCE_URL_EXPIRY_SECONDS);
 
