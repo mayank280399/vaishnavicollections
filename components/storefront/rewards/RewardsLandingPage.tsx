@@ -142,7 +142,7 @@ export default function RewardsLandingPage({
                   <span className="inline-flex items-center gap-2 rounded-full bg-[#f8f2dc] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[.16em] text-[#80651a]"><Gift size={14} /> VC Rewards</span>
                   <h2 className="mt-5 text-2xl font-extrabold sm:text-3xl">Good finds. Feel-good rewards.</h2>
                   <p className="mt-3 text-sm leading-6 text-slate-600">Explore the collection and sign in to check your rewards progress. New offers appear here when available.</p>
-                  <Link href="/products" className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#071A35] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#102b52">Shop now <ArrowRight size={17} /></Link>
+                  <Link href="/products" className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#071A35] px-4 py-3 text-sm font-bold text-white transition hover:bg-[#102b52]">Shop now <ArrowRight size={17} /></Link>
                 </>
               )}
             </div>
