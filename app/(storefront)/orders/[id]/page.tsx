@@ -57,11 +57,6 @@ type PageProps = {
   params: Promise<{
     id: string;
   }>;
-
-  searchParams: Promise<{
-    payment?: string;
-    option?: string;
-  }>;
 };
 
 function formatCurrency(value: number) {
@@ -187,9 +182,8 @@ function ShipmentTimeline({shipment}: {shipment: Shipment | null;}) {
   );
 }
 
-export default async function OrderDetailsPage({ params, searchParams,}: PageProps) {
+export default async function OrderDetailsPage({ params }: PageProps) {
   const { id } = await params;
-  const query = await searchParams;
   const supabase = await createClient();
   const {data: { user }} = await supabase.auth.getUser();
   if (!user) {
