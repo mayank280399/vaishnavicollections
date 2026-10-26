@@ -46,7 +46,7 @@ export async function createOrder(input: CreateOrderInput) {
     if (input.paymentMethod !== "UPI") {
       return {
         success: false,
-        error: "Please select Razorpay as your payment method.",
+        error: "Unable to prepare this online payment.",
       };
     }
 
@@ -56,7 +56,7 @@ export async function createOrder(input: CreateOrderInput) {
     if (input.paymentOption !== "razorpay_full") {
       return {
         success: false,
-        error: "Please select a valid UPI payment option.",
+        error: "Please select full payment through Razorpay.",
       };
     }
 
@@ -187,7 +187,7 @@ export async function createOrder(input: CreateOrderInput) {
     }
 
     /*
-     * Convert the frontend payment option to the database value.
+     * The current online-order RPC requires FULL payment plan.
      */
     const paymentPlan = "FULL" as const;
 
