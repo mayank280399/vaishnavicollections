@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useShopping } from "@/context/ShoppingContext";
 import { createOrder } from "@/lib/checkout/actions";
 
-import type {  CheckoutItem, CheckoutPaymentOption, CheckoutProduct, Customer, FormState, RecipientMode,
+import type {  CheckoutItem, CheckoutProduct, Customer, FormState, RecipientMode,
 } from "@/lib/checkout/types";
 
 import CheckoutProgress from "@/components/checkout/CheckoutProgress";
