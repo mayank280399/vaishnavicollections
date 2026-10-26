@@ -2,16 +2,13 @@
 
 import { ArrowLeft, Check, CreditCard, ShieldCheck } from "lucide-react";
 import { SectionIcon, StepError, TextareaField } from "./CheckoutUI";
-import type { CheckoutPaymentOption, FormState } from "@/lib/checkout/types";
+import type { FormState } from "@/lib/checkout/types";
 
 type CheckoutPlaceOrderStepProps = {
   form: FormState;
   error: string;
   submitting: boolean;
-  paymentMethod: CheckoutPaymentOption;
   total: number;
-  partialPaymentAmount: number;
-  onPaymentMethodChange: (method: CheckoutPaymentOption) => void;
   onFieldChange: (field: keyof FormState, value: string) => void;
   onBack: () => void;
 };
