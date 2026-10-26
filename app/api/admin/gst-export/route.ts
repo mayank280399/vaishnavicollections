@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
   const endExclusive = new Date(new Date(`${to}T00:00:00+05:30`).getTime() + 86400000).toISOString();
 
   try {
-    const [sales, saleItemsAll, onlineOrders, purchases, purchaseItemsAll, expenses] = await Promise.all([
+    const [sales, saleItemsAll, onlineOrders, purchases, purchaseItemsAll, expenses, returnRequests, refunds, returnItemsAll] = await Promise.all([
       fetchAllPages<Row>((fromRow, toRow) => supabase.from("sales").select("*").gte("purchased_at", start).lt("purchased_at", endExclusive).order("purchased_at", { ascending: true }).range(fromRow, toRow)),
       fetchAllPages<Row>((fromRow, toRow) => supabase.from("sale_items").select("*").range(fromRow, toRow)),
       fetchAllPages<Row>((fromRow, toRow) => supabase.from("orders").select("id,order_number,status,payment_status,payment_method,payment_plan,subtotal,shipping_amount,discount_amount,total_amount,amount_paid,amount_due,customer_name,customer_phone,shipping_address_line1,shipping_address_line2,shipping_city,shipping_state,shipping_postal_code,shipping_country,notes,created_at,updated_at,order_items(id,product_name,product_sku,quantity,unit_price,total_price)").gte("created_at", start).lt("created_at", endExclusive).order("created_at", { ascending: true }).range(fromRow, toRow)),
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
       { Metric: "Website order total_amount (not GST-calculated)", Value: Number(sum(onlineOrders, "total_amount").toFixed(2)) },
       { Metric: "Purchases", Value: purchases.length },
       { Metric: "Purchase total_amount", Value: Number(sum(purchases, "total_amount").toFixed(2)) },
-      { Metric: "Expenses", Value: expenses.length },
+      { Metric: "Return requests", Value: returnRequests.length },\n      { Metric: "Refund records", Value: refunds.length },\n      { Metric: "Expenses", Value: expenses.length },
       { Metric: "Expense amount", Value: Number(sum(expenses, "amount").toFixed(2)) },
       { Metric: "Important", Value: "This workbook is a source-record export, not a filed GST return. GST rates, HSN, taxable value, CGST/SGST/IGST, credit eligibility, invoice treatment and adjustments must be checked by your CA. Do not treat totals as GST liability." },
     ];
@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
       worksheet("Website Order Items", normalizeRows(orderItems)),
       worksheet("Purchases", normalizeRows(purchases)),
       worksheet("Purchase Items", normalizeRows(purchaseItems)),
-      worksheet("Expenses", normalizeRows(expenses)),
+      worksheet("Expenses", normalizeRows(expenses)),\n      worksheet("Return Requests", normalizeRows(returnRequests)),\n      worksheet("Return Items", normalizeRows(returnItems)),\n      worksheet("Refunds", normalizeRows(refunds)),
     ];
     const workbook = `<?xml version="1.0" encoding="UTF-8"?><?mso-application progid="Excel.Sheet"?><Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet" xmlns:html="http://www.w3.org/TR/REC-html40">${sheets.join("")}</Workbook>`;
     const filename = `vaishnavi-collections-gst-source-report-${from}-to-${to}.xls`;
