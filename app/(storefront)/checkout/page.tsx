@@ -77,13 +77,6 @@ export default function CheckoutPage() {
    * pays the full order amount through Razorpay Checkout.
    */
 
-  const [
-    paymentMethod,
-    setPaymentMethod,
-  ] = useState<CheckoutPaymentOption>("razorpay_full");
-
-  const PARTIAL_PAYMENT_AMOUNT = 149;
-
   /*
    * --------------------------------------------------
    * Checkout steps
@@ -472,16 +465,6 @@ export default function CheckoutPage() {
   const total =
     subtotal + shipping;
 
-  /*
-   * Partial payment amount is capped at the
-   * actual order total.
-   */
-
-  const partialPaymentAmount = Math.min(
-    PARTIAL_PAYMENT_AMOUNT,
-    total,
-  );
-
   const totalQuantity = useMemo(() => {
     return items.reduce(
       (total, item) =>
@@ -647,13 +630,6 @@ export default function CheckoutPage() {
    * Payment option
    * --------------------------------------------------
    */
-
-  function handlePaymentMethodChange(
-    method: CheckoutPaymentOption,
-  ) {
-    setPaymentMethod(method);
-    setError("");
-  }
 
   /*
    * --------------------------------------------------
@@ -851,14 +827,6 @@ export default function CheckoutPage() {
      * Make sure a valid payment option is selected.
      */
 
-    if (paymentMethod !== "razorpay_full") {
-      setError(
-        "Please select a payment option.",
-      );
-
-      return;
-    }
-
     setSubmitting(true);
 
     try {
@@ -907,7 +875,7 @@ export default function CheckoutPage() {
             "UPI",
 
           paymentOption:
-            paymentMethod,
+            "razorpay_full",
 
           saveCustomerDetails:
             recipientMode === "me" &&
@@ -1126,16 +1094,7 @@ export default function CheckoutPage() {
                 form={form}
                 error={error}
                 submitting={submitting}
-                paymentMethod={
-                  paymentMethod
-                }
                 total={total}
-                partialPaymentAmount={
-                  partialPaymentAmount
-                }
-                onPaymentMethodChange={
-                  handlePaymentMethodChange
-                }
                 onFieldChange={
                   updateField
                 }
@@ -1147,7 +1106,6 @@ export default function CheckoutPage() {
           {/* Right / Order Summary */}
 
           <CheckoutOrderSummary
-            partialPaymentAmount={partialPaymentAmount}
             items={items}
             subtotal={subtotal}
             shipping={shipping}
@@ -1156,7 +1114,6 @@ export default function CheckoutPage() {
             currentStep={currentStep}
             submitting={submitting}
             showOrderItems={showOrderItems}
-            paymentMethod={paymentMethod}
             checkoutComplete={
               checkoutComplete
             }
