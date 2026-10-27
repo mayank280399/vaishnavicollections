@@ -17,7 +17,7 @@ create table if not exists public.razorpay_checkout_intents (
   customer_notes text,
   save_customer_details boolean not null default false,
   items jsonb not null default '[]'::jsonb,
-  status text not null default 'PENDING' check (status in ('PENDING','PAID','ORDER_CREATED','CANCELLED')),
+  status text not null default 'PENDING' check (status in ('PENDING','PAID','FINALIZING','ORDER_CREATED','CANCELLED')),
   order_id uuid references public.orders(id) on delete set null,
   razorpay_payment_id text,
   created_at timestamptz not null default now(),
