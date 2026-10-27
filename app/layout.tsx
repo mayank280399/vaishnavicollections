@@ -70,6 +70,8 @@ const siteStructuredData = {
         "@type": "MerchantReturnPolicy",
         "@id": "https://vaishnavicollections.vercel.app/#return-policy",
         applicableCountry: "IN",
+        returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+        merchantReturnDays: 3,
         merchantReturnLink: "https://vaishnavicollections.vercel.app/refund-returns",
       },
       hasShippingService: {
