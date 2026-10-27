@@ -327,14 +327,7 @@ export default function AccountPage() {
           .order("created_at", {
             ascending: false,
           })
-          .limit(5)
-          .then(({ data, error }) => ({
-            data: data?.map((order) => ({
-              ...order,
-              sale_number: order.order_number,
-            })) ?? null,
-            error,
-          })),
+          .limit(5),
       ]);
 
       // ---------------------------------------------------------
@@ -406,7 +399,21 @@ export default function AccountPage() {
 
         orders: ordersResult.error
           ? []
-          : ordersResult.data ?? [],
+          : (ordersResult.data ?? []).map(
+              (order: {
+                id: string;
+                order_number: string | null;
+                total_amount: number;
+                status: string;
+                created_at: string;
+              }) => ({
+                id: order.id,
+                sale_number: order.order_number,
+                total_amount: order.total_amount,
+                status: order.status,
+                created_at: order.created_at,
+              }),
+            ),
       });
     } catch (err) {
       console.error("ACCOUNT PAGE ERROR:", err);
