@@ -48,8 +48,8 @@ export default function CheckoutOrderSummary({
   onToggleItems,
   onSubmit,
 }: CheckoutOrderSummaryProps) {
-  const buttonLabel = `Continue to secure payment · ${formatPrice(total)}`;
-  const submittingLabel = "Creating Your Order...";
+  const buttonLabel = `Pay securely · ${formatPrice(total)}`;
+  const submittingLabel = "Preparing secure payment...";
   const paymentLabel = "Razorpay · Full Payment";
 
   return (
