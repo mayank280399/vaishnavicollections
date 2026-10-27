@@ -83,6 +83,39 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Razorpay has not confirmed a captured payment for the exact checkout amount yet." }, { status: 409 });
     }
 
+    // Claim finalization atomically so duplicate browser callbacks cannot create
+    // multiple VC orders for the same captured payment. Webhooks may already have
+    // moved the intent to PAID; either PENDING or PAID can be claimed.
+    const { data: claimedIntent, error: claimError } = await admin
+      .from("razorpay_checkout_intents")
+      .update({
+        status: "FINALIZING",
+        razorpay_payment_id: razorpayPaymentId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", intent.id)
+      .eq("user_id", user.id)
+      .in("status", ["PENDING", "PAID"])
+      .select("id")
+      .maybeSingle();
+
+    if (claimError) {
+      console.error("Checkout intent finalization claim failed:", claimError);
+      return NextResponse.json({ success: false, error: "Payment is verified, but order finalization could not start. Please contact support with your payment ID." }, { status: 500 });
+    }
+    if (!claimedIntent) {
+      const { data: latestIntent } = await admin
+        .from("razorpay_checkout_intents")
+        .select("status, order_id")
+        .eq("id", intent.id)
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (latestIntent?.status === "ORDER_CREATED" && latestIntent.order_id) {
+        return NextResponse.json({ success: true, orderId: latestIntent.order_id, alreadyVerified: true });
+      }
+      return NextResponse.json({ success: false, paymentCaptured: true, error: "Your payment is verified and order finalization is in progress. Please do not pay again." }, { status: 409 });
+    }
+
     // The real VC order is deliberately created only after the gateway confirms
     // the captured payment. The existing database RPC validates the cart and
     // creates the order/items; all shipping details come from the server-side intent.
