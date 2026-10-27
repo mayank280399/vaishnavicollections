@@ -717,9 +717,9 @@ async function ProductContent({
         "@id": `${productUrl}#product`,
         name: productName,
         url: productUrl,
-        ...(product.description?.trim()
-          ? { description: product.description.trim() }
-          : {}),
+        description:
+          product.description?.trim() ||
+          `Discover this beautiful ${productName} from Vaishnavi Collections. Each product is carefully selected for quality, style, and everyday use.`,
         ...(productImages.length ? { image: productImages } : {}),
         ...(product.sku ? { sku: product.sku } : {}),
         category: category?.name ?? parentCategory?.name,
@@ -740,6 +740,15 @@ async function ProductContent({
             "@type": "Organization",
             "@id": "https://vaishnavicollections.vercel.app/#organization",
             name: "Vaishnavi Collections",
+          },
+          hasMerchantReturnPolicy: {
+            "@id": "https://vaishnavicollections.vercel.app/#return-policy",
+          },
+          shippingDetails: {
+            "@type": "OfferShippingDetails",
+            hasShippingService: {
+              "@id": "https://vaishnavicollections.vercel.app/#shipping-service",
+            },
           },
         },
       },
