@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Bell, BellRing, CheckCheck, LoaderCircle, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 
 type NotificationItem = {
   id: string;
@@ -164,7 +165,7 @@ export default function NotificationBell({
             void loadNotifications({ silent: true });
           },
         )
-        .subscribe((status) => {
+        .subscribe((status: "SUBSCRIBED" | "TIMED_OUT" | "CLOSED" | "CHANNEL_ERROR") => {
           // Reconcile after connection/reconnection so missed events are recovered.
           if (status === "SUBSCRIBED") {
             void loadNotifications({ silent: true });
@@ -193,7 +194,7 @@ export default function NotificationBell({
 
     const {
       data: { subscription: authSubscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event: AuthChangeEvent, session: Session | null) => {
       void Promise.resolve().then(() => {
         if (mounted) void connectUser(session?.user.id ?? null);
       });
