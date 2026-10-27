@@ -427,7 +427,7 @@ async function SubcategoryContent({
             position: index + 1,
             url: `${SITE_URL}/products/${encodeURIComponent(product.slug)}`,
             item: {
-              "@type": "Product",
+              "@type": "Thing",
               name: product.product_title || product.name,
               url: `${SITE_URL}/products/${encodeURIComponent(product.slug)}`,
               image: product.image,
