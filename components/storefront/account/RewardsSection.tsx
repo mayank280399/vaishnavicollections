@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import {Gift,LockKeyhole,Sparkles,} from "lucide-react";
+import Link from "next/link";
+import {ArrowRight, Gift, LockKeyhole, Sparkles} from "lucide-react";
 import { Reward } from "@/app/(storefront)/account/page";
 
 
@@ -38,7 +39,7 @@ export default function RewardsSection({
 
   return (
     <section>
-      <div className="mb-4 flex items-end justify-between gap-4">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
             <Sparkles
@@ -56,9 +57,17 @@ export default function RewardsSection({
           </h2>
         </div>
 
-        <span className="text-sm font-semibold text-slate-500">
-          {pointsBalance.toLocaleString("en-IN")} points
-        </span>
+        <div className="flex items-center justify-between gap-3 sm:justify-end">
+          <span className="text-sm font-semibold text-slate-500">
+            {pointsBalance.toLocaleString("en-IN")} points
+          </span>
+          <Link
+            href="/rewards"
+            className="inline-flex min-h-10 items-center gap-1.5 rounded-xl border border-[#D4AF37]/60 px-3 py-2 text-xs font-semibold text-[#071A35] transition hover:bg-[#faf7e9]"
+          >
+            Rewards details <ArrowRight size={14} />
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

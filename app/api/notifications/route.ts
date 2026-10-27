@@ -37,13 +37,19 @@ export async function GET() {
       return jsonError("Unable to load notifications.", 500);
     }
 
-    const notifications = data ?? [];
-    const unreadCount = notifications.filter(
-      (notification) => notification.read_at === null,
-    ).length;
+    const { count: unreadCount, error: countError } = await supabase
+      .from("notifications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", user.id)
+      .is("read_at", null);
+
+    if (countError) {
+      console.error("Notifications unread count error:", countError.message);
+      return jsonError("Unable to load notification count.", 500);
+    }
 
     return NextResponse.json(
-      { notifications, unreadCount },
+      { notifications: data ?? [], unreadCount: unreadCount ?? 0 },
       {
         headers: { "Cache-Control": "private, no-store" },
       },

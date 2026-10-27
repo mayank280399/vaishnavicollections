@@ -37,7 +37,10 @@ export function LoyaltySettings({
       String(settings.maximum_redemption_percentage)
     );
 
+  const [repeatBonusEnabled, setRepeatBonusEnabled] = useState(settings.repeat_bonus_enabled);
+  const [referralBonusEnabled, setReferralBonusEnabled] = useState(settings.referral_bonus_enabled);
   const [saving, setSaving] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   async function handleSave() {
     const spend = Number(spendPerStamp);
@@ -56,9 +59,11 @@ export function LoyaltySettings({
       maximum < 0 ||
       maximum > 100
     ) {
+      setValidationError("Enter valid values. Stamp spend must be positive; expiry and minimum points cannot be negative; maximum discount must be between 0 and 100.");
       return;
     }
 
+    setValidationError(null);
     setSaving(true);
 
     try {
@@ -67,6 +72,8 @@ export function LoyaltySettings({
         reward_expiry_days: expiry,
         minimum_redemption_points: minimum,
         maximum_redemption_percentage: maximum,
+        repeat_bonus_enabled: repeatBonusEnabled,
+        referral_bonus_enabled: referralBonusEnabled,
       });
     } finally {
       setSaving(false);
@@ -171,6 +178,21 @@ export function LoyaltySettings({
           </div>
         </div>
       </div>
+
+      <div className="rounded-2xl border bg-card p-4">
+        <h3 className="font-semibold">Bonus Features</h3>
+        <p className="mt-1 text-sm text-muted-foreground">These switches save the configured flags only. Enable them only after the corresponding reward workflow has been implemented and tested.</p>
+        <label className="mt-4 flex cursor-pointer items-start gap-3 text-sm">
+          <input type="checkbox" className="mt-1" checked={repeatBonusEnabled} onChange={(event) => setRepeatBonusEnabled(event.target.checked)} />
+          <span><span className="font-medium">Repeat-purchase bonus</span><span className="block text-xs text-muted-foreground">Allow the repeat bonus feature flag to be enabled.</span></span>
+        </label>
+        <label className="mt-3 flex cursor-pointer items-start gap-3 text-sm">
+          <input type="checkbox" className="mt-1" checked={referralBonusEnabled} onChange={(event) => setReferralBonusEnabled(event.target.checked)} />
+          <span><span className="font-medium">Referral bonus</span><span className="block text-xs text-muted-foreground">Allow the referral bonus feature flag to be enabled.</span></span>
+        </label>
+      </div>
+
+      {validationError && <p role="alert" className="text-sm text-destructive">{validationError}</p>}
 
       <Button
         onClick={handleSave}

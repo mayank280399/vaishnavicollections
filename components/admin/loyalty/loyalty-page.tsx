@@ -188,9 +188,11 @@ export function LoyaltyPage() {
           settings.maximum_redemption_percentage,
 
         repeat_bonus_enabled:
+          values.repeat_bonus_enabled ??
           settings.repeat_bonus_enabled,
 
         referral_bonus_enabled:
+          values.referral_bonus_enabled ??
           settings.referral_bonus_enabled,
       }
     );
