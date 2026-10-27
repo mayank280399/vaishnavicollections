@@ -137,7 +137,7 @@ export async function POST(request: Request) {
     }
 
     const admin = createAdminClient();
-    const { error: intentError } = await admin.from("razorpay_checkout_intents").insert({
+    const { data: checkoutIntent, error: intentError } = await admin.from("razorpay_checkout_intents").insert({
       user_id: user.id,
       razorpay_order_id: razorpayOrder.id,
       amount_paise: amountPaise,
@@ -153,14 +153,15 @@ export async function POST(request: Request) {
       customer_notes: notes || null,
       save_customer_details: body.saveCustomerDetails === true,
       items: intentItems,
-    });
-    if (intentError) {
+    }).select("id").single();
+    if (intentError || !checkoutIntent) {
       console.error("Razorpay checkout intent persistence failed:", intentError);
       return NextResponse.json({ success: false, error: "Payment was initialized but checkout details could not be saved. Please retry; no store order has been created." }, { status: 500 });
     }
 
     return NextResponse.json({
       success: true,
+      checkoutIntentId: checkoutIntent.id,
       razorpayOrderId: razorpayOrder.id,
       amount: amountPaise,
       currency: "INR",
