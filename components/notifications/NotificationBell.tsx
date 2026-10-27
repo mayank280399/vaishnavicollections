@@ -28,6 +28,7 @@ function decodeVapidKey(value: string) {
 export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -35,10 +36,10 @@ export default function NotificationBell() {
   const [signedIn, setSignedIn] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
 
-  const unreadCount = items.filter((item) => !item.read_at).length;
+  const loadNotifications = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
 
-  const loadNotifications = useCallback(async () => {
-    setLoading(true);
+    if (!silent) setLoading(true);
     setError("");
 
     try {
@@ -50,7 +51,7 @@ export default function NotificationBell() {
 
       if (!user) {
         setItems([]);
-        setLoading(false);
+        setUnreadCount(0);
         return;
       }
 
@@ -64,28 +65,30 @@ export default function NotificationBell() {
         throw new Error(data.error || "Could not load notifications.");
       }
 
-      setItems(Array.isArray(data.notifications) ? data.notifications : []);
+      const nextItems = Array.isArray(data.notifications)
+        ? data.notifications
+        : [];
+
+      setItems(nextItems);
+      setUnreadCount(
+        typeof data.unreadCount === "number"
+          ? data.unreadCount
+          : nextItems.filter((item: NotificationItem) => !item.read_at).length,
+      );
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Could not load notifications.",
       );
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
+  // Keep browser-push settings separate from the live notification feed.
   useEffect(() => {
     let active = true;
 
-    async function checkStatus() {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!active) return;
-
-      setSignedIn(Boolean(user));
-
+    async function checkPushStatus() {
       if ("serviceWorker" in navigator && "PushManager" in window) {
         try {
           const registration = await navigator.serviceWorker.getRegistration("/");
@@ -98,12 +101,103 @@ export default function NotificationBell() {
       }
     }
 
-    void checkStatus();
+    void checkPushStatus();
 
     return () => {
       active = false;
     };
   }, []);
+
+  // Subscribe as soon as a user is signed in, not only when the bell is opened.
+  // Realtime events refresh the list and exact unread count without a page reload.
+  useEffect(() => {
+    let mounted = true;
+    let activeUserId: string | null | undefined;
+    let transition = 0;
+    let notificationChannel: ReturnType<typeof supabase.channel> | null = null;
+
+    async function connectUser(userId: string | null) {
+      if (
+        activeUserId === userId &&
+        (userId === null || notificationChannel !== null)
+      ) {
+        return;
+      }
+
+      activeUserId = userId;
+      const currentTransition = ++transition;
+      const previousChannel = notificationChannel;
+      notificationChannel = null;
+
+      if (previousChannel) {
+        await supabase.removeChannel(previousChannel);
+      }
+
+      if (!mounted || currentTransition !== transition) return;
+
+      if (!userId) {
+        setSignedIn(false);
+        setItems([]);
+        setUnreadCount(0);
+        setError("");
+        return;
+      }
+
+      setSignedIn(true);
+      void loadNotifications();
+
+      notificationChannel = supabase
+        .channel(`vc-notifications-${userId}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "notifications",
+            filter: `user_id=eq.${userId}`,
+          },
+          () => {
+            void loadNotifications({ silent: true });
+          },
+        )
+        .subscribe((status) => {
+          // Also reconcile after initial connection and every reconnect. This
+          // covers changes that happened while the browser was disconnected.
+          if (status === "SUBSCRIBED") {
+            void loadNotifications({ silent: true });
+          }
+        });
+    }
+
+    async function initialize() {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (mounted) void connectUser(user?.id ?? null);
+    }
+
+    void initialize();
+
+    const {
+      data: { subscription: authSubscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      // Defer Supabase work until after the auth callback returns.
+      void Promise.resolve().then(() => {
+        if (mounted) void connectUser(session?.user.id ?? null);
+      });
+    });
+
+    return () => {
+      mounted = false;
+      transition += 1;
+      authSubscription.unsubscribe();
+
+      if (notificationChannel) {
+        void supabase.removeChannel(notificationChannel);
+      }
+    };
+  }, [loadNotifications]);
 
   useEffect(() => {
     if (!open) return;
@@ -248,6 +342,7 @@ export default function NotificationBell() {
           : entry,
       ),
     );
+    setUnreadCount((current) => Math.max(0, current - 1));
   }
 
   const formatDate = (value: string) =>
