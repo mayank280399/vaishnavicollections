@@ -936,8 +936,9 @@ export default function CheckoutPage() {
         setError(paymentError.error?.description || "Payment failed. You can retry securely; no VC order has been placed.");
         setSubmitting(false);
       });
+      // Keep submission locked while the Razorpay modal is open.
+      // onDismiss, payment.failed, or successful verification releases/navigates.
       razorpay.open();
-      setSubmitting(false);
     } catch (submitError) {
       console.error("Checkout / Razorpay initialization failed:", submitError);
       setError(submitError instanceof Error ? submitError.message : "Unable to prepare secure checkout.");
