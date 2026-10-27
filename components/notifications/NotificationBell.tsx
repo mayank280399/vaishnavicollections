@@ -183,6 +183,15 @@ export default function NotificationBell({
 
     void initialize();
 
+    const handleReconnect = () => {
+      if (document.visibilityState === "visible" && navigator.onLine) {
+        void loadNotifications({ silent: true });
+      }
+    };
+
+    window.addEventListener("online", handleReconnect);
+    document.addEventListener("visibilitychange", handleReconnect);
+
     const {
       data: { subscription: authSubscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -196,6 +205,8 @@ export default function NotificationBell({
       mounted = false;
       transition += 1;
       authSubscription.unsubscribe();
+      window.removeEventListener("online", handleReconnect);
+      document.removeEventListener("visibilitychange", handleReconnect);
 
       if (notificationChannel) {
         void supabase.removeChannel(notificationChannel);
