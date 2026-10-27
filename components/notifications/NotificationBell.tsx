@@ -25,7 +25,11 @@ function decodeVapidKey(value: string) {
   return Uint8Array.from(raw, (character) => character.charCodeAt(0));
 }
 
-export default function NotificationBell() {
+export default function NotificationBell({
+  variant = "storefront",
+}: {
+  variant?: "storefront" | "admin";
+}) {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -364,7 +368,12 @@ export default function NotificationBell() {
             : "Notifications"
         }
         aria-expanded={open}
-        className="relative flex size-9 items-center justify-center rounded-full text-[#171B4D] transition-colors hover:bg-gray-100 hover:text-[#C9952E] sm:size-10"
+        className={[
+          "relative flex size-9 items-center justify-center rounded-full transition-colors sm:size-10",
+          variant === "admin"
+            ? "text-[#D4AF37] hover:bg-white/10 hover:text-white"
+            : "text-[#171B4D] hover:bg-gray-100 hover:text-[#C9952E]",
+        ].join(" ")}
       >
         <Bell size={20} />
 
