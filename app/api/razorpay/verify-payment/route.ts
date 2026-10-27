@@ -226,6 +226,44 @@ export async function POST(request: Request) {
     }).eq("id", intent.id).eq("user_id", user.id);
     if (intentUpdateError) console.error("Checkout intent completion update failed:", intentUpdateError);
 
+    // Save reusable customer details only after payment and order creation, and
+    // only to records explicitly linked to this authenticated profile.
+    if (intent.save_customer_details === true) {
+      try {
+        const { error: profileSaveError } = await supabase
+          .from("profiles")
+          .update({ full_name: intent.customer_name, phone: intent.customer_phone })
+          .eq("id", user.id);
+        if (profileSaveError) console.error("Paid checkout profile save failed:", profileSaveError);
+
+        const { data: linkedCustomer, error: customerLookupError } = await supabase
+          .from("customers")
+          .select("id")
+          .eq("profile_id", user.id)
+          .maybeSingle();
+        if (customerLookupError) {
+          console.error("Paid checkout customer lookup failed:", customerLookupError);
+        } else if (linkedCustomer) {
+          const { error: customerSaveError } = await supabase
+            .from("customers")
+            .update({
+              display_name: intent.customer_name,
+              phone: intent.customer_phone,
+              address_line1: intent.address_line1,
+              address_line2: intent.address_line2,
+              city: intent.city,
+              state: intent.state,
+              postal_code: intent.postal_code,
+            })
+            .eq("id", linkedCustomer.id)
+            .eq("profile_id", user.id);
+          if (customerSaveError) console.error("Paid checkout customer save failed:", customerSaveError);
+        }
+      } catch (customerSaveError) {
+        console.error("Unexpected paid checkout customer save failure:", customerSaveError);
+      }
+    }
+
     try {
       await notifyStaffNewOrder(order.id);
       await notifyOrderPaymentReceived(order.id);
