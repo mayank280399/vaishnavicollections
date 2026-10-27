@@ -315,15 +315,15 @@ export default function AccountPage() {
           .limit(10),
 
         supabase
-          .from("sales")
+          .from("orders")
           .select(`
             id,
-            sale_number,
+            order_number,
             total_amount,
             status,
             created_at
           `)
-          .eq("customer_id", customer.id)
+          .eq("user_id", user.id)
           .order("created_at", {
             ascending: false,
           })
@@ -399,7 +399,21 @@ export default function AccountPage() {
 
         orders: ordersResult.error
           ? []
-          : ordersResult.data ?? [],
+          : (ordersResult.data ?? []).map(
+              (order: {
+                id: string;
+                order_number: string | null;
+                total_amount: number;
+                status: string;
+                created_at: string;
+              }) => ({
+                id: order.id,
+                sale_number: order.order_number,
+                total_amount: order.total_amount,
+                status: order.status,
+                created_at: order.created_at,
+              }),
+            ),
       });
     } catch (err) {
       console.error("ACCOUNT PAGE ERROR:", err);

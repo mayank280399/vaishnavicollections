@@ -2,8 +2,8 @@
 "use client";
 
 import React from "react";
-import { CheckCircle2, ChevronDown, Loader2, PackageCheck, ShieldCheck, ShoppingBag, Smartphone} from "lucide-react";
-import type { CheckoutItem, CheckoutPaymentOption} from "@/lib/checkout/types";
+import { CheckCircle2, ChevronDown, CreditCard, Loader2, PackageCheck, ShieldCheck, ShoppingBag } from "lucide-react";
+import type { CheckoutItem } from "@/lib/checkout/types";
 import { TrustItem } from "./CheckoutUI";
 
 type CheckoutOrderSummaryProps = {
@@ -16,8 +16,6 @@ type CheckoutOrderSummaryProps = {
   submitting: boolean;
   showOrderItems: boolean;
   checkoutComplete: boolean;
-  paymentMethod: CheckoutPaymentOption;
-  partialPaymentAmount: number;
   onToggleItems: () => void;
   onSubmit: (
     event: React.FormEvent<HTMLFormElement>,
@@ -47,46 +45,12 @@ export default function CheckoutOrderSummary({
   submitting,
   showOrderItems,
   checkoutComplete,
-  paymentMethod,
-  partialPaymentAmount,
   onToggleItems,
   onSubmit,
 }: CheckoutOrderSummaryProps) {
-  const isFullPayment =
-    paymentMethod === "upi_full";
-
-  const isPartialPayment =
-    paymentMethod === "upi_partial";
-
-  const remainingAmount = Math.max(
-    total - partialPaymentAmount,
-    0,
-  );
-
-  /*
-   * --------------------------------------------------
-   * CTA
-   * --------------------------------------------------
-   */
-
-  const buttonLabel = isFullPayment
-    ? `Continue to UPI · ${formatPrice(total)}`
-    : `Continue to UPI · ${formatPrice(
-        partialPaymentAmount,
-      )}`;
-
-  const submittingLabel =
-    "Creating Your Order...";
-
-  /*
-   * --------------------------------------------------
-   * Payment description
-   * --------------------------------------------------
-   */
-
-  const paymentLabel = isFullPayment
-    ? "Full UPI Payment"
-    : "Partial UPI Advance";
+  const buttonLabel = `Pay securely · ${formatPrice(total)}`;
+  const submittingLabel = "Preparing secure payment...";
+  const paymentLabel = "Razorpay · Full Payment";
 
   return (
     <aside className="lg:sticky lg:top-24 lg:self-start">
@@ -229,45 +193,15 @@ export default function CheckoutOrderSummary({
             </div>
 
             {/* Selected payment method */}
-
             <div className="mt-4 rounded-xl bg-slate-50 px-3.5 py-3">
               <div className="flex items-center justify-between gap-3">
-                <span className="text-xs text-slate-500">
-                  Payment
-                </span>
-
-                <span className="text-xs font-semibold text-slate-800">
-                  {paymentLabel}
-                </span>
+                <span className="text-xs text-slate-500">Payment</span>
+                <span className="text-xs font-semibold text-slate-800">{paymentLabel}</span>
               </div>
-
               <div className="mt-2 flex items-center justify-between gap-3 border-t border-slate-200 pt-2">
-                <span className="text-xs text-slate-500">
-                  Pay now
-                </span>
-
-                <span className="text-xs font-bold text-[#0f1f3d]">
-                  {formatPrice(
-                    isFullPayment
-                      ? total
-                      : partialPaymentAmount,
-                  )}
-                </span>
+                <span className="text-xs text-slate-500">Pay securely</span>
+                <span className="text-xs font-bold text-[#0f1f3d]">{formatPrice(total)}</span>
               </div>
-
-              {isPartialPayment && (
-                <div className="mt-1.5 flex items-center justify-between gap-3">
-                  <span className="text-xs text-slate-500">
-                    Remaining later
-                  </span>
-
-                  <span className="text-xs font-semibold text-slate-700">
-                    {formatPrice(
-                      remainingAmount,
-                    )}
-                  </span>
-                </div>
-              )}
             </div>
 
             {/* Final CTA */}
@@ -289,7 +223,7 @@ export default function CheckoutOrderSummary({
                 </>
               ) : (
                 <>
-                  <Smartphone className="h-4 w-4" />
+                  <CreditCard className="h-4 w-4" />
 
                   {buttonLabel}
 
@@ -299,9 +233,7 @@ export default function CheckoutOrderSummary({
             </button>
 
             <p className="mt-3 text-center text-[11px] leading-5 text-slate-400">
-              Your order will be created first. You&apos;ll
-              then see the UPI payment details and can
-              confirm your payment with us on WhatsApp.
+              Your order is created only after Razorpay confirms your payment.
             </p>
 
             <div className="mt-4 grid gap-2 sm:grid-cols-2">

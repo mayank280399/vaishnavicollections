@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock3, ExternalLink, MapPin, Package, Smartphone, Truck, XCircle, } from "lucide-react";
+import { ArrowLeft, ArrowRight, CheckCircle2, Clock3, ExternalLink, MapPin, Package, Truck, XCircle } from "lucide-react";
 
 import { createClient } from "@/lib/supabase/server";
-import { getUpiPaymentConfirmation } from "@/lib/checkout/upi-payment-confirmation";
 import CancelOrderButton from "./cancel-order-button";
-import PaymentConfirmationButton from "./payment-confirmation-button";
+import RazorpayPaymentButton from "./razorpay-payment-button";
 import ReturnRequestSection from "./return-request-section";
 
 type OrderStatus = "PENDING" | "CONFIRMED" | "PROCESSING" | "SHIPPED" | "OUT_FOR_DELIVERY" | "DELIVERED" | "CANCELLED";
@@ -58,11 +57,6 @@ type PageProps = {
   params: Promise<{
     id: string;
   }>;
-
-  searchParams: Promise<{
-    payment?: string;
-    option?: string;
-  }>;
 };
 
 function formatCurrency(value: number) {
@@ -79,50 +73,6 @@ function formatDate(value: string | null | undefined) {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
-}
-
-
-
-function normalizeWhatsAppNumber(
-
-  value: string | null | undefined,
-
-) {
-
-  const digits = String(value ?? "").replace(/\D/g, "");
-
-
-
-  if (!digits) {
-
-    return "";
-
-  }
-
-
-
-  // Indian 10-digit mobile number.
-
-  if (digits.length === 10) {
-
-    return `91${digits}`;
-
-  }
-
-
-
-  // Already includes India's country code.
-
-  if (digits.startsWith("91") && digits.length === 12) {
-
-    return digits;
-
-  }
-
-
-
-  return digits;
-
 }
 
 
@@ -232,9 +182,8 @@ function ShipmentTimeline({shipment}: {shipment: Shipment | null;}) {
   );
 }
 
-export default async function OrderDetailsPage({ params, searchParams,}: PageProps) {
+export default async function OrderDetailsPage({ params }: PageProps) {
   const { id } = await params;
-  const query = await searchParams;
   const supabase = await createClient();
   const {data: { user }} = await supabase.auth.getUser();
   if (!user) {
@@ -280,7 +229,7 @@ export default async function OrderDetailsPage({ params, searchParams,}: PagePro
   }
   const order = orderData as Order;
   const [{ data: orderItemsData, error: orderItemsError },{ data: shipmentData, error: shipmentError },
-    { data: settingsData, error: settingsError }] = await Promise.all([
+    ] = await Promise.all([
     supabase
      .from("order_items")
       .select(`
@@ -310,30 +259,6 @@ export default async function OrderDetailsPage({ params, searchParams,}: PagePro
       })
       .limit(1)
       .maybeSingle(),
-    supabase
-      .from("app_settings")
-      .select(
-
-        `
-
-          shop_name,
-
-          currency,
-
-          currency_symbol,
-
-          whatsapp_number,
-
-          upi_id
-
-        `,
-
-      )
-
-      .eq("id", 1)
-
-      .maybeSingle(),
-
   ]);
 
 
@@ -366,20 +291,6 @@ export default async function OrderDetailsPage({ params, searchParams,}: PagePro
 
 
 
-  if (settingsError) {
-
-    console.error(
-
-      "App settings fetch error:",
-
-      settingsError,
-
-    );
-
-  }
-
-
-
   const orderItems = (orderItemsData ??
 
     []) as OrderItem[];
@@ -394,17 +305,12 @@ export default async function OrderDetailsPage({ params, searchParams,}: PagePro
 
 
 
-  const isUpiOrder =
-
-    order.payment_method === "UPI";
-
-
+  const isOnlinePaymentOrder =
+    order.payment_method === "UPI" ||
+    order.payment_method === "RAZORPAY";
 
   const isPaymentPending =
-
-    order.payment_status === "PENDING" ||
-
-    order.payment_status === "PARTIALLY_PAID";
+    order.payment_status === "PENDING";
 
 
 
@@ -414,27 +320,6 @@ export default async function OrderDetailsPage({ params, searchParams,}: PagePro
 
 
 
-  const upiPaymentDetails = getUpiPaymentConfirmation({
-    orderNumber: order.order_number,
-    customerName: order.customer_name,
-    paymentPlan: order.payment_plan,
-    totalAmount: Number(order.total_amount),
-    amountPaid: Number(order.amount_paid),
-    amountDue: Number(order.amount_due),
-    fallbackOption: query.option,
-  });
-
-  const { isPartialPayment, isPartialAdvance, paymentAmount } = upiPaymentDetails;
-  const remainingAfterAdvance = upiPaymentDetails.remainingBalance;
-
-  const whatsappNumber = normalizeWhatsAppNumber(settingsData?.whatsapp_number,);
-  console.log("whatsappNumber", whatsappNumber);
-
-  const upiIds = String(settingsData?.upi_id ?? "",).split(",").map((value) => value.trim()).filter(Boolean);
-  const whatsappMessage = upiPaymentDetails.message;
-  const whatsappUrl = whatsappNumber
-    ? `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(whatsappMessage)}` : null;
-  console.log("whatsappUrl", whatsappUrl);
   const hasShipment = Boolean(shipment);
   const isCancelled = order.status === "CANCELLED";
   const isDelivered = order.status === "DELIVERED";
@@ -636,379 +521,66 @@ export default async function OrderDetailsPage({ params, searchParams,}: PagePro
 
       <div className="mx-auto w-full max-w-6xl px-4 py-6 sm:px-6 lg:px-8 sm:py-8">
 
-        {/* Payment Section */}
-
-        {isUpiOrder &&
-
-          isPaymentPending &&
-
-          !isCancelled && (
-
-            <section className="mb-6 overflow-hidden rounded-3xl border border-[#D4AF37]/30 bg-white shadow-sm">
-
-              <div className="border-b border-[#D4AF37]/20 bg-[#0f1f3d] px-5 py-5 text-white sm:px-6">
-
-                <div className="flex items-start gap-3">
-
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#D4AF37] text-[#0f1f3d]">
-
-                    <Smartphone className="h-5 w-5" />
-
-                  </div>
-
-
-
-                  <div>
-
-                    <h2 className="text-lg font-extrabold">
-
-                      Complete Your UPI Payment
-
-                    </h2>
-
-
-
-                    <p className="mt-1 text-sm text-white/70">
-
-                      Your order has been created. Complete
-
-                      the payment and confirm it with us on
-
-                      WhatsApp.
-
-                    </p>
-
-                  </div>
-
+        {/* Razorpay Payment */}
+        {isOnlinePaymentOrder && isPaymentPending && !isCancelled && (
+          <section className="mb-6 overflow-hidden rounded-3xl border border-[#D4AF37]/30 bg-white shadow-sm">
+            <div className="border-b border-[#D4AF37]/20 bg-[#071A35] px-5 py-5 text-white sm:px-6">
+              <div className="flex items-start gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#D4AF37] text-[#071A35]">
+                  <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>
                 </div>
-
-              </div>
-
-
-
-              <div className="p-5 sm:p-6">
-
-                <div className="grid gap-6 lg:grid-cols-[1fr_1fr]">
-
-                  {/* QR */}
-
-                  <div className="flex flex-col items-center rounded-3xl bg-slate-50 p-5 text-center">
-
-                    <p className="text-sm font-bold text-[#0f1f3d]">
-
-                      {isPartialAdvance
-                        ? "Scan & Pay Advance"
-                        : isPartialPayment
-                          ? "Scan & Pay Remaining Balance"
-                          : "Scan & Pay Full Amount"}
-
-                    </p>
-
-
-
-                    <p className="mt-1 text-xs text-slate-500">
-
-                      {isPartialAdvance
-                        ? "Pay the advance amount shown below."
-                        : isPartialPayment
-                          ? "Pay the remaining balance shown below."
-                          : "Pay the full order amount shown below."}
-
-                    </p>
-
-
-
-                    <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-
-                      <img
-
-                        src="/upi-qr.png"
-
-                        alt="Vaishnavi Collections UPI QR Code"
-
-                        className="h-56 w-56 object-contain sm:h-64 sm:w-64"
-
-                      />
-
-                    </div>
-
-
-
-                    <div className="mt-5">
-
-                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
-
-                        Amount to Pay
-
-                      </p>
-
-
-
-                      <p className="mt-1 text-2xl font-extrabold text-[#0f1f3d]">
-
-                        {formatCurrency(paymentAmount)}
-
-                      </p>
-
-                    </div>
-
-                  </div>
-
-
-
-                  {/* Payment Details */}
-
-                  <div className="flex flex-col justify-center">
-
-                    <div className="rounded-3xl border border-slate-200 bg-white p-5">
-
-                      <div className="flex items-center justify-between gap-4">
-
-                        <span className="text-sm text-slate-500">
-
-                          Order Total
-
-                        </span>
-
-
-
-                        <span className="text-sm font-bold text-[#0f1f3d]">
-
-                          {formatCurrency(
-
-                            order.total_amount,
-
-                          )}
-
-                        </span>
-
-                      </div>
-
-
-
-                      <div className="mt-3 flex items-center justify-between gap-4">
-
-                        <span className="text-sm text-slate-500">
-
-                          {isPartialAdvance ? "Advance" : "Amount Due"}
-
-                        </span>
-
-
-
-                        <span className="text-sm font-bold text-[#0f1f3d]">
-
-                          {formatCurrency(paymentAmount)}
-
-                        </span>
-
-                      </div>
-
-
-
-                      {isPartialAdvance && remainingAfterAdvance > 0 && (
-
-                        <div className="mt-3 flex items-center justify-between gap-4 border-t border-slate-100 pt-3">
-
-                          <span className="text-sm text-slate-500">
-
-                            Remaining
-
-                          </span>
-
-
-
-                          <span className="text-sm font-extrabold text-[#0f1f3d]">
-
-                            {formatCurrency(
-
-                              remainingAfterAdvance,
-
-                            )}
-
-                          </span>
-
-                        </div>
-
-                      )}
-
-                    </div>
-
-
-
-                    {/* {upiIds.length > 0 && (
-
-                      <div className="mt-5 w-full rounded-2xl bg-slate-50 p-4">
-
-                        <p className="text-center text-xs font-semibold uppercase tracking-wide text-slate-400">
-
-                          UPI ID
-
-                          {upiIds.length > 1
-
-                            ? "s"
-
-                            : ""}
-
-                        </p>
-
-
-
-                        <div className="mt-2 space-y-2">
-
-                          {upiIds.map((upiId) => (
-
-                            <p
-
-                              key={upiId}
-
-                              className="break-all text-center text-sm font-bold text-[#0f1f3d]"
-
-                            >
-
-                              {upiId}
-
-                            </p>
-
-                          ))}
-
-                        </div>
-
-                      </div>
-
-                    )} */}
-
-
-
-                    <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-
-                      <p className="text-sm font-bold text-amber-900">
-
-                        Important
-
-                      </p>
-
-
-
-                      <p className="mt-1 text-xs leading-5 text-amber-800">
-
-                        After making the UPI payment, please
-
-                        confirm it using WhatsApp. Your payment
-
-                        will remain pending until Vaishnavi
-
-                        Collections verifies the transaction.
-
-                        WhatsApp opens with a prefilled message;
-
-                        please review it and press Send. Opening
-
-                        WhatsApp does not confirm payment.
-
-                      </p>
-
-                    </div>
-
-
-
-                    {whatsappUrl ? (
-
-                      <div className="mt-5">
-
-                        <PaymentConfirmationButton
-
-                          whatsappUrl={whatsappUrl}
-
-                        />
-
-                      </div>
-
-                    ) : (
-
-                      <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-center">
-
-                        <p className="text-sm font-semibold text-slate-600">
-
-                          WhatsApp confirmation is currently
-
-                          unavailable.
-
-                        </p>
-
-
-
-                        <p className="mt-1 text-xs text-slate-500">
-
-                          Please contact Vaishnav Collections
-
-                          directly to confirm your payment.
-
-                        </p>
-
-                      </div>
-
-                    )}
-
-                  </div>
-
+                <div>
+                  <h2 className="text-lg font-extrabold">Complete Your Payment</h2>
+                  <p className="mt-1 text-sm text-white/70">
+                    Order {order.order_number} is awaiting payment. Complete checkout securely through Razorpay.
+                  </p>
                 </div>
-
               </div>
-
-            </section>
-
-          )}
-
-
+            </div>
+            <div className="p-5 sm:p-6">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Order Total</p>
+                  <p className="mt-2 text-2xl font-extrabold text-[#071A35]">
+                    {formatCurrency(Number(order.total_amount))}
+                  </p>
+                </div>
+                <div className="rounded-2xl bg-slate-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Payment Status</p>
+                  <p className="mt-2 text-base font-bold text-amber-700">Payment pending</p>
+                  <p className="mt-1 text-xs leading-5 text-slate-500">
+                    We only confirm payment after Razorpay verification succeeds.
+                  </p>
+                </div>
+              </div>
+              <RazorpayPaymentButton
+                orderId={order.id}
+                orderNumber={order.order_number}
+                customerName={order.customer_name}
+                customerPhone={order.customer_phone}
+                customerEmail={user.email}
+                amount={Number(order.total_amount)}
+              />
+            </div>
+          </section>
+        )}
 
         {/* Payment Completed */}
-
-        {isUpiOrder &&
-
-          isPaymentCompleted &&
-
-          !isCancelled && (
-
-            <section className="mb-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 sm:p-6">
-
-              <div className="flex items-start gap-3">
-
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white">
-
-                  <CheckCircle2 className="h-5 w-5" />
-
-                </div>
-
-
-
-                <div>
-
-                  <h2 className="text-base font-extrabold text-emerald-900">
-
-                    Payment Verified
-
-                  </h2>
-
-
-
-                  <p className="mt-1 text-sm leading-6 text-emerald-800">
-
-                    Your payment has been verified and your
-
-                    order is being processed.
-
-                  </p>
-
-                </div>
-
+        {isPaymentCompleted && !isCancelled && (
+          <section className="mb-6 rounded-3xl border border-emerald-200 bg-emerald-50 p-5 sm:p-6">
+            <div className="flex items-start gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-emerald-600 text-white">
+                <CheckCircle2 className="h-5 w-5" />
               </div>
-
-            </section>
-
-          )}
-
-
+              <div>
+                <h2 className="text-base font-extrabold text-emerald-900">Payment Verified</h2>
+                <p className="mt-1 text-sm leading-6 text-emerald-800">
+                  Your payment has been verified and your order is being processed.
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
 
         {/* Cancelled */}
 

@@ -381,6 +381,10 @@ export default function ReturnRequestSection({
           id: requestId,
           order_id: orderId,
           user_id: user.id,
+          // Persist the private Storage object path so staff can securely load
+          // the uploaded video later. Without this, the upload becomes orphaned
+          // and the admin page has no evidence path to sign.
+          evidence_storage_path: evidencePath,
           status: "REQUESTED",
           reason,
           customer_notes: notes.trim() || null,

@@ -2,11 +2,9 @@
 export type RecipientMode = "me" | "someone_else";
 
 /**
- * Payment method stored in the database.
- *
- * Both full and partial online payments currently use UPI.
- * The database does not need separate payment methods for
- * full vs partial payment.
+ * Payment method values accepted by the existing orders schema.
+ * Razorpay's verified payment method is mapped to one of these
+ * values after the gateway confirms a captured payment.
  */
 export type PaymentMethod =
   | "CASH"
@@ -17,13 +15,9 @@ export type PaymentMethod =
 
 /**
  * Payment option selected during checkout.
- *
- * This is a frontend checkout choice and is intentionally
- * separate from PaymentMethod.
+ * The online storefront accepts full payment through Razorpay.
  */
-export type CheckoutPaymentOption =
-  | "upi_full"
-  | "upi_partial";
+export type CheckoutPaymentOption = "razorpay_full";
 
 export type CreateOrderInput = {
   customerName: string;
@@ -41,15 +35,13 @@ export type CreateOrderInput = {
   /**
    * Database payment method.
    *
-   * For the current checkout this will be "UPI".
+   * The existing online-order RPC creates the pending order before
+   * Razorpay Checkout; the verified gateway method is saved later.
    */
   paymentMethod: PaymentMethod;
 
   /**
-   * Customer's checkout choice between full and partial UPI.
-   *
-   * This is used by the application and is not passed
-   * directly to the payment_method database enum.
+   * The online storefront currently supports full Razorpay payment.
    */
   paymentOption?: CheckoutPaymentOption;
 

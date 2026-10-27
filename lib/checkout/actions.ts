@@ -2,6 +2,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { notifyStaffNewOrder } from "@/lib/notifications/order-events";
 
 import type {
   CreateOrderInput,
@@ -9,15 +10,11 @@ import type {
 } from "@/lib/checkout/types";
 
 /**
- * Creates an online UPI order in Supabase.
+ * Creates a pending online order in Supabase before Razorpay Checkout.
  *
- * Payment flow:
- * - Full UPI
- * - Partial UPI
- *
- * Database representation:
- * - payment_method = "UPI"
- * - payment_plan = "FULL" | "PARTIAL"
+ * The existing create_online_order RPC expects UPI for online orders,
+ * so the order is created pending and the verified Razorpay payment
+ * method/status is persisted by the payment verification endpoint.
  *
  * Customer-detail persistence:
  * - Only attempted when saveCustomerDetails is true.
@@ -50,20 +47,17 @@ export async function createOrder(input: CreateOrderInput) {
     if (input.paymentMethod !== "UPI") {
       return {
         success: false,
-        error: "Please select UPI as your payment method.",
+        error: "Unable to prepare this online payment.",
       };
     }
 
     /*
      * Validate the selected payment option.
      */
-    if (
-      input.paymentOption !== "upi_full" &&
-      input.paymentOption !== "upi_partial"
-    ) {
+    if (input.paymentOption !== "razorpay_full") {
       return {
         success: false,
-        error: "Please select a valid UPI payment option.",
+        error: "Please select full payment through Razorpay.",
       };
     }
 
@@ -194,21 +188,16 @@ export async function createOrder(input: CreateOrderInput) {
     }
 
     /*
-     * Convert the frontend payment option to the database value.
+     * The current online-order RPC requires FULL payment plan.
      */
-    const paymentPlan =
-      input.paymentOption === "upi_partial"
-        ? "PARTIAL"
-        : "FULL";
+    const paymentPlan = "FULL" as const;
 
     /*
      * Create the order using the existing database RPC.
      *
      * The RPC remains responsible for validating the cart,
      * calculating prices, copying order items and creating
-     * the pending order.
-     *
-     * This action does not verify or mark a UPI payment as paid.
+     * the pending order. This action never marks an order paid.
      */
     const { data, error } = await supabase.rpc(
       "create_online_order",
@@ -259,9 +248,18 @@ export async function createOrder(input: CreateOrderInput) {
       };
     }
 
+    const orderId = data as string;
+
+    // Order creation must succeed even if a browser push provider is temporarily unavailable.
+    try {
+      await notifyStaffNewOrder(orderId);
+    } catch (notificationError) {
+      console.error("New-order notification failed:", notificationError);
+    }
+
     return {
       success: true,
-      orderId: data as string,
+      orderId,
       paymentOption: input.paymentOption,
       paymentPlan,
     };

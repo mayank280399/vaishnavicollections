@@ -46,7 +46,7 @@ export default function CheckoutProgress({
 
       <ProgressStep
         step={3}
-        label="Place order"
+        label="Payment"
         active={currentStep === 3}
         completed={false}
       />

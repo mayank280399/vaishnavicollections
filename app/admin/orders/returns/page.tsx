@@ -2,6 +2,7 @@
 import { redirect } from "next/navigation";
 import type { ReactNode } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import ReturnsRefundsClient from "./returns-refunds-client";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +11,7 @@ export const revalidate = 0;
 type AnyRow = Record<string, any>;
 
 const EVIDENCE_BUCKET = "return-evidence";
-const EVIDENCE_URL_EXPIRY_SECONDS = 5 * 60;
+const EVIDENCE_URL_EXPIRY_SECONDS = 60 * 60;
 
 type QueryResult = {
   data: AnyRow[] | null;
@@ -263,26 +264,70 @@ export default async function ReturnsRefundsPage() {
     }
   }
 
-  // Sign private evidence URLs only after authorizing the staff member.
+  // Use the server-only service client after the staff role check above.
+  // The evidence bucket is private and storage RLS may allow uploaders only;
+  // staff must still be able to review videos without making the bucket public.
+  const storageAdmin = createAdminClient();
+
+  // Older requests may have uploaded a video before the app persisted
+  // evidence_storage_path. Recover it from the per-request folder when possible.
+  const evidencePathByRequestId = new Map<string, string>();
+  await Promise.all(
+    rows.map(async (request) => {
+      const savedPath =
+        typeof request.evidence_storage_path === "string"
+          ? request.evidence_storage_path.trim()
+          : "";
+
+      if (savedPath) {
+        evidencePathByRequestId.set(request.id, savedPath);
+        return;
+      }
+
+      if (
+        typeof request.user_id !== "string" ||
+        typeof request.order_id !== "string" ||
+        typeof request.id !== "string"
+      ) {
+        return;
+      }
+
+      const requestFolder = `${request.user_id}/${request.order_id}/${request.id}`;
+      const { data: files, error } = await storageAdmin.storage
+        .from(EVIDENCE_BUCKET)
+        .list(requestFolder, { limit: 20, search: "unboxing" });
+
+      if (error) {
+        console.warn("Could not recover legacy return evidence path:", {
+          requestId: request.id,
+          message: error.message,
+        });
+        return;
+      }
+
+      const video = (files ?? []).find(
+        (file) =>
+          file.name.startsWith("unboxing-") &&
+          /\.(mp4|mov)$/i.test(file.name),
+      );
+
+      if (video) {
+        evidencePathByRequestId.set(request.id, `${requestFolder}/${video.name}`);
+      }
+    }),
+  );
+
   const evidencePaths = [
-    ...new Set(
-      rows
-        .map((request) => request.evidence_storage_path)
-        .filter(
-          (path): path is string =>
-            typeof path === "string" && path.trim().length > 0,
-        ),
-    ),
+    ...new Set(evidencePathByRequestId.values()),
   ];
 
   const evidenceEntries = await Promise.all(
     evidencePaths.map(async (path) => {
-      const { data, error } = await supabase.storage
+      const { data, error } = await storageAdmin.storage
         .from(EVIDENCE_BUCKET)
         .createSignedUrl(path, EVIDENCE_URL_EXPIRY_SECONDS);
 
       if (error) {
-        // One missing evidence file should not break the entire page.
         console.error("Could not sign return evidence URL:", {
           path,
           message: error.message,
@@ -308,8 +353,8 @@ export default async function ReturnsRefundsPage() {
 
       customer: customerById.get(request.user_id) ?? null,
 
-      evidence_url: request.evidence_storage_path
-        ? evidenceByPath.get(request.evidence_storage_path) ?? null
+      evidence_url: evidencePathByRequestId.get(request.id)
+        ? evidenceByPath.get(evidencePathByRequestId.get(request.id)!) ?? null
         : null,
 
       items: itemsByRequestId.get(request.id) ?? [],

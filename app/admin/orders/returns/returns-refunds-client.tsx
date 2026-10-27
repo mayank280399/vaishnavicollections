@@ -675,20 +675,42 @@ function ReturnRequestCard({
             )}
 
             {request.evidence_url ? (
-              <a
-                href={request.evidence_url}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-flex items-center gap-2 rounded-xl border border-[#D4AF37]/60 bg-amber-50 px-3 py-2.5 text-sm font-semibold text-[#071A35] hover:bg-amber-100"
-              >
-                <FileVideo size={17} />
-                View unboxing evidence
-                <ArrowUpRight size={15} />
-              </a>
+              <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-3 sm:p-4">
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 text-sm font-bold text-[#071A35]">
+                    <FileVideo size={18} className="text-[#94721a]" />
+                    Customer unboxing video
+                  </div>
+                  <a
+                    href={request.evidence_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-[#071A35] hover:bg-slate-100"
+                  >
+                    Open video separately
+                    <ArrowUpRight size={14} />
+                  </a>
+                </div>
+                <video
+                  key={request.evidence_url}
+                  controls
+                  playsInline
+                  preload="metadata"
+                  className="aspect-video w-full rounded-xl bg-black object-contain"
+                  aria-label={`Unboxing evidence for return request ${request.id}`}
+                >
+                  <source src={request.evidence_url} />
+                  Your browser cannot play this video. Use “Open video separately” to view it.
+                </video>
+                <p className="mt-2 text-xs leading-5 text-slate-500">
+                  Review the video before deciding whether to approve or reject this return.
+                  If playback fails, refresh the page to generate a fresh secure video link.
+                </p>
+              </div>
             ) : (
               <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-900">
-                No evidence link is available for this request. Verify the
-                uploaded file before approving it under your return policy.
+                No evidence link is available for this request. Older requests may not have
+                saved the uploaded video path. Verify the evidence before approving this return.
               </p>
             )}
           </section>
