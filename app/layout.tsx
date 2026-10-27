@@ -66,6 +66,44 @@ const siteStructuredData = {
       sameAs: [
         "https://www.instagram.com/vaishnavicollectionsofficial/",
       ],
+      hasMerchantReturnPolicy: {
+        "@type": "MerchantReturnPolicy",
+        "@id": "https://vaishnavicollections.vercel.app/#return-policy",
+        applicableCountry: "IN",
+        merchantReturnLink: "https://vaishnavicollections.vercel.app/refund-returns",
+      },
+      hasShippingService: {
+        "@type": "ShippingService",
+        "@id": "https://vaishnavicollections.vercel.app/#shipping-service",
+        name: "Standard Pan-India Shipping",
+        description: "Shipping charges, if any, are shown at checkout or communicated before order confirmation. Orders are generally processed within 1–3 business days after payment confirmation; delivery after dispatch generally takes 3–7 business days depending on location and courier service.",
+        fulfillmentType: "https://schema.org/FulfillmentTypeDelivery",
+        handlingTime: {
+          "@type": "ServicePeriod",
+          duration: {
+            "@type": "QuantitativeValue",
+            minValue: 1,
+            maxValue: 3,
+            unitCode: "DAY",
+          },
+        },
+        shippingConditions: {
+          "@type": "ShippingConditions",
+          shippingDestination: {
+            "@type": "DefinedRegion",
+            addressCountry: "IN",
+          },
+          transitTime: {
+            "@type": "ServicePeriod",
+            duration: {
+              "@type": "QuantitativeValue",
+              minValue: 3,
+              maxValue: 7,
+              unitCode: "DAY",
+            },
+          },
+        },
+      },
     },
     {
       "@type": "WebSite",
