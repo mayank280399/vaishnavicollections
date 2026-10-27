@@ -59,6 +59,14 @@ export async function POST(request: Request) {
     if (intent.status === "ORDER_CREATED" && intent.order_id) {
       return NextResponse.json({ success: true, orderId: intent.order_id, alreadyVerified: true });
     }
+    if (intent.order_id) {
+      return NextResponse.json({
+        success: false,
+        paymentCaptured: true,
+        orderId: intent.order_id,
+        error: "Your payment was captured and an order was created, but its final payment status needs review. Please do not pay again; contact support with your payment ID.",
+      }, { status: 409 });
+    }
     if (intent.status === "CANCELLED") {
       return NextResponse.json({ success: false, error: "This checkout session is no longer payable." }, { status: 409 });
     }
