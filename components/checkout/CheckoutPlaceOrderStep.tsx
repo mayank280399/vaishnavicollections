@@ -62,9 +62,7 @@ export default function CheckoutPlaceOrderStep({
               </span>
             </div>
             <p className="mt-1 text-sm leading-5 text-slate-600">
-              Your order is created first. You will continue to Razorpay to
-              complete payment, and the order will only be marked paid after
-              the server verifies the transaction.
+              Your store order is placed only after Razorpay confirms your full payment. If payment is unsuccessful, you can retry without an unpaid order being created.
             </p>
             <p className="mt-3 text-xl font-extrabold text-[#071A35]">
               {formatPrice(total)}
