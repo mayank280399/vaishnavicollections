@@ -93,8 +93,45 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unable to load the order." }, { status: 500 });
     }
     if (!order) {
-      // Acknowledge unrelated or stale payments so Razorpay doesn't retry indefinitely.
-      return NextResponse.json({ received: true, unmatched: true });
+      // New checkout creates a payment intent first and creates the VC order
+      // only after the captured payment is verified in the browser callback.
+      const { data: intent, error: intentError } = await adminSupabase
+        .from("razorpay_checkout_intents")
+        .select("id, amount_paise, status, razorpay_payment_id")
+        .eq("razorpay_order_id", payment.order_id)
+        .maybeSingle();
+
+      if (intentError) {
+        console.error("Razorpay webhook checkout-intent lookup failed:", intentError);
+        return NextResponse.json({ error: "Unable to load checkout details." }, { status: 500 });
+      }
+      if (!intent) {
+        // Acknowledge unrelated payments so Razorpay doesn't retry indefinitely.
+        return NextResponse.json({ received: true, unmatched: true });
+      }
+      if (Number(verifiedPayment.amount) !== Number(intent.amount_paise)) {
+        console.error("Razorpay webhook amount mismatch for checkout intent:", intent.id);
+        return NextResponse.json({ error: "Payment amount does not match checkout." }, { status: 409 });
+      }
+      if (intent.status === "ORDER_CREATED" || intent.status === "PAID") {
+        return NextResponse.json({ received: true, alreadyProcessed: true });
+      }
+      const { error: intentUpdateError } = await adminSupabase
+        .from("razorpay_checkout_intents")
+        .update({
+          status: "PAID",
+          razorpay_payment_id: payment.id,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", intent.id)
+        .eq("status", "PENDING");
+      if (intentUpdateError) {
+        console.error("Razorpay webhook could not persist captured payment:", intentUpdateError);
+        return NextResponse.json({ error: "Unable to save captured payment." }, { status: 500 });
+      }
+      // The authenticated verify-payment route finalizes the VC order idempotently
+      // when the customer returns from Razorpay Checkout.
+      return NextResponse.json({ received: true, checkoutIntentRecorded: true });
     }
     if (order.status === "CANCELLED") {
       console.error("Captured Razorpay payment belongs to a cancelled VC order:", order.id);

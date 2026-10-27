@@ -62,9 +62,7 @@ export default function CheckoutPlaceOrderStep({
               </span>
             </div>
             <p className="mt-1 text-sm leading-5 text-slate-600">
-              Your order is created first. You will continue to Razorpay to
-              complete payment, and the order will only be marked paid after
-              the server verifies the transaction.
+              Your store order is placed only after Razorpay confirms your full payment. If payment is unsuccessful, you can retry without an unpaid order being created.
             </p>
             <p className="mt-3 text-xl font-extrabold text-[#071A35]">
               {formatPrice(total)}
@@ -77,9 +75,9 @@ export default function CheckoutPlaceOrderStep({
       <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4">
         <p className="text-sm font-semibold text-slate-800">What happens next?</p>
         <ol className="mt-2 space-y-1.5 text-xs leading-5 text-slate-600">
-          <li>1. We securely create your order.</li>
-          <li>2. Open Razorpay Checkout and choose an available payment method.</li>
-          <li>3. Our server verifies the payment before confirming the payment status.</li>
+          <li>1. We validate your cart and prepare a secure Razorpay payment.</li>
+          <li>2. Complete payment using an available payment method.</li>
+          <li>3. We verify the captured payment and then create your store order.</li>
         </ol>
       </div>
 

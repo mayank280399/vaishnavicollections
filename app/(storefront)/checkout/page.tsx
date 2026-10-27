@@ -6,7 +6,6 @@ import Link from "next/link";
 import { ArrowLeft,  Loader2,} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useShopping } from "@/context/ShoppingContext";
-import { createOrder } from "@/lib/checkout/actions";
 
 import type {  CheckoutItem, CheckoutProduct, Customer, FormState, RecipientMode,
 } from "@/lib/checkout/types";
@@ -16,6 +15,31 @@ import CheckoutDetailsStep from "@/components/checkout/CheckoutDetailsStep";
 import CheckoutDeliveryStep from "@/components/checkout/CheckoutDeliveryStep";
 import CheckoutPlaceOrderStep from "@/components/checkout/CheckoutPlaceOrderStep";
 import CheckoutOrderSummary from "@/components/checkout/CheckoutOrderSummary";
+
+declare global {
+  interface Window {
+    Razorpay?: new (options: {
+      key: string;
+      amount: number;
+      currency: string;
+      name: string;
+      description: string;
+      order_id: string;
+      prefill?: { name?: string; email?: string; contact?: string };
+      notes?: Record<string, string>;
+      theme?: { color?: string };
+      modal?: { ondismiss?: () => void };
+      handler: (response: {
+        razorpay_order_id: string;
+        razorpay_payment_id: string;
+        razorpay_signature: string;
+      }) => void;
+    }) => {
+      open: () => void;
+      on: (event: string, callback: (response: { error?: { description?: string } }) => void) => void;
+    };
+  }
+}
 
 /*
  * --------------------------------------------------
@@ -48,6 +72,7 @@ export default function CheckoutPage() {
 
   const {
     cartItems,
+    clearCartItems,
     loading: shoppingLoading,
   } = useShopping();
 
@@ -770,176 +795,153 @@ export default function CheckoutPage() {
 
   /*
    * --------------------------------------------------
-   * Submit checkout
+   * Submit checkout and launch Razorpay
    * --------------------------------------------------
    *
-   * Current flow:
-   *
-   * Checkout
-   *    ↓
-   * Create pending order
-   *    ↓
-   * Get VC order ID
-   *    ↓
-   * Redirect to order/payment screen
-   *
-   * Payment is NOT marked as successful here.
+   * The server creates a Razorpay payment order and a
+   * temporary checkout intent. A VC order is not created
+   * until the server verifies a captured payment.
    */
 
   async function handleSubmit(
     event: React.FormEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
-
     setError("");
 
-    if (currentStep !== 3) {
-      return;
-    }
-
+    if (currentStep !== 3) return;
     if (!items.length) {
-      setError(
-        "Your bag is empty.",
-      );
-
+      setError("Your bag is empty.");
       return;
     }
-
     if (!validateDetails()) {
       setCurrentStep(1);
       return;
     }
-
     if (!validateDelivery()) {
       setCurrentStep(2);
       return;
     }
-
     if (!checkoutComplete) {
-      setError(
-        "Please complete all required details before placing your order.",
-      );
-
+      setError("Please complete all required details before continuing to payment.");
       return;
     }
-
-    /*
-     * Make sure a valid payment option is selected.
-     */
 
     setSubmitting(true);
 
     try {
-      /*
-       * ------------------------------------------------
-       * Create pending UPI order
-       * ------------------------------------------------
-       *
-       * Both full and partial payment use:
-       *
-       * paymentMethod = "UPI"
-       *
-       * paymentOption tells the frontend which payment
-       * flow the customer selected.
-       */
-
-      const result =
-        await createOrder({
-          customerName:
-            form.customerName.trim(),
-
-          customerPhone:
-            form.customerPhone.trim(),
-
-          addressLine1:
-            form.addressLine1.trim(),
-
-          addressLine2:
-            form.addressLine2.trim(),
-
-          city:
-            form.city.trim(),
-
-          state:
-            form.state.trim(),
-
-          postalCode:
-            form.postalCode.trim(),
-
+      const response = await fetch("/api/razorpay/create-order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          items: cartItems.map((item) => ({
+            productId: item.product_id,
+            quantity: item.quantity,
+          })),
+          customerName: form.customerName.trim(),
+          customerPhone: form.customerPhone.trim(),
+          addressLine1: form.addressLine1.trim(),
+          addressLine2: form.addressLine2.trim(),
+          city: form.city.trim(),
+          state: form.state.trim(),
+          postalCode: form.postalCode.trim(),
           country: "India",
-
-          notes:
-            form.notes.trim(),
-
-          paymentMethod:
-            "UPI",
-
-          paymentOption:
-            "razorpay_full",
-
-          saveCustomerDetails:
-            recipientMode === "me" &&
-            saveCustomerDetails,
-        });
-
-      if (!result.success) {
-        setError(
-          result.error ||
-            "Unable to create your order.",
-        );
-
-        setSubmitting(false);
-
-        return;
-      }
-
-      if (!result.orderId) {
-        setError(
-          "Order was created, but the order ID is missing. Please try again.",
-        );
-
-        setSubmitting(false);
-
-        return;
-      }
-
-      /*
-       * ------------------------------------------------
-       * Move to the payment/order screen
-       * ------------------------------------------------
-       *
-       * The order already exists in Supabase.
-       *
-       * The next screen will show:
-       *
-       * - VC order number
-       * - Razorpay Checkout button
-       * - payment status and retry option
-       *
-       * Payment is not considered complete until the
-       * server verifies the Razorpay signature and captured
-       * payment status.
-       */
-
-      const paymentQuery = new URLSearchParams({
-        payment: "razorpay",
+          notes: form.notes.trim(),
+          saveCustomerDetails: recipientMode === "me" && saveCustomerDetails,
+        }),
       });
 
-      router.replace(
-        `/orders/${result.orderId}?${paymentQuery.toString()}`,
-      );
-    } catch (error) {
-      console.error(
-        "Checkout submission error:",
-        error,
-      );
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload.error || "Unable to prepare secure checkout.");
+      }
 
-      setError(
-        error instanceof Error
-          ? error.message
-          : "Something went wrong while placing your order.",
-      );
+      if (!window.Razorpay) {
+        await new Promise<void>((resolve, reject) => {
+          const existing = document.querySelector<HTMLScriptElement>(
+            'script[src="https://checkout.razorpay.com/v1/checkout.js"]',
+          );
+          if (existing && window.Razorpay) {
+            resolve();
+            return;
+          }
+          const script = existing ?? document.createElement("script");
+          script.src = "https://checkout.razorpay.com/v1/checkout.js";
+          script.onload = () => resolve();
+          script.onerror = () => reject(new Error("Unable to load Razorpay Checkout. Check your connection and retry."));
+          if (!existing) document.body.appendChild(script);
+        });
+      }
 
+      if (!window.Razorpay) {
+        throw new Error("Razorpay Checkout could not be initialized. Please retry.");
+      }
+
+      const razorpay = new window.Razorpay({
+        key: payload.keyId,
+        amount: payload.amount,
+        currency: payload.currency || "INR",
+        name: "Vaishnavi Collections",
+        description: "Secure online payment",
+        order_id: payload.razorpayOrderId,
+        prefill: payload.customer || {
+          name: form.customerName.trim(),
+          contact: form.customerPhone.trim(),
+        },
+        notes: { checkout_intent_id: payload.checkoutIntentId },
+        theme: { color: "#071A35" },
+        handler: async (paymentResponse) => {
+          setSubmitting(true);
+          setError("");
+          try {
+            const verifyResponse = await fetch("/api/razorpay/verify-payment", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                checkoutIntentId: payload.checkoutIntentId,
+                razorpay_order_id: paymentResponse.razorpay_order_id,
+                razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                razorpay_signature: paymentResponse.razorpay_signature,
+              }),
+            });
+            const verifyPayload = await verifyResponse.json();
+            if (!verifyResponse.ok || !verifyPayload.success || !verifyPayload.orderId) {
+              if (verifyPayload.paymentCaptured) {
+                setError(verifyPayload.error || "Payment was received, but order confirmation is still processing. Please do not pay again; contact support.");
+              } else {
+                setError(verifyPayload.error || "We couldn't confirm the payment yet. If money was deducted, do not pay again; contact support.");
+              }
+              setSubmitting(false);
+              return;
+            }
+
+            try {
+              await clearCartItems();
+            } catch (cartError) {
+              console.error("Paid checkout cart cleanup failed:", cartError);
+            }
+            window.location.href = `/orders/${encodeURIComponent(verifyPayload.orderId)}?payment=success`;
+          } catch (verifyError) {
+            console.error("Post-payment verification request failed:", verifyError);
+            setError("We couldn't confirm the payment yet. If money was deducted, do not pay again. Refresh your account orders or contact support.");
+            setSubmitting(false);
+          }
+        },
+        modal: {
+          ondismiss: () => setSubmitting(false),
+        },
+      });
+
+      razorpay.on("payment.failed", (paymentError) => {
+        setError(paymentError.error?.description || "Payment failed. You can retry securely; no VC order has been placed.");
+        setSubmitting(false);
+      });
+      // Keep submission locked while the Razorpay modal is open.
+      // onDismiss, payment.failed, or successful verification releases/navigates.
+      razorpay.open();
+    } catch (submitError) {
+      console.error("Checkout / Razorpay initialization failed:", submitError);
+      setError(submitError instanceof Error ? submitError.message : "Unable to prepare secure checkout.");
       setSubmitting(false);
     }
   }

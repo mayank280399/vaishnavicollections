@@ -48,8 +48,8 @@ export default function CheckoutOrderSummary({
   onToggleItems,
   onSubmit,
 }: CheckoutOrderSummaryProps) {
-  const buttonLabel = `Continue to secure payment · ${formatPrice(total)}`;
-  const submittingLabel = "Creating Your Order...";
+  const buttonLabel = `Pay securely · ${formatPrice(total)}`;
+  const submittingLabel = "Preparing secure payment...";
   const paymentLabel = "Razorpay · Full Payment";
 
   return (
@@ -233,7 +233,7 @@ export default function CheckoutOrderSummary({
             </button>
 
             <p className="mt-3 text-center text-[11px] leading-5 text-slate-400">
-              Your order will be created first, then you&apos;ll complete payment securely through Razorpay.
+              Your order is created only after Razorpay confirms your payment.
             </p>
 
             <div className="mt-4 grid gap-2 sm:grid-cols-2">
