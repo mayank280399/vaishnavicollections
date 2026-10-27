@@ -196,7 +196,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, paymentCaptured: true, error: "Payment was received, but the final order total needs review. Please contact support before placing another order." }, { status: 409 });
     }
 
-    const { error: updateError } = await admin.from("orders")
+    const { data: paidOrder, error: updateError } = await admin.from("orders")
       .update({
         payment_method: paymentMethodFor(payment.method),
         payment_status: "PAID",
@@ -208,10 +208,12 @@ export async function POST(request: Request) {
       })
       .eq("id", order.id)
       .eq("user_id", user.id)
-      .eq("payment_status", "PENDING");
+      .eq("payment_status", "PENDING")
+      .select("id")
+      .maybeSingle();
 
-    if (updateError) {
-      console.error("Captured payment could not be applied to the VC order:", updateError);
+    if (updateError || !paidOrder) {
+      console.error("Captured payment could not be applied to the VC order:", updateError || "Order was not updated from PENDING.");
       await admin.from("razorpay_checkout_intents").update({
         status: "PAID", razorpay_payment_id: razorpayPaymentId, order_id: order.id, updated_at: new Date().toISOString(),
       }).eq("id", intent.id).eq("user_id", user.id);
