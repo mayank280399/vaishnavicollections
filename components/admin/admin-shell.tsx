@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import NotificationBell from "@/components/notifications/NotificationBell";
 
 type NavigationLink = {
   name: string;
@@ -587,10 +588,12 @@ export function AdminShell({ children, userEmail }: AdminShellProps) {
             />
           </div>
 
-          <div
-            ref={headerProfileRef}
-            className="relative ml-auto flex items-center gap-3"
-          >
+          <div className="relative ml-auto flex items-center gap-2 sm:gap-3">
+            <NotificationBell variant="admin" />
+            <div
+              ref={headerProfileRef}
+              className="relative flex items-center gap-3"
+            >
             <button
               type="button"
               onClick={() => setProfileOpen((open) => !open)}
@@ -647,6 +650,7 @@ export function AdminShell({ children, userEmail }: AdminShellProps) {
                 </div>
               </div>
             )}
+            </div>
           </div>
         </header>
 
