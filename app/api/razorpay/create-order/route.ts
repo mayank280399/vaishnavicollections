@@ -1,302 +1,184 @@
+import { createHmac } from "node:crypto";
 import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+type CheckoutBody = {
+  items?: Array<{ productId?: string; product_id?: string; quantity?: number }>;
+  customerName?: string;
+  customerPhone?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+  country?: string;
+  notes?: string;
+  saveCustomerDetails?: boolean;
+};
+
+function safeError(error: unknown) {
+  if (error instanceof Error) return error.message;
+  return "Unknown provider error";
+}
+
 function getRazorpay() {
   const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
-
   if (!keyId || !keySecret) {
-    throw new Error("Razorpay is not configured. Set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.");
+    throw new Error("Razorpay server credentials are missing. Configure RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET in the active deployment environment.");
   }
-
-  return {
-    client: new Razorpay({ key_id: keyId, key_secret: keySecret }),
-    keyId,
-  };
+  return { client: new Razorpay({ key_id: keyId, key_secret: keySecret }), keyId, keySecret };
 }
 
-export async function POST(
-  request: Request
-) {
+export async function POST(request: Request) {
   try {
-    const { client: razorpay, keyId } = getRazorpay();
-
-    // --------------------------------------------------
-    // 1. Authenticate customer
-    // --------------------------------------------------
-
-    const supabase =
-      await createClient();
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "Please sign in before making a payment.",
-        },
-        { status: 401 }
-      );
+    const supabase = await createClient();
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      return NextResponse.json({ success: false, error: "Please sign in before making a payment." }, { status: 401 });
     }
 
-    // --------------------------------------------------
-    // 2. Read order ID
-    // --------------------------------------------------
-
-    const body =
-      await request.json();
-
-    const orderId =
-      typeof body?.orderId === "string"
-        ? body.orderId.trim()
-        : "";
-
-    if (!orderId) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Order ID is required.",
-        },
-        { status: 400 }
-      );
+    let body: CheckoutBody;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ success: false, error: "Invalid checkout request." }, { status: 400 });
     }
 
-    // --------------------------------------------------
-    // 3. Load our order
-    //
-    // IMPORTANT:
-    // Amount is always taken from our database.
-    // We do not trust the browser's amount.
-    // --------------------------------------------------
+    const customerName = String(body.customerName || "").trim();
+    const customerPhone = String(body.customerPhone || "").replace(/\D/g, "");
+    const addressLine1 = String(body.addressLine1 || "").trim();
+    const addressLine2 = String(body.addressLine2 || "").trim();
+    const city = String(body.city || "").trim();
+    const state = String(body.state || "").trim();
+    const postalCode = String(body.postalCode || "").trim();
+    const country = String(body.country || "India").trim();
+    const notes = String(body.notes || "").trim();
 
-    const {
-      data: order,
-      error: orderError,
-    } = await supabase
-      .from("orders")
-      .select(
-        `
-          id,
-          user_id,
-          order_number,
-          status,
-          payment_status,
-          payment_method,
-          total_amount,
-          razorpay_order_id
-        `
-      )
-      .eq("id", orderId)
-      .eq("user_id", user.id)
-      .maybeSingle();
-
-    if (orderError) {
-      console.error(
-        "Load order error:",
-        orderError
-      );
-
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "Unable to load the order.",
-        },
-        { status: 500 }
-      );
+    if (!customerName || !/^[6-9]\d{9}$/.test(customerPhone) || !addressLine1 || !city || !state || !/^\d{6}$/.test(postalCode)) {
+      return NextResponse.json({ success: false, error: "Please provide a valid name, Indian mobile number and complete delivery address." }, { status: 400 });
     }
 
-    if (!order) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Order not found.",
-        },
-        { status: 404 }
-      );
-    }
-
-    // --------------------------------------------------
-    // 4. Make sure order is payable
-    // --------------------------------------------------
-
-    if (
-      order.status !== "PENDING" ||
-      order.payment_status !== "PENDING" ||
-      (order.payment_method !== "UPI" && order.payment_method !== "RAZORPAY")
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "This order is no longer available for payment.",
-        },
-        { status: 400 }
-      );
-    }
-
-    // --------------------------------------------------
-    // 5. Reuse existing Razorpay order
-    // --------------------------------------------------
-
-    if (order.razorpay_order_id) {
-      // Avoid opening Checkout again if Razorpay already captured a payment
-      // but the browser callback/webhook has not yet updated our database.
-      const existingPayments = await razorpay.orders.fetchPayments(
-        order.razorpay_order_id,
-      );
-      const capturedPayment = existingPayments.items?.some(
-        (payment) => payment.status === "captured",
-      );
-
-      if (capturedPayment) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: "A payment has already been captured for this order. Refresh the order page shortly while we confirm it.",
-          },
-          { status: 409 },
-        );
+    const requestedItems = Array.isArray(body.items) ? body.items : [];
+    const quantities = new Map<string, number>();
+    for (const item of requestedItems) {
+      const productId = String(item.productId || item.product_id || "").trim();
+      const quantity = Number(item.quantity);
+      if (!productId || !Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
+        return NextResponse.json({ success: false, error: "Your cart contains an invalid item or quantity. Please review your cart." }, { status: 400 });
       }
+      quantities.set(productId, (quantities.get(productId) || 0) + quantity);
+    }
+    if (!quantities.size) {
+      return NextResponse.json({ success: false, error: "Your cart is empty." }, { status: 400 });
+    }
+    const productIds = [...quantities.keys()];
+    const { data: products, error: productsError } = await supabase
+      .from("products")
+      .select("id,name,product_title,slug,selling_price,online_price,online_enabled,visibility,stock_quantity")
+      .in("id", productIds);
+    if (productsError) {
+      console.error("Razorpay checkout product lookup failed:", productsError);
+      return NextResponse.json({ success: false, error: "We couldn't validate your cart. Please retry." }, { status: 500 });
+    }
+    if (!products || products.length !== productIds.length) {
+      return NextResponse.json({ success: false, error: "One or more products are no longer available. Refresh your cart." }, { status: 409 });
+    }
 
+    const intentItems: Array<{ product_id: string; name: string; slug: string; unit_price: number; quantity: number }> = [];
+    let total = 0;
+    for (const product of products) {
+      if (product.visibility !== "PUBLISHED" && product.visibility !== "PUBLIC") {
+        return NextResponse.json({ success: false, error: "One or more products are no longer available for online purchase." }, { status: 409 });
+      }
+      const unitPrice = product.online_enabled && product.online_price != null && Number(product.online_price) > 0
+        ? Number(product.online_price)
+        : Number(product.selling_price);
+      const quantity = quantities.get(product.id)!;
+      if (!Number.isFinite(unitPrice) || unitPrice <= 0) {
+        return NextResponse.json({ success: false, error: "A product in your cart has an invalid price. Please contact the store." }, { status: 409 });
+      }
+      if (typeof product.stock_quantity === "number" && product.stock_quantity < quantity) {
+        return NextResponse.json({ success: false, error: `${product.product_title || product.name} does not have enough stock for the selected quantity.` }, { status: 409 });
+      }
+      total += unitPrice * quantity;
+      intentItems.push({ product_id: product.id, name: product.product_title || product.name, slug: product.slug, unit_price: unitPrice, quantity });
+    }
+
+    const amountPaise = Math.round(total * 100);
+    if (!Number.isSafeInteger(amountPaise) || amountPaise < 100) {
+      return NextResponse.json({ success: false, error: "The checkout total is invalid. Please review your cart." }, { status: 400 });
+    }
+
+    const { client: razorpay, keyId } = getRazorpay();
+    let razorpayOrder;
+    try {
+      razorpayOrder = await razorpay.orders.create({
+        amount: amountPaise,
+        currency: "INR",
+        receipt: `vc_${Date.now()}_${user.id.slice(0, 8)}`.slice(0, 40),
+        notes: { vc_user_id: user.id },
+      });
+    } catch (error) {
+      console.error("Razorpay API order creation failed:", {
+        message: safeError(error),
+        statusCode: (error as { statusCode?: number })?.statusCode,
+        errorCode: (error as { error?: { code?: string; description?: string } })?.error?.code,
+        errorDescription: (error as { error?: { description?: string } })?.error?.description,
+      });
       return NextResponse.json({
-        success: true,
-        razorpayOrderId:
-          order.razorpay_order_id,
-        amount:
-          Math.round(
-            Number(order.total_amount) *
-              100
-          ),
-        currency: "INR",
-        keyId,
-        orderId: order.id,
-        orderNumber:
-          order.order_number,
-      });
+        success: false,
+        error: "Razorpay could not initialize this payment. Please retry; if it continues, contact support.",
+        ...(process.env.NODE_ENV !== "production" ? { debug: safeError(error) } : {}),
+      }, { status: 502 });
     }
 
-    // --------------------------------------------------
-    // 6. Validate order amount
-    // --------------------------------------------------
-
-    const totalAmount =
-      Number(order.total_amount);
-
-    if (
-      !Number.isFinite(totalAmount) ||
-      totalAmount <= 0
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Invalid order amount.",
-        },
-        { status: 400 }
-      );
+    const admin = createAdminClient();
+    const { error: intentError } = await admin.from("razorpay_checkout_intents").insert({
+      user_id: user.id,
+      razorpay_order_id: razorpayOrder.id,
+      amount_paise: amountPaise,
+      currency: "INR",
+      customer_name: customerName,
+      customer_phone: customerPhone,
+      address_line1: addressLine1,
+      address_line2: addressLine2 || null,
+      city,
+      state,
+      postal_code: postalCode,
+      country,
+      customer_notes: notes || null,
+      save_customer_details: body.saveCustomerDetails === true,
+      items: intentItems,
+    });
+    if (intentError) {
+      console.error("Razorpay checkout intent persistence failed:", intentError);
+      return NextResponse.json({ success: false, error: "Payment was initialized but checkout details could not be saved. Please retry; no store order has been created." }, { status: 500 });
     }
-
-    const amountInPaise =
-      Math.round(
-        totalAmount * 100
-      );
-
-    // --------------------------------------------------
-    // 7. Create Razorpay order
-    // --------------------------------------------------
-
-    const razorpayOrder =
-      await razorpay.orders.create({
-        amount: amountInPaise,
-        currency: "INR",
-        receipt:
-          order.order_number,
-        notes: {
-          vc_order_id: order.id,
-          vc_order_number:
-            order.order_number,
-        },
-      });
-
-    // --------------------------------------------------
-    // 8. Save Razorpay order ID
-    //
-    // Use service_role because the normal customer
-    // client may not have permission to update this
-    // server-controlled field.
-    // --------------------------------------------------
-
-    const adminSupabase =
-      createAdminClient();
-
-    const {
-      error: updateError,
-    } = await adminSupabase
-      .from("orders")
-      .update({
-        razorpay_order_id:
-          razorpayOrder.id,
-        updated_at:
-          new Date().toISOString(),
-      })
-      .eq("id", order.id)
-      .eq("user_id", user.id)
-      .eq(
-        "payment_status",
-        "PENDING"
-      );
-
-    if (updateError) {
-      console.error(
-        "Save Razorpay order ID error:",
-        updateError
-      );
-
-      return NextResponse.json(
-        {
-          success: false,
-          error:
-            "Unable to prepare the payment.",
-        },
-        { status: 500 }
-      );
-    }
-
-    // --------------------------------------------------
-    // 9. Return payment information
-    // --------------------------------------------------
 
     return NextResponse.json({
       success: true,
-      razorpayOrderId:
-        razorpayOrder.id,
-      amount: amountInPaise,
+      razorpayOrderId: razorpayOrder.id,
+      amount: amountPaise,
       currency: "INR",
       keyId,
-      orderId: order.id,
-      orderNumber:
-        order.order_number,
+      customer: { name: customerName, phone: customerPhone, email: user.email || "" },
     });
   } catch (error) {
-    console.error(
-      "Razorpay create order error:",
-      error
-    );
-
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          "Unable to create the payment order.",
-      },
-      { status: 500 }
-    );
+    console.error("Razorpay create-order route failed:", {
+      message: safeError(error),
+      statusCode: (error as { statusCode?: number })?.statusCode,
+      errorCode: (error as { error?: { code?: string } })?.error?.code,
+    });
+    const message = safeError(error);
+    const configError = /Razorpay server credentials are missing|SUPABASE_SERVICE_ROLE_KEY|NEXT_PUBLIC_SUPABASE_URL/.test(message);
+    return NextResponse.json({
+      success: false,
+      error: configError ? message : "Unable to prepare secure checkout. Please retry.",
+      ...(process.env.NODE_ENV !== "production" ? { debug: message } : {}),
+    }, { status: configError ? 500 : 500 });
   }
 }
