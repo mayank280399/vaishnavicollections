@@ -183,6 +183,8 @@ export function ProductDialog({
   const [baseUnitLabel, setBaseUnitLabel] = useState("Piece");
   const [conversionLines, setConversionLines] = useState("");
   const [newVariantLines, setNewVariantLines] = useState("");
+  const [existingVariants, setExistingVariants] = useState<Array<{ id: string; name: string; variant_value: string | null; sku: string | null; stock_quantity: number | null; active: boolean | null; attributes: Record<string, string> | null }>>([]);
+  const [loadingVariants, setLoadingVariants] = useState(false);
 
   const [onlineEnabled, setOnlineEnabled] =
     useState(false);
@@ -260,6 +262,7 @@ export function ProductDialog({
     setBaseUnitLabel("Piece");
     setConversionLines("");
     setNewVariantLines("");
+    setExistingVariants([]);
 
     setOnlineEnabled(false);
     setFeatured(false);
@@ -504,6 +507,7 @@ export function ProductDialog({
     loadProductImages(
       product.id
     );
+    void loadExistingVariants(product.id);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -511,6 +515,23 @@ export function ProductDialog({
     product,
     categories,
   ]);
+
+  async function loadExistingVariants(productId: string) {
+    setLoadingVariants(true);
+    const { data, error: variantsError } = await supabase
+      .from("product_variants")
+      .select("id, name, variant_value, sku, stock_quantity, active, attributes")
+      .eq("product_id", productId)
+      .order("created_at", { ascending: true });
+    if (variantsError) {
+      console.error("Unable to load existing variants:", variantsError);
+      setError(`Unable to load existing variants: ${variantsError.message}`);
+      setExistingVariants([]);
+    } else {
+      setExistingVariants((data ?? []) as Array<{ id: string; name: string; variant_value: string | null; sku: string | null; stock_quantity: number | null; active: boolean | null; attributes: Record<string, string> | null }>);
+    }
+    setLoadingVariants(false);
+  }
 
   function handleOpenChange(
     value: boolean
@@ -1719,13 +1740,44 @@ export function ProductDialog({
           {/* PRODUCT VARIANTS */}
           <section className="space-y-4 border-t pt-5">
             <div>
-              <h3 className="font-medium">Size & Color Variants</h3>
+              <h3 className="font-medium">Variants & Options</h3>
               <p className="text-sm text-muted-foreground">
-                Add new variants without changing existing variants or their stock. Each new variant starts with zero stock; record received quantities in Purchases.
+                Manage real sellable combinations such as size + color + design. Existing variants and their stock are preserved; new variants start at zero stock.
               </p>
             </div>
+            {isEditMode && (
+              <div className="rounded-lg border bg-slate-50 p-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-slate-800">Existing variants</p>
+                  <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-slate-600">{loadingVariants ? "Loading…" : `${existingVariants.length} variant${existingVariants.length === 1 ? "" : "s"}`}</span>
+                </div>
+                {loadingVariants ? (
+                  <p className="text-sm text-slate-500">Loading current variants…</p>
+                ) : existingVariants.length ? (
+                  <div className="space-y-2">
+                    {existingVariants.map((variant) => {
+                      const attributes = variant.attributes && Object.keys(variant.attributes).length
+                        ? Object.entries(variant.attributes).map(([key, value]) => `${key.replace(/_/g, " ")}: ${value}`).join(" · ")
+                        : variant.variant_value || variant.name;
+                      return (
+                        <div key={variant.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-white px-3 py-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-slate-800">{attributes}</p>
+                            <p className="text-xs text-slate-500">{variant.sku ? `SKU ${variant.sku} · ` : ""}{variant.active === false ? "Inactive" : "Active"}</p>
+                          </div>
+                          <p className="shrink-0 text-xs font-semibold text-slate-700">Stock: {variant.stock_quantity ?? 0}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500">No variants created yet. Add the combinations you actually sell below.</p>
+                )}
+                <p className="mt-2 text-xs text-slate-500">This list is read-only here to prevent accidental changes to existing stock.</p>
+              </div>
+            )}
             <div className="space-y-2">
-              <Label htmlFor="new-product-variants">New variants (one per line)</Label>
+              <Label htmlFor="new-product-variants">Add variants (one combination per line)</Label>
               <textarea
                 id="new-product-variants"
                 value={newVariantLines}
@@ -1735,7 +1787,7 @@ export function ProductDialog({
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm"
               />
               <p className="text-xs text-muted-foreground">
-                Use comma-separated key=value attributes. Examples: size=2/4, color=Red or size=6, color=Pink. These are saved as structured attributes and shown as selectable variants in Purchase and Sales.
+                Use comma-separated key=value attributes. Bedsheet examples: size=Single, design=Anokhi, color=Red. Create a separate line for each real size/design/color combination; similar prints should have distinct design names or codes (for example design=Floral-A and design=Floral-B). Do not create combinations you do not stock. New variants start at zero stock; receive stock through Purchases.
               </p>
             </div>
           </section>
