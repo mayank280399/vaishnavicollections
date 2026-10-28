@@ -302,6 +302,9 @@ export function PurchaseDialog({
           sku,
           cost_price,
           stock_quantity,
+          base_unit_code,
+          base_unit_label,
+          unit_conversions,
           product_variants (
             id,
             product_id,
