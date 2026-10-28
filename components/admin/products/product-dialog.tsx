@@ -46,6 +46,8 @@ type Product = {
   sku: string | null;
   name: string;
   product_title: string | null;
+  size?: string | null;
+  variant_label?: string | null;
   short_description: string | null;
   selling_price: number | null;
   cost_price: number | null;
@@ -153,6 +155,9 @@ export function ProductDialog({
   const [productTitle, setProductTitle] =
     useState("");
 
+  const [productSize, setProductSize] = useState("");
+  const [variantLabel, setVariantLabel] = useState("");
+
   const [categoryId, setCategoryId] =
     useState("");
 
@@ -248,6 +253,8 @@ export function ProductDialog({
   function resetForm() {
     setName("");
     setProductTitle("");
+    setProductSize("");
+    setVariantLabel("");
     setCategoryId("");
     setParentCategoryId("");
     setSku("");
@@ -388,6 +395,8 @@ export function ProductDialog({
     setProductTitle(
       product.product_title ?? ""
     );
+    setProductSize(product.size ?? "");
+    setVariantLabel(product.variant_label ?? "");
 
     setCategoryId(
       product.category_id ?? ""
@@ -1134,6 +1143,9 @@ export function ProductDialog({
           trimmedProductTitle ||
           null,
 
+        size: productSize.trim() || null,
+        variant_label: variantLabel.trim() || null,
+
         slug:
           generateSlug(
             trimmedName
@@ -1427,6 +1439,29 @@ export function ProductDialog({
                 Customer-facing title shown on your online store.
                 Leave blank to use the Product Name.
               </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="product-size">Size</Label>
+                <Input
+                  id="product-size"
+                  value={productSize}
+                  onChange={(event) => setProductSize(event.target.value)}
+                  placeholder="e.g. Single, Double, King"
+                />
+                <p className="text-xs text-muted-foreground">Used for product details and storefront size filters. Leave blank when size does not apply.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="product-variant-label">Variant / Design</Label>
+                <Input
+                  id="product-variant-label"
+                  value={variantLabel}
+                  onChange={(event) => setVariantLabel(event.target.value)}
+                  placeholder="e.g. Anokhi, Ikat, Blue Floral"
+                />
+                <p className="text-xs text-muted-foreground">Use this to identify the design or version shown on this product card.</p>
+              </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
