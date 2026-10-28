@@ -21,6 +21,8 @@ export interface StorefrontProduct {
   price: number;
   originalPrice?: number | null;
   category?: string | null;
+  size?: string | null;
+  variantLabel?: string | null;
   badge?: string | null;
   stockQuantity?: number | null;
 }
