@@ -1138,7 +1138,7 @@ export function SaleDialog({
         selectedProduct?.cost_price
     );
 
-    const lineCost = cost * qty;
+    const lineCost = cost * qty * conversionFactor;
     const profit = total - lineCost;
 
     const stockChanges: StockChange[] = [
@@ -1331,7 +1331,7 @@ export function SaleDialog({
         selectedProduct?.cost_price
     );
 
-    const lineCost = cost * qty;
+    const lineCost = cost * qty * conversionFactor;
     const profit = total - lineCost;
 
     const purchasedAt = new Date(
@@ -1342,9 +1342,7 @@ export function SaleDialog({
       {
         productId: oldItem.product_id,
         variantId: oldItem.variant_id,
-        delta: number(
-          oldItem.quantity
-        ),
+        delta: number(oldItem.base_quantity ?? oldItem.quantity),
       },
       {
         productId,
