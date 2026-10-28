@@ -110,6 +110,7 @@ export async function getInventoryProducts(): Promise<{
       selling_price,
       cost_price,
       stock_quantity,
+      base_unit_label,
       online_enabled,
       online_price,
       visibility,
