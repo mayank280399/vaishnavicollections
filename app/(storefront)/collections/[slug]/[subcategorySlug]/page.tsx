@@ -432,10 +432,21 @@ async function SubcategoryContent({
             position: index + 1,
             url: `${SITE_URL}/products/${encodeURIComponent(product.slug)}`,
             item: {
-              "@type": "Thing",
+              "@type": "Product",
               name: product.product_title || product.name,
               url: `${SITE_URL}/products/${encodeURIComponent(product.slug)}`,
               image: product.image,
+              offers: {
+                "@type": "Offer",
+                url: `${SITE_URL}/products/${encodeURIComponent(product.slug)}`,
+                priceCurrency: "INR",
+                price: Number(product.price).toFixed(2),
+                availability:
+                  typeof product.stockQuantity === "number" && product.stockQuantity <= 0
+                    ? "https://schema.org/OutOfStock"
+                    : "https://schema.org/InStock",
+                itemCondition: "https://schema.org/NewCondition",
+              },
             },
           })),
         },
