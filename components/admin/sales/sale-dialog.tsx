@@ -844,7 +844,12 @@ export function SaleDialog({
               product_id,
               variant_id,
               quantity,
-              unit_price
+              unit_price,
+              entered_unit_code,
+              entered_unit_label,
+              entered_quantity,
+              conversion_factor,
+              base_quantity
             )
           `)
           .eq("id", saleId)
