@@ -936,6 +936,23 @@ async function ProductContent({
                 product.name}
             </h1>
 
+            {(product.size || product.variant_label) && (
+              <dl className="mt-3 flex flex-wrap gap-2 text-sm">
+                {product.size && (
+                  <div className="rounded-lg border border-[#10233e]/10 bg-[#10233e]/[0.03] px-3 py-2">
+                    <dt className="inline text-slate-500">Size: </dt>
+                    <dd className="inline font-semibold text-[#10233e]">{product.size}</dd>
+                  </div>
+                )}
+                {product.variant_label && (
+                  <div className="rounded-lg border border-[#10233e]/10 bg-[#10233e]/[0.03] px-3 py-2">
+                    <dt className="inline text-slate-500">Design / Variant: </dt>
+                    <dd className="inline font-semibold text-[#10233e]">{product.variant_label}</dd>
+                  </div>
+                )}
+              </dl>
+            )}
+
             {/* Featured */}
 
             {product.featured && (
