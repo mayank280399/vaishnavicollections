@@ -50,6 +50,15 @@ type Product = {
   selling_price: number | null;
   cost_price: number | null;
   stock_quantity: number | null;
+  base_unit_code?: string | null;
+  base_unit_label?: string | null;
+  unit_conversions?: Array<{
+    code: string;
+    label: string;
+    factor: number;
+    canPurchase: boolean;
+    canSell: boolean;
+  }> | null;
   online_enabled: boolean | null;
   online_price: number | null;
   visibility:
@@ -168,6 +177,12 @@ export function ProductDialog({
   const [stockQuantity, setStockQuantity] =
     useState("");
 
+  // Blank means "leave existing product unit configuration untouched".
+  // New products start with Piece as the inventory base unit.
+  const [baseUnitCode, setBaseUnitCode] = useState("piece");
+  const [baseUnitLabel, setBaseUnitLabel] = useState("Piece");
+  const [conversionLines, setConversionLines] = useState("");
+
   const [onlineEnabled, setOnlineEnabled] =
     useState(false);
 
@@ -239,6 +254,10 @@ export function ProductDialog({
     setSellingPrice("");
     setOnlinePrice("");
     setStockQuantity("");
+
+    setBaseUnitCode("piece");
+    setBaseUnitLabel("Piece");
+    setConversionLines("");
 
     setOnlineEnabled(false);
     setFeatured(false);
@@ -422,6 +441,17 @@ export function ProductDialog({
         ? String(
             product.stock_quantity
           )
+        : ""
+    );
+
+    setBaseUnitCode(product.base_unit_code ?? "");
+    setBaseUnitLabel(product.base_unit_label ?? "");
+    setConversionLines(
+      Array.isArray(product.unit_conversions)
+        ? product.unit_conversions
+            .filter((unit) => unit && unit.label && Number(unit.factor) > 0)
+            .map((unit) => `${unit.label}=${unit.factor}`)
+            .join("\n")
         : ""
     );
 
@@ -1019,6 +1049,47 @@ export function ProductDialog({
       return;
     }
 
+    const parsedConversions: Array<{
+      code: string;
+      label: string;
+      factor: number;
+      canPurchase: boolean;
+      canSell: boolean;
+    }> = [];
+
+    if (baseUnitCode.trim()) {
+      if (!baseUnitLabel.trim()) {
+        setError("Please enter the base unit label.");
+        return;
+      }
+
+      const seenLabels = new Set<string>();
+      for (const rawLine of conversionLines.split("\n")) {
+        const line = rawLine.trim();
+        if (!line) continue;
+        const separator = line.lastIndexOf("=");
+        if (separator <= 0) {
+          setError(`Invalid unit conversion "${line}". Use one unit per line in the format Dozen=12.`);
+          return;
+        }
+        const label = line.slice(0, separator).trim();
+        const factor = Number(line.slice(separator + 1).trim());
+        const key = label.toLowerCase();
+        if (!label || !Number.isFinite(factor) || factor <= 0 || key === baseUnitLabel.trim().toLowerCase() || seenLabels.has(key)) {
+          setError(`Check the unit conversion "${line}". Unit names must be unique and factors must be greater than zero.`);
+          return;
+        }
+        seenLabels.add(key);
+        parsedConversions.push({
+          code: label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, ""),
+          label,
+          factor,
+          canPurchase: true,
+          canSell: true,
+        });
+      }
+    }
+
     // const imageValidation =
     //   validateImages();
 
@@ -1099,6 +1170,16 @@ export function ProductDialog({
 
         visibility:
           visibility,
+
+        // Only write unit metadata when the user explicitly configures it.
+        // This keeps untouched legacy products' newly added columns NULL.
+        ...(baseUnitCode.trim()
+          ? {
+              base_unit_code: baseUnitCode.trim().toLowerCase(),
+              base_unit_label: baseUnitLabel.trim(),
+              unit_conversions: parsedConversions,
+            }
+          : {}),
       };
 
       let productId =
@@ -1514,6 +1595,80 @@ export function ProductDialog({
                 />
               </div>
             </div>
+          </section>
+
+          {/* UNITS & CONVERSIONS */}
+          <section className="space-y-4 border-t pt-5">
+            <div>
+              <h3 className="font-medium">Inventory Units & Conversions</h3>
+              <p className="text-sm text-muted-foreground">
+                Configure how this product is counted in stock. Leave the base unit blank when editing an existing product to keep its current configuration unchanged.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="base-unit-code">Base inventory unit</Label>
+                <select
+                  id="base-unit-code"
+                  value={baseUnitCode}
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    setBaseUnitCode(next);
+                    setBaseUnitLabel(next ? ({
+                      piece: "Piece",
+                      bottle: "Bottle",
+                      packet: "Packet",
+                      set: "Set",
+                      pair: "Pair",
+                      gram: "Gram",
+                      kilogram: "Kilogram",
+                      milliliter: "Milliliter",
+                      liter: "Liter",
+                    } as Record<string, string>)[next] ?? next : "");
+                  }}
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                >
+                  <option value="">Leave unchanged / not configured</option>
+                  <option value="piece">Piece</option>
+                  <option value="pair">Pair</option>
+                  <option value="set">Set</option>
+                  <option value="packet">Packet</option>
+                  <option value="bottle">Bottle</option>
+                  <option value="gram">Gram</option>
+                  <option value="kilogram">Kilogram</option>
+                  <option value="milliliter">Milliliter</option>
+                  <option value="liter">Liter</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="base-unit-label">Base unit label</Label>
+                <Input
+                  id="base-unit-label"
+                  value={baseUnitLabel}
+                  onChange={(event) => setBaseUnitLabel(event.target.value)}
+                  disabled={!baseUnitCode}
+                  placeholder="Piece"
+                />
+              </div>
+            </div>
+
+            {baseUnitCode ? (
+              <div className="space-y-2">
+                <Label htmlFor="unit-conversions">Additional units (one per line)</Label>
+                <textarea
+                  id="unit-conversions"
+                  value={conversionLines}
+                  onChange={(event) => setConversionLines(event.target.value)}
+                  rows={3}
+                  placeholder={"Dozen=12\nHalf dozen=6\nPair=2"}
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  The number is how many base units are in one additional unit. For example, if the base unit is Piece, Dozen=12 means 1 dozen = 12 pieces. These units are enabled for both purchase and sale.
+                </p>
+              </div>
+            ) : null}
           </section>
 
           {/* INVENTORY */}
