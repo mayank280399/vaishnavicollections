@@ -27,6 +27,8 @@ interface Product {
   name: string;
   slug: string;
   product_title?: string | null;
+  size?: string | null;
+  variant_label?: string | null;
   description?: string | null;
   category_id: string;
   sku: string | null;
@@ -288,6 +290,8 @@ function mapToStorefrontProduct(
     slug: product.slug,
     product_title:
       product.product_title ?? null,
+    size: product.size ?? null,
+    variantLabel: product.variant_label ?? null,
     image,
     price,
     originalPrice,
