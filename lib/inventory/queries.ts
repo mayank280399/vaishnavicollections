@@ -30,6 +30,7 @@ type InventoryProductRow = {
   selling_price: number | string | null;
   cost_price: number | string | null;
   stock_quantity: number | string | null;
+  base_unit_label: string | null;
   online_enabled: boolean | null;
   online_price: number | string | null;
   visibility: string;
