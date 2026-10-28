@@ -979,7 +979,7 @@ export function SaleDialog({
     );
 
     setVariantId("");
-    setUnitCode("");
+    setUnitCode(selectedProduct?.base_unit_code ?? "");
   }, [
     productId,
     selectedProduct,
@@ -1061,6 +1061,7 @@ export function SaleDialog({
     product: Product
   ) {
     setProductId(product.id);
+    setUnitCode(product.base_unit_code ?? "");
     setProductSearch(product.name);
     setProductDropdownOpen(false);
 
@@ -1866,7 +1867,7 @@ export function SaleDialog({
                         className={inputClass}
                         disabled={!selectedProduct}
                       >
-                        <option value="">{selectedProduct?.base_unit_label || "Base unit"}</option>
+                        <option value={selectedProduct?.base_unit_code ?? ""}>{selectedProduct?.base_unit_label || "Base unit"}</option>
                         {(selectedProduct?.unit_conversions ?? []).filter((unit) => unit.canSell !== false).map((unit) => (
                           <option key={unit.code} value={unit.code}>{unit.label} (×{unit.factor})</option>
                         ))}
