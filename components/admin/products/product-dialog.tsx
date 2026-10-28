@@ -182,6 +182,7 @@ export function ProductDialog({
   const [baseUnitCode, setBaseUnitCode] = useState("piece");
   const [baseUnitLabel, setBaseUnitLabel] = useState("Piece");
   const [conversionLines, setConversionLines] = useState("");
+  const [newVariantLines, setNewVariantLines] = useState("");
 
   const [onlineEnabled, setOnlineEnabled] =
     useState(false);
@@ -258,6 +259,7 @@ export function ProductDialog({
     setBaseUnitCode("piece");
     setBaseUnitLabel("Piece");
     setConversionLines("");
+    setNewVariantLines("");
 
     setOnlineEnabled(false);
     setFeatured(false);
@@ -454,6 +456,7 @@ export function ProductDialog({
             .join("\n")
         : ""
     );
+    setNewVariantLines("");
 
     setOnlineEnabled(
       Boolean(
@@ -1228,6 +1231,47 @@ export function ProductDialog({
         );
       }
 
+      // Add new variants only. Existing variants and their stock are never
+      // updated or deleted by this form.
+      const variantLines = newVariantLines.split("\n").map((line) => line.trim()).filter(Boolean);
+      if (variantLines.length > 0) {
+        const variantRows = variantLines.map((line) => {
+          const attributes: Record<string, string> = {};
+          for (const part of line.split(",")) {
+            const separator = part.indexOf("=");
+            if (separator <= 0) {
+              throw new Error(`Invalid variant "${line}". Use attributes like size=2/4, color=Red.`);
+            }
+            const key = part.slice(0, separator).trim().toLowerCase();
+            const value = part.slice(separator + 1).trim();
+            if (!key || !value || attributes[key]) {
+              throw new Error(`Invalid or repeated attribute in variant "${line}".`);
+            }
+            attributes[key] = value;
+          }
+          const name = Object.entries(attributes)
+            .map(([key, value]) => `${key.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())} ${value}`)
+            .join(" · ");
+          const variantValue = Object.values(attributes).join(" / ");
+          return {
+            product_id: productId,
+            name,
+            variant_value: variantValue,
+            sku: null,
+            cost_price: costPrice === "" ? null : Number(costPrice),
+            selling_price: sellingPrice === "" ? null : Number(sellingPrice),
+            stock_quantity: 0,
+            active: true,
+            attributes,
+          };
+        });
+        const { error: variantInsertError } = await supabase
+          .from("product_variants")
+          .insert(variantRows);
+        if (variantInsertError) throw variantInsertError;
+        setNewVariantLines("");
+      }
+
       try {
         await saveProductImages(
           productId
@@ -1669,6 +1713,30 @@ export function ProductDialog({
                 </p>
               </div>
             ) : null}
+          </section>
+
+          {/* PRODUCT VARIANTS */}
+          <section className="space-y-4 border-t pt-5">
+            <div>
+              <h3 className="font-medium">Size & Color Variants</h3>
+              <p className="text-sm text-muted-foreground">
+                Add new variants without changing existing variants or their stock. Each new variant starts with zero stock; record received quantities in Purchases.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-product-variants">New variants (one per line)</Label>
+              <textarea
+                id="new-product-variants"
+                value={newVariantLines}
+                onChange={(event) => setNewVariantLines(event.target.value)}
+                rows={4}
+                placeholder={"size=2/4, color=Red\nsize=2/6, color=Red\nsize=2/8, color=Green"}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Use comma-separated key=value attributes. Examples: size=2/4, color=Red or size=6, color=Pink. These are saved as structured attributes and shown as selectable variants in Purchase and Sales.
+              </p>
+            </div>
           </section>
 
           {/* INVENTORY */}
