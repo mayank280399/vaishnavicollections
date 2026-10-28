@@ -1859,7 +1859,7 @@ export function SaleDialog({
                           const nextCode = e.target.value;
                           setUnitCode(nextCode);
                           const unit = selectedProduct?.unit_conversions?.find((entry) => entry.code === nextCode);
-                          const basePrice = number(selectedProduct?.selling_price ?? selectedProduct?.online_price);
+                          const basePrice = number(selectedVariant?.selling_price ?? selectedProduct?.selling_price ?? selectedProduct?.online_price);
                           setSellingPrice(String(basePrice * (unit ? number(unit.factor) : 1)));
                         }}
                         className={inputClass}
