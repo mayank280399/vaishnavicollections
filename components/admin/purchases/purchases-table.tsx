@@ -145,6 +145,11 @@ export default function PurchasesTable() {
           unit_cost,
           discount,
           line_total,
+          entered_unit_code,
+          entered_unit_label,
+          entered_quantity,
+          conversion_factor,
+          base_quantity,
           created_at,
           products (
             name,
