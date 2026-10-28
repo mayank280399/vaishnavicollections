@@ -1320,6 +1320,8 @@ export function SaleDialog({
       existingSale.sale_items[0];
 
     const qty = number(quantity);
+    const selectedUnit = selectedProduct?.unit_conversions?.find((unit) => unit.code === unitCode);
+    const conversionFactor = selectedUnit ? number(selectedUnit.factor) : 1;
     const price = number(sellingPrice);
     const total = price * qty;
 
