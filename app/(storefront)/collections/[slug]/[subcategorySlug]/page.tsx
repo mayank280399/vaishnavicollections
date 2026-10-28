@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import ProductCard, { type StorefrontProduct} from "@/components/ProductCard/ProductCard";
+import type { StorefrontProduct} from "@/components/ProductCard/ProductCard";
+import CollectionProductGrid from "@/components/(storefront)/collection/CollectionProductGrid";
 import CollectionBanner from "@/components/(storefront)/collection/CollectionBanner";
 import BreadCrumb from "@/components/(storefront)/collection/BreadCrumb";
 import { ShoppingBag } from "lucide-react";
@@ -134,6 +135,8 @@ async function getProducts(
       id,
       name,
       product_title,
+      size,
+      variant_label,
       slug,
       selling_price,
       online_price,
@@ -222,6 +225,8 @@ async function getProducts(
       return {
         id: String(product.id),
         product_title: product.product_title,
+        size: product.size,
+        variantLabel: product.variant_label,
         name: product.name,
         slug: product.slug,
         image,
@@ -486,18 +491,7 @@ async function SubcategoryContent({
           </div>
 
           {products.length > 0 ? (
-            <div className="flex flex-wrap justify-center gap-4 sm:gap-5">
-              {products.map((product, index) => (
-                <div
-                  key={product.id}
-                  className="w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)]"
-                >
-                  <ProductCard
-                    product={product}
-                    index={index} />
-                </div>
-              ))}
-            </div>
+            <CollectionProductGrid products={products} />
           ) : (
             <div className="flex min-h-[300px] items-center justify-center rounded-2xl border border-[#10233e]/10 bg-white px-6 text-center">
               <div>
