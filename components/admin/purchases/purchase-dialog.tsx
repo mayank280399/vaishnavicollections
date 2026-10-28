@@ -344,6 +344,9 @@ export function PurchaseDialog({
               stock_quantity: Number(
                 product.stock_quantity ?? 0
               ),
+              base_unit_code: product.base_unit_code ?? null,
+              base_unit_label: product.base_unit_label ?? null,
+              unit_conversions: Array.isArray(product.unit_conversions) ? product.unit_conversions : [],
               variants: (
                 product.product_variants ??
                 []
