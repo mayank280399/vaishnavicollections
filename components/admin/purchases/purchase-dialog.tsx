@@ -751,7 +751,7 @@ export function PurchaseDialog({
     updateItem(item.key, {
       productId,
       variantId: "",
-      unitCode: "",
+      unitCode: product?.base_unit_code ?? "",
       unitCost:
         defaultCost > 0
           ? String(defaultCost)
@@ -2082,7 +2082,7 @@ export function PurchaseDialog({
                               disabled={saving || !product}
                               className={inputClass}
                             >
-                              <option value="">{product?.base_unit_label || "Base unit"}{product?.base_unit_code ? "" : " (legacy)"}</option>
+                              <option value={product?.base_unit_code ?? ""}>{product?.base_unit_label || "Base unit"}{product?.base_unit_code ? "" : " (legacy)"}</option>
                               {(product?.unit_conversions ?? []).filter((unit) => unit.canPurchase !== false).map((unit) => (
                                 <option key={unit.code} value={unit.code}>{unit.label} (×{unit.factor})</option>
                               ))}
