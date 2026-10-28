@@ -1301,7 +1301,12 @@ export function SaleDialog({
           variant_id,
           quantity,
           unit_price,
-          cost_price
+          cost_price,
+          entered_unit_code,
+          entered_unit_label,
+          entered_quantity,
+          conversion_factor,
+          base_quantity
         )
       `)
       .eq("id", editSale.id)
