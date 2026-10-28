@@ -416,6 +416,8 @@ export async function getInventoryProducts(): Promise<{
 
           stockQuantity,
 
+          baseUnitLabel: product.base_unit_label ?? null,
+
           onlineEnabled:
             Boolean(
               product.online_enabled
