@@ -251,6 +251,8 @@ function mapToStorefrontProduct(
     name: string;
     slug: string;
     product_title?: string | null;
+    size?: string | null;
+    variant_label?: string | null;
     selling_price: number;
     online_price: number | null;
     online_enabled: boolean;
