@@ -40,6 +40,7 @@ export type InventoryProduct = {
   sellingPrice: number;
   costPrice: number;
   stockQuantity: number;
+  baseUnitLabel: string | null;
   onlineEnabled: boolean;
   onlinePrice: number | null;
   visibility: string;
