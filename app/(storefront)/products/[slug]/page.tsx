@@ -326,6 +326,8 @@ async function ProductContent({
         name,
         slug,
         product_title,
+        size,
+        variant_label,
         description,
         category_id,
         sku,
