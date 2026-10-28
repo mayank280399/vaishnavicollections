@@ -339,6 +339,12 @@ export default function ProductCard({
             {displayTitle}
           </h3>
 
+          {(product.size || product.variantLabel) && (
+            <p className="mt-1 line-clamp-1 text-[10px] text-slate-500 sm:text-xs">
+              {[product.size ? `Size: ${product.size}` : null, product.variantLabel].filter(Boolean).join(" · ")}
+            </p>
+          )}
+
           {/* Price */}
 
           <div className="mt-2 flex items-end justify-between gap-2 border-t border-[#f0ede7] pt-2">
