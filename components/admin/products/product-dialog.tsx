@@ -1656,6 +1656,7 @@ export function ProductDialog({
                 <select
                   id="base-unit-code"
                   value={baseUnitCode}
+                  disabled={saving || (isEditMode && Boolean(product?.base_unit_code))}
                   onChange={(event) => {
                     const next = event.target.value;
                     setBaseUnitCode(next);
