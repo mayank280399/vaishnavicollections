@@ -52,6 +52,11 @@ export type PurchaseItem = {
   product_id: string;
   variant_id: string | null;
   quantity: number;
+  entered_unit_code?: string | null;
+  entered_unit_label?: string | null;
+  entered_quantity?: number | null;
+  conversion_factor?: number | null;
+  base_quantity?: number | null;
   unit_cost: number;
   discount: number;
   line_total: number;
