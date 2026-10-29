@@ -28,6 +28,8 @@ interface Product {
   name: string;
   slug: string;
   product_title?: string | null;
+  meta_title?: string | null;
+  short_description?: string | null;
   size?: string | null;
   variant_label?: string | null;
   description?: string | null;
@@ -77,6 +79,8 @@ export async function generateMetadata({
         slug,
         name,
         product_title,
+        meta_title,
+        short_description,
         description,
         selling_price,
         online_price,
@@ -119,6 +123,8 @@ export async function generateMetadata({
 
   const productName =
     product.product_title || product.name;
+  const seoTitle =
+    product.meta_title?.trim() || productName;
 
   /* =======================================================
      PRICE
@@ -136,6 +142,7 @@ export async function generateMetadata({
   ======================================================= */
 
   const rawDescription =
+    product.short_description?.trim() ||
     productDescriptionToText(product.description)?.trim() ||
     `Discover this beautiful ${productName} from Vaishnavi Collections.`;
 
@@ -154,7 +161,7 @@ export async function generateMetadata({
     imageData?.image_url || null;
 
   return {
-    title: productName,
+    title: seoTitle,
 
     description,
 
@@ -165,7 +172,7 @@ export async function generateMetadata({
     openGraph: {
       type: "website",
       siteName: "Vaishnavi Collections",
-      title: productName,
+      title: seoTitle,
       description,
 
       ...(imageUrl
@@ -184,7 +191,7 @@ export async function generateMetadata({
 
     twitter: {
       card: "summary_large_image",
-      title: productName,
+      title: seoTitle,
       description,
 
       ...(imageUrl
@@ -731,6 +738,7 @@ async function ProductContent({
         name: productName,
         url: productUrl,
         description:
+          product.short_description?.trim() ||
           productDescriptionToText(product.description) ||
           `Discover this beautiful ${productName} from Vaishnavi Collections. Each product is carefully selected for quality, style, and everyday use.`,
         ...(productImages.length ? { image: productImages } : {}),
