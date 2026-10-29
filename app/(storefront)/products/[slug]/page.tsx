@@ -15,6 +15,7 @@ import type { StorefrontProduct } from "@/components/ProductCard/ProductCard";
 import SimilarProducts from "@/components/SimilarProducts/page";
 import RelatedProducts from "@/components/RelatedProducts/page";
 import StorefrontRouteLoading from "@/components/(storefront)/collection/StorefrontRouteLoading";
+import { descriptionToEditorHtml, productDescriptionToText, sanitizeProductDescription } from "@/lib/utils/product-description";
 
 interface ProductImage {
   id: string;
@@ -135,7 +136,7 @@ export async function generateMetadata({
   ======================================================= */
 
   const rawDescription =
-    product.description?.trim() ||
+    productDescriptionToText(product.description)?.trim() ||
     `Discover this beautiful ${productName} from Vaishnavi Collections.`;
 
   const description =
@@ -730,7 +731,7 @@ async function ProductContent({
         name: productName,
         url: productUrl,
         description:
-          product.description?.trim() ||
+          productDescriptionToText(product.description) ||
           `Discover this beautiful ${productName} from Vaishnavi Collections. Each product is carefully selected for quality, style, and everyday use.`,
         ...(productImages.length ? { image: productImages } : {}),
         ...(product.sku ? { sku: product.sku } : {}),
@@ -1075,20 +1076,30 @@ async function ProductContent({
                 Product Details
               </h2>
 
-              <p
-                className="
-                  mt-2
-                  text-sm
-                  leading-6
-                  text-slate-600
-                "
-              >
-                {product.description ||
-                  `Discover this beautiful ${
-                    product.product_title ||
-                    product.name
-                  } from Vaishnavi Collections. Each product is carefully selected for quality, style, and everyday use.`}
-              </p>
+              <div
+                className="product-description-content mt-2 text-sm leading-6 text-slate-600"
+                dangerouslySetInnerHTML={{
+                  __html: sanitizeProductDescription(
+                    descriptionToEditorHtml(
+                      product.description?.trim() ||
+                        `Discover this beautiful ${
+                          product.product_title || product.name
+                        } from Vaishnavi Collections. Each product is carefully selected for quality, style, and everyday use.`
+                    )
+                  ),
+                }}
+              />
+              <style>{`
+                .product-description-content p { margin: 0.5rem 0; }
+                .product-description-content h2,
+                .product-description-content h3,
+                .product-description-content h4 { margin: 1rem 0 0.4rem; font-weight: 600; color: #0f172a; }
+                .product-description-content ul { list-style: disc; padding-left: 1.4rem; margin: 0.6rem 0; }
+                .product-description-content ol { list-style: decimal; padding-left: 1.4rem; margin: 0.6rem 0; }
+                .product-description-content li { padding-left: 0.15rem; margin: 0.2rem 0; }
+                .product-description-content a { color: #1d4ed8; text-decoration: underline; overflow-wrap: anywhere; }
+                .product-description-content blockquote { border-left: 3px solid #c9a227; padding-left: 0.75rem; margin: 0.75rem 0; }
+              `}</style>
             </div>
 
             {/* SKU */}
