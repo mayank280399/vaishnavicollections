@@ -24,6 +24,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import ProductDescriptionEditor from "@/components/admin/products/product-description-editor";
+import { sanitizeProductDescription } from "@/lib/utils/product-description";
 
 import {
   ProductImageUploader,
@@ -49,6 +51,7 @@ type Product = {
   size?: string | null;
   variant_label?: string | null;
   short_description: string | null;
+  description?: string | null;
   selling_price: number | null;
   cost_price: number | null;
   stock_quantity: number | null;
@@ -170,6 +173,8 @@ export function ProductDialog({
   const [shortDescription, setShortDescription] =
     useState("");
 
+  const [fullDescription, setFullDescription] = useState("");
+
   const [costPrice, setCostPrice] =
     useState("");
 
@@ -259,6 +264,7 @@ export function ProductDialog({
     setParentCategoryId("");
     setSku("");
     setShortDescription("");
+    setFullDescription("");
 
     setCostPrice("");
     setSellingPrice("");
@@ -413,6 +419,23 @@ export function ProductDialog({
     setShortDescription(
       product.short_description ?? ""
     );
+    setFullDescription(product.description ?? "");
+
+    // Product list queries may omit the long description; load it explicitly
+    // when opening the editor so saving unrelated fields never clears it.
+    void (async () => {
+      const { data: descriptionRow, error: descriptionError } = await supabase
+        .from("products")
+        .select("description")
+        .eq("id", product.id)
+        .maybeSingle();
+      if (descriptionError) {
+        console.error("Unable to load product description:", descriptionError);
+        setError(`Unable to load product description: ${descriptionError.message}`);
+        return;
+      }
+      setFullDescription(descriptionRow?.description ?? product.description ?? "");
+    })();
 
     setCostPrice(
       product.cost_price !==
@@ -1161,6 +1184,8 @@ export function ProductDialog({
           shortDescription.trim() ||
           null,
 
+        description: sanitizeProductDescription(fullDescription) || null,
+
         cost_price:
           Number(
             costPrice || 0
@@ -1584,6 +1609,18 @@ export function ProductDialog({
                 placeholder="Short product description..."
                 className="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Full Product Description</Label>
+              <ProductDescriptionEditor
+                value={fullDescription}
+                onChange={setFullDescription}
+                disabled={saving}
+              />
+              <p className="text-xs text-muted-foreground">
+                Use this for complete product information, features, material, size, care instructions, and bullet points. Formatting is preserved on the storefront.
+              </p>
             </div>
           </section>
 
