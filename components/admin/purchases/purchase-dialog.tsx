@@ -40,6 +40,9 @@ type Product = {
   sku: string | null;
   cost_price: number;
   stock_quantity: number;
+  base_unit_code?: string | null;
+  base_unit_label?: string | null;
+  unit_conversions?: Array<{ code: string; label: string; factor: number; canPurchase?: boolean; canSell?: boolean }> | null;
   variants: Variant[];
 };
 
@@ -49,6 +52,11 @@ export type PurchaseItem = {
   product_id: string;
   variant_id: string | null;
   quantity: number;
+  entered_unit_code?: string | null;
+  entered_unit_label?: string | null;
+  entered_quantity?: number | null;
+  conversion_factor?: number | null;
+  base_quantity?: number | null;
   unit_cost: number;
   discount: number;
   line_total: number;
@@ -94,6 +102,7 @@ type DraftItem = {
   productId: string;
   variantId: string;
   quantity: string;
+  unitCode: string;
   unitCost: string;
   discount: string;
 };
@@ -133,6 +142,7 @@ function newItem(): DraftItem {
     productId: "",
     variantId: "",
     quantity: "1",
+    unitCode: "",
     unitCost: "",
     discount: "0",
   };
@@ -292,6 +302,9 @@ export function PurchaseDialog({
           sku,
           cost_price,
           stock_quantity,
+          base_unit_code,
+          base_unit_label,
+          unit_conversions,
           product_variants (
             id,
             product_id,
@@ -331,6 +344,9 @@ export function PurchaseDialog({
               stock_quantity: Number(
                 product.stock_quantity ?? 0
               ),
+              base_unit_code: product.base_unit_code ?? null,
+              base_unit_label: product.base_unit_label ?? null,
+              unit_conversions: Array.isArray(product.unit_conversions) ? product.unit_conversions : [],
               variants: (
                 product.product_variants ??
                 []
@@ -441,6 +457,8 @@ export function PurchaseDialog({
                   item.variant_id ?? "",
                 quantity:
                   String(item.quantity),
+                unitCode:
+                  item.entered_unit_code ?? "",
                 unitCost:
                   String(item.unit_cost),
                 discount:
@@ -741,6 +759,7 @@ export function PurchaseDialog({
     updateItem(item.key, {
       productId,
       variantId: "",
+      unitCode: product?.base_unit_code ?? "",
       unitCost:
         defaultCost > 0
           ? String(defaultCost)
@@ -1026,7 +1045,7 @@ export function PurchaseDialog({
     if (oldAffectsStock) {
       for (const item of oldItems) {
         const quantity =
-          Number(item.quantity);
+          Number((item as any).base_quantity ?? item.quantity);
 
         if (
           !Number.isFinite(
@@ -1064,7 +1083,7 @@ export function PurchaseDialog({
     if (newAffectsStock) {
       for (const item of newItems) {
         const quantity =
-          Number(item.quantity);
+          Number((item as any).base_quantity ?? item.quantity);
 
         if (
           !Number.isFinite(
@@ -1244,17 +1263,29 @@ export function PurchaseDialog({
         );
       }
 
+      const product = products.find((entry) => entry.id === item.productId);
+      const configuredUnits = product?.unit_conversions ?? [];
+      const selectedUnit = configuredUnits.find((unit) => unit.code === item.unitCode);
+      const conversionFactor = selectedUnit ? Number(selectedUnit.factor) : 1;
+      if (!Number.isFinite(conversionFactor) || conversionFactor <= 0) {
+        throw new Error("The selected unit has an invalid conversion factor.");
+      }
+      const baseQuantity = quantity * conversionFactor;
+      const enteredUnitCode = selectedUnit?.code ?? product?.base_unit_code ?? null;
+      const enteredUnitLabel = selectedUnit?.label ?? product?.base_unit_label ?? null;
+
       return {
-        product_id:
-          item.productId,
-        variant_id:
-          item.variantId || null,
+        product_id: item.productId,
+        variant_id: item.variantId || null,
         quantity,
-        unit_cost:
-          unitCost,
+        unit_cost: unitCost,
         discount,
-        line_total:
-          gross - discount,
+        line_total: gross - discount,
+        entered_unit_code: enteredUnitCode,
+        entered_unit_label: enteredUnitLabel,
+        entered_quantity: quantity,
+        conversion_factor: conversionFactor,
+        base_quantity: baseQuantity,
       };
     });
   }
@@ -1845,8 +1876,8 @@ export function PurchaseDialog({
                 </h3>
 
                 <p className="text-xs text-muted-foreground">
-                  Add the products and quantities
-                  received from the supplier.
+                  Add products, purchase units and quantities received from the supplier. Converted quantities update base-unit stock.
+                
                 </p>
               </div>
 
@@ -2047,6 +2078,22 @@ export function PurchaseDialog({
                                   </option>
                                 )
                               )}
+                            </select>
+                          </Field>
+                        </div>
+
+                        <div className="min-w-0 lg:col-span-2">
+                          <Field label="Unit">
+                            <select
+                              value={item.unitCode}
+                              onChange={(event) => updateItem(item.key, { unitCode: event.target.value })}
+                              disabled={saving || !product}
+                              className={inputClass}
+                            >
+                              <option value={product?.base_unit_code ?? ""}>{product?.base_unit_label || "Base unit"}{product?.base_unit_code ? "" : " (legacy)"}</option>
+                              {(product?.unit_conversions ?? []).filter((unit) => unit.canPurchase !== false).map((unit) => (
+                                <option key={unit.code} value={unit.code}>{unit.label} (×{unit.factor})</option>
+                              ))}
                             </select>
                           </Field>
                         </div>

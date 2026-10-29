@@ -15,6 +15,7 @@ import type { StorefrontProduct } from "@/components/ProductCard/ProductCard";
 import SimilarProducts from "@/components/SimilarProducts/page";
 import RelatedProducts from "@/components/RelatedProducts/page";
 import StorefrontRouteLoading from "@/components/(storefront)/collection/StorefrontRouteLoading";
+import { descriptionToEditorHtml, productDescriptionToText, sanitizeProductDescription } from "@/lib/utils/product-description";
 
 interface ProductImage {
   id: string;
@@ -27,6 +28,10 @@ interface Product {
   name: string;
   slug: string;
   product_title?: string | null;
+  meta_title?: string | null;
+  short_description?: string | null;
+  size?: string | null;
+  variant_label?: string | null;
   description?: string | null;
   category_id: string;
   sku: string | null;
@@ -74,6 +79,8 @@ export async function generateMetadata({
         slug,
         name,
         product_title,
+        meta_title,
+        short_description,
         description,
         selling_price,
         online_price,
@@ -116,6 +123,8 @@ export async function generateMetadata({
 
   const productName =
     product.product_title || product.name;
+  const seoTitle =
+    product.meta_title?.trim() || productName;
 
   /* =======================================================
      PRICE
@@ -133,7 +142,8 @@ export async function generateMetadata({
   ======================================================= */
 
   const rawDescription =
-    product.description?.trim() ||
+    product.short_description?.trim() ||
+    productDescriptionToText(product.description)?.trim() ||
     `Discover this beautiful ${productName} from Vaishnavi Collections.`;
 
   const description =
@@ -151,7 +161,7 @@ export async function generateMetadata({
     imageData?.image_url || null;
 
   return {
-    title: productName,
+    title: seoTitle,
 
     description,
 
@@ -162,7 +172,7 @@ export async function generateMetadata({
     openGraph: {
       type: "website",
       siteName: "Vaishnavi Collections",
-      title: productName,
+      title: seoTitle,
       description,
 
       ...(imageUrl
@@ -181,7 +191,7 @@ export async function generateMetadata({
 
     twitter: {
       card: "summary_large_image",
-      title: productName,
+      title: seoTitle,
       description,
 
       ...(imageUrl
@@ -251,6 +261,8 @@ function mapToStorefrontProduct(
     name: string;
     slug: string;
     product_title?: string | null;
+    size?: string | null;
+    variant_label?: string | null;
     selling_price: number;
     online_price: number | null;
     online_enabled: boolean;
@@ -286,6 +298,8 @@ function mapToStorefrontProduct(
     slug: product.slug,
     product_title:
       product.product_title ?? null,
+    size: product.size ?? null,
+    variantLabel: product.variant_label ?? null,
     image,
     price,
     originalPrice,
@@ -324,6 +338,8 @@ async function ProductContent({
         name,
         slug,
         product_title,
+        size,
+        variant_label,
         description,
         category_id,
         sku,
@@ -456,6 +472,8 @@ async function ProductContent({
           name,
           slug,
           product_title,
+          size,
+          variant_label,
           selling_price,
           online_price,
           online_enabled,
@@ -576,6 +594,8 @@ async function ProductContent({
             name,
             slug,
             product_title,
+            size,
+            variant_label,
             category_id,
             selling_price,
             online_price,
@@ -718,7 +738,8 @@ async function ProductContent({
         name: productName,
         url: productUrl,
         description:
-          product.description?.trim() ||
+          product.short_description?.trim() ||
+          productDescriptionToText(product.description) ||
           `Discover this beautiful ${productName} from Vaishnavi Collections. Each product is carefully selected for quality, style, and everyday use.`,
         ...(productImages.length ? { image: productImages } : {}),
         ...(product.sku ? { sku: product.sku } : {}),
@@ -936,6 +957,23 @@ async function ProductContent({
                 product.name}
             </h1>
 
+            {(product.size || product.variant_label) && (
+              <dl className="mt-3 flex flex-wrap gap-2 text-sm">
+                {product.size && (
+                  <div className="rounded-lg border border-[#10233e]/10 bg-[#10233e]/[0.03] px-3 py-2">
+                    <dt className="inline text-slate-500">Size: </dt>
+                    <dd className="inline font-semibold text-[#10233e]">{product.size}</dd>
+                  </div>
+                )}
+                {product.variant_label && (
+                  <div className="rounded-lg border border-[#10233e]/10 bg-[#10233e]/[0.03] px-3 py-2">
+                    <dt className="inline text-slate-500">Design / Variant: </dt>
+                    <dd className="inline font-semibold text-[#10233e]">{product.variant_label}</dd>
+                  </div>
+                )}
+              </dl>
+            )}
+
             {/* Featured */}
 
             {product.featured && (
@@ -1046,20 +1084,30 @@ async function ProductContent({
                 Product Details
               </h2>
 
-              <p
-                className="
-                  mt-2
-                  text-sm
-                  leading-6
-                  text-slate-600
-                "
-              >
-                {product.description ||
-                  `Discover this beautiful ${
-                    product.product_title ||
-                    product.name
-                  } from Vaishnavi Collections. Each product is carefully selected for quality, style, and everyday use.`}
-              </p>
+              <div
+                className="product-description-content mt-2 text-sm leading-6 text-slate-600"
+                dangerouslySetInnerHTML={{
+                  __html: sanitizeProductDescription(
+                    descriptionToEditorHtml(
+                      product.description?.trim() ||
+                        `Discover this beautiful ${
+                          product.product_title || product.name
+                        } from Vaishnavi Collections. Each product is carefully selected for quality, style, and everyday use.`
+                    )
+                  ),
+                }}
+              />
+              <style>{`
+                .product-description-content p { margin: 0.5rem 0; }
+                .product-description-content h2,
+                .product-description-content h3,
+                .product-description-content h4 { margin: 1rem 0 0.4rem; font-weight: 600; color: #0f172a; }
+                .product-description-content ul { list-style: disc; padding-left: 1.4rem; margin: 0.6rem 0; }
+                .product-description-content ol { list-style: decimal; padding-left: 1.4rem; margin: 0.6rem 0; }
+                .product-description-content li { padding-left: 0.15rem; margin: 0.2rem 0; }
+                .product-description-content a { color: #1d4ed8; text-decoration: underline; overflow-wrap: anywhere; }
+                .product-description-content blockquote { border-left: 3px solid #c9a227; padding-left: 0.75rem; margin: 0.75rem 0; }
+              `}</style>
             </div>
 
             {/* SKU */}
