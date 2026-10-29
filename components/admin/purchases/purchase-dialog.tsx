@@ -457,6 +457,8 @@ export function PurchaseDialog({
                   item.variant_id ?? "",
                 quantity:
                   String(item.quantity),
+                unitCode:
+                  item.entered_unit_code ?? "",
                 unitCost:
                   String(item.unit_cost),
                 discount:
