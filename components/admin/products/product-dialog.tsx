@@ -48,6 +48,7 @@ type Product = {
   sku: string | null;
   name: string;
   product_title: string | null;
+  meta_title?: string | null;
   size?: string | null;
   variant_label?: string | null;
   short_description: string | null;
@@ -158,6 +159,8 @@ export function ProductDialog({
   const [productTitle, setProductTitle] =
     useState("");
 
+  const [metaTitle, setMetaTitle] = useState("");
+
   const [productSize, setProductSize] = useState("");
   const [variantLabel, setVariantLabel] = useState("");
 
@@ -258,6 +261,7 @@ export function ProductDialog({
   function resetForm() {
     setName("");
     setProductTitle("");
+    setMetaTitle("");
     setProductSize("");
     setVariantLabel("");
     setCategoryId("");
@@ -401,6 +405,7 @@ export function ProductDialog({
     setProductTitle(
       product.product_title ?? ""
     );
+    setMetaTitle(product.meta_title ?? "");
     setProductSize(product.size ?? "");
     setVariantLabel(product.variant_label ?? "");
 
@@ -1166,6 +1171,8 @@ export function ProductDialog({
           trimmedProductTitle ||
           null,
 
+        meta_title: metaTitle.trim() || null,
+
         size: productSize.trim() || null,
         variant_label: variantLabel.trim() || null,
 
@@ -1587,6 +1594,20 @@ export function ProductDialog({
                 }
                 placeholder="e.g. LG-POS-001"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="meta-title">Meta Title</Label>
+              <Input
+                id="meta-title"
+                value={metaTitle}
+                onChange={(event) => setMetaTitle(event.target.value)}
+                maxLength={70}
+                placeholder="e.g. Laddu Gopal Ji Dress & Poshak | Vaishnavi Collections"
+              />
+              <p className="text-xs text-muted-foreground">
+                SEO title used in search results and the product page browser title. Leave blank to use the product title automatically.
+              </p>
             </div>
 
             <div className="space-y-2">
