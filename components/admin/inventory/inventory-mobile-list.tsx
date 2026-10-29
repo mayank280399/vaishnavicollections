@@ -121,7 +121,7 @@ export function InventoryMobileList({
               </p>
 
               <p className="mt-1 text-sm font-semibold text-slate-900">
-                {product.stockQuantity}
+                {product.stockQuantity}{product.baseUnitLabel ? ` ${product.baseUnitLabel}` : ""}
               </p>
             </div>
 

@@ -1,7 +1,8 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Search } from "lucide-react";
+import { Search, SlidersHorizontal } from "lucide-react";
+import { useMemo, useState } from "react";
 
 import ProductCard, {
   type StorefrontProduct,
@@ -20,6 +21,10 @@ export default function CollectionProductGrid({
   emptyTitle = "Products coming soon",
   emptyDescription = "We are adding products to this collection. Please check back soon.",
 }: CollectionProductGridProps) {
+  const [selectedSize, setSelectedSize] = useState("ALL");
+  const sizes = useMemo(() => Array.from(new Set(products.map((product) => product.size?.trim()).filter((size): size is string => Boolean(size)))).sort((a, b) => a.localeCompare(b)), [products]);
+  const filteredProducts = selectedSize === "ALL" ? products : products.filter((product) => product.size?.trim().toLowerCase() === selectedSize.toLowerCase());
+
   if (!products.length) {
     return (
       <motion.div
@@ -43,9 +48,23 @@ export default function CollectionProductGrid({
   }
 
   return (
-   <div className="flex flex-wrap justify-center gap-4 sm:gap-5">
+   <div className="space-y-5">
+    {sizes.length > 0 && (
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-[#10233e]/10 bg-white p-3">
+        <span className="inline-flex items-center gap-2 text-sm font-semibold text-[#10233e]"><SlidersHorizontal size={16} /> Filter by size</span>
+        <select aria-label="Filter products by size" value={selectedSize} onChange={(event) => setSelectedSize(event.target.value)} className="h-10 min-w-36 rounded-lg border border-[#10233e]/15 bg-white px-3 text-sm text-[#10233e] outline-none focus:ring-2 focus:ring-[#D4AF37]">
+          <option value="ALL">All sizes</option>
+          {sizes.map((size) => <option key={size} value={size}>{size}</option>)}
+        </select>
+        <span className="text-xs text-slate-500">{filteredProducts.length} {filteredProducts.length === 1 ? "item" : "items"}</span>
+      </div>
+    )}
+    {filteredProducts.length === 0 ? (
+      <p className="rounded-xl border border-dashed border-[#10233e]/20 bg-white p-8 text-center text-sm text-slate-600">No products are available in this size.</p>
+    ) : (
+    <div className="flex flex-wrap justify-center gap-4 sm:gap-5">
   <AnimatePresence mode="popLayout">
-    {products.map((product, index) => (
+    {filteredProducts.map((product, index) => (
       <div
         key={product.id}
         className="w-[calc(50%-0.5rem)] lg:w-[calc(33.333%-0.75rem)] xl:w-[calc(25%-0.75rem)]"
@@ -58,5 +77,7 @@ export default function CollectionProductGrid({
     ))}
   </AnimatePresence>
 </div>
+    )}
+   </div>
   );
 }

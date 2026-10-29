@@ -47,6 +47,9 @@ type Product = {
   selling_price: number | string | null;
   cost_price: number | string | null;
   stock_quantity: number | string | null;
+  base_unit_code?: string | null;
+  base_unit_label?: string | null;
+  unit_conversions?: Array<{ code: string; label: string; factor: number; canPurchase?: boolean; canSell?: boolean }> | null;
   online_price: number | string | null;
   online_enabled: boolean;
 };
@@ -479,6 +482,7 @@ export function SaleDialog({
     useState(false);
 
   const [quantity, setQuantity] = useState("1");
+  const [unitCode, setUnitCode] = useState("");
   const [sellingPrice, setSellingPrice] =
     useState("");
 
@@ -737,7 +741,7 @@ export function SaleDialog({
         supabase
           .from("products")
           .select(
-            "id,category_id,name,selling_price,cost_price,stock_quantity,online_price,online_enabled"
+            "id,category_id,name,selling_price,cost_price,stock_quantity,base_unit_code,base_unit_label,unit_conversions,online_price,online_enabled"
           )
           .order("name"),
 
@@ -841,7 +845,12 @@ export function SaleDialog({
               product_id,
               variant_id,
               quantity,
-              unit_price
+              unit_price,
+              entered_unit_code,
+              entered_unit_label,
+              entered_quantity,
+              conversion_factor,
+              base_quantity
             )
           `)
           .eq("id", saleId)
@@ -976,6 +985,7 @@ export function SaleDialog({
     );
 
     setVariantId("");
+    setUnitCode(selectedProduct?.base_unit_code ?? "");
   }, [
     productId,
     selectedProduct,
@@ -1013,6 +1023,7 @@ export function SaleDialog({
     setProductDropdownOpen(false);
 
     setQuantity("1");
+    setUnitCode("");
     setSellingPrice("");
 
     setMessage("");
@@ -1031,6 +1042,7 @@ export function SaleDialog({
     setSubcategoryId("");
     setProductId("");
     setVariantId("");
+    setUnitCode("");
     setProductSearch("");
     setSellingPrice("");
   }
@@ -1041,6 +1053,7 @@ export function SaleDialog({
     setSubcategoryId(value);
     setProductId("");
     setVariantId("");
+    setUnitCode("");
     setProductSearch("");
     setSellingPrice("");
   }
@@ -1054,6 +1067,7 @@ export function SaleDialog({
     product: Product
   ) {
     setProductId(product.id);
+    setUnitCode(product.base_unit_code ?? "");
     setProductSearch(product.name);
     setProductDropdownOpen(false);
 
@@ -1120,6 +1134,8 @@ export function SaleDialog({
     }
 
     const qty = number(quantity);
+    const selectedUnit = selectedProduct?.unit_conversions?.find((unit) => unit.code === unitCode);
+    const conversionFactor = selectedUnit ? number(selectedUnit.factor) : 1;
     const price = number(sellingPrice);
     const total = price * qty;
 
@@ -1128,14 +1144,14 @@ export function SaleDialog({
         selectedProduct?.cost_price
     );
 
-    const lineCost = cost * qty;
+    const lineCost = cost * qty * conversionFactor;
     const profit = total - lineCost;
 
     const stockChanges: StockChange[] = [
       {
         productId,
         variantId: variantId || null,
-        delta: -qty,
+        delta: -(qty * conversionFactor),
       },
     ];
 
@@ -1189,6 +1205,11 @@ export function SaleDialog({
           variant_id:
             variantId || null,
           quantity: qty,
+          entered_unit_code: selectedUnit?.code ?? selectedProduct?.base_unit_code ?? null,
+          entered_unit_label: selectedUnit?.label ?? selectedProduct?.base_unit_label ?? null,
+          entered_quantity: qty,
+          conversion_factor: conversionFactor,
+          base_quantity: qty * conversionFactor,
           unit_price: price,
           discount: 0,
           cost_price: cost,
@@ -1281,7 +1302,12 @@ export function SaleDialog({
           variant_id,
           quantity,
           unit_price,
-          cost_price
+          cost_price,
+          entered_unit_code,
+          entered_unit_label,
+          entered_quantity,
+          conversion_factor,
+          base_quantity
         )
       `)
       .eq("id", editSale.id)
@@ -1306,6 +1332,8 @@ export function SaleDialog({
       existingSale.sale_items[0];
 
     const qty = number(quantity);
+    const selectedUnit = selectedProduct?.unit_conversions?.find((unit) => unit.code === unitCode);
+    const conversionFactor = selectedUnit ? number(selectedUnit.factor) : 1;
     const price = number(sellingPrice);
     const total = price * qty;
 
@@ -1314,7 +1342,7 @@ export function SaleDialog({
         selectedProduct?.cost_price
     );
 
-    const lineCost = cost * qty;
+    const lineCost = cost * qty * conversionFactor;
     const profit = total - lineCost;
 
     const purchasedAt = new Date(
@@ -1325,15 +1353,13 @@ export function SaleDialog({
       {
         productId: oldItem.product_id,
         variantId: oldItem.variant_id,
-        delta: number(
-          oldItem.quantity
-        ),
+        delta: number(oldItem.base_quantity ?? oldItem.quantity),
       },
       {
         productId,
         variantId:
           variantId || null,
-        delta: -qty,
+        delta: -(qty * conversionFactor),
       },
     ];
 
@@ -1401,6 +1427,11 @@ export function SaleDialog({
         variant_id:
           variantId || null,
         quantity: qty,
+        entered_unit_code: selectedUnit?.code ?? selectedProduct?.base_unit_code ?? null,
+        entered_unit_label: selectedUnit?.label ?? selectedProduct?.base_unit_label ?? null,
+        entered_quantity: qty,
+        conversion_factor: conversionFactor,
+        base_quantity: qty * conversionFactor,
         unit_price: price,
         discount: 0,
         cost_price: cost,
@@ -1830,6 +1861,32 @@ export function SaleDialog({
                         </select>
                       </Field>
                     ) : null}
+
+                    {/* UNIT */}
+                    <Field label="Unit">
+                      <select
+                        value={unitCode}
+                        onChange={(e) => {
+                          const nextCode = e.target.value;
+                          setUnitCode(nextCode);
+                          const unit = selectedProduct?.unit_conversions?.find((entry) => entry.code === nextCode);
+                          const basePrice = number(selectedVariant?.selling_price ?? selectedProduct?.selling_price ?? selectedProduct?.online_price);
+                          setSellingPrice(String(basePrice * (unit ? number(unit.factor) : 1)));
+                        }}
+                        className={inputClass}
+                        disabled={!selectedProduct}
+                      >
+                        <option value={selectedProduct?.base_unit_code ?? ""}>{selectedProduct?.base_unit_label || "Base unit"}</option>
+                        {(selectedProduct?.unit_conversions ?? []).filter((unit) => unit.canSell !== false).map((unit) => (
+                          <option key={unit.code} value={unit.code}>{unit.label} (×{unit.factor})</option>
+                        ))}
+                      </select>
+                      {selectedProduct?.base_unit_code ? (
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          Stock is stored in {selectedProduct.base_unit_label || selectedProduct.base_unit_code}; selling one selected unit deducts its conversion quantity.
+                        </p>
+                      ) : null}
+                    </Field>
 
                     {/* QUANTITY */}
                     <Field

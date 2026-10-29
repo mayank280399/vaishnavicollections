@@ -136,6 +136,8 @@ async function getProductsForCategories(
       id,
       name,
       product_title,
+      size,
+      variant_label,
       slug,
       selling_price,
       online_price,
@@ -207,6 +209,8 @@ async function getProductsForCategories(
         id: String(product.id),
         name: product.name,
         product_title: product.product_title,
+        size: product.size,
+        variantLabel: product.variant_label,
         slug: product.slug,
         image: image.image_url,
         price,
@@ -370,10 +374,21 @@ async function ParentCollectionContent({
             position: index + 1,
             url: `${SITE_URL}/products/${encodeURIComponent(product.slug)}`,
             item: {
-              "@type": "Thing",
+              "@type": "Product",
               name: product.product_title || product.name,
               url: `${SITE_URL}/products/${encodeURIComponent(product.slug)}`,
               image: product.image,
+              offers: {
+                "@type": "Offer",
+                url: `${SITE_URL}/products/${encodeURIComponent(product.slug)}`,
+                priceCurrency: "INR",
+                price: Number(product.price).toFixed(2),
+                availability:
+                  typeof product.stockQuantity === "number" && product.stockQuantity <= 0
+                    ? "https://schema.org/OutOfStock"
+                    : "https://schema.org/InStock",
+                itemCondition: "https://schema.org/NewCondition",
+              },
             },
           })),
         },

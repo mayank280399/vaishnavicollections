@@ -24,6 +24,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import ProductDescriptionEditor from "@/components/admin/products/product-description-editor";
+import { sanitizeProductDescription } from "@/lib/utils/product-description";
 
 import {
   ProductImageUploader,
@@ -46,10 +48,23 @@ type Product = {
   sku: string | null;
   name: string;
   product_title: string | null;
+  meta_title?: string | null;
+  size?: string | null;
+  variant_label?: string | null;
   short_description: string | null;
+  description?: string | null;
   selling_price: number | null;
   cost_price: number | null;
   stock_quantity: number | null;
+  base_unit_code?: string | null;
+  base_unit_label?: string | null;
+  unit_conversions?: Array<{
+    code: string;
+    label: string;
+    factor: number;
+    canPurchase: boolean;
+    canSell: boolean;
+  }> | null;
   online_enabled: boolean | null;
   online_price: number | null;
   visibility:
@@ -144,6 +159,11 @@ export function ProductDialog({
   const [productTitle, setProductTitle] =
     useState("");
 
+  const [metaTitle, setMetaTitle] = useState("");
+
+  const [productSize, setProductSize] = useState("");
+  const [variantLabel, setVariantLabel] = useState("");
+
   const [categoryId, setCategoryId] =
     useState("");
 
@@ -156,6 +176,8 @@ export function ProductDialog({
   const [shortDescription, setShortDescription] =
     useState("");
 
+  const [fullDescription, setFullDescription] = useState("");
+
   const [costPrice, setCostPrice] =
     useState("");
 
@@ -167,6 +189,15 @@ export function ProductDialog({
 
   const [stockQuantity, setStockQuantity] =
     useState("");
+
+  // Blank means "leave existing product unit configuration untouched".
+  // New products start with Piece as the inventory base unit.
+  const [baseUnitCode, setBaseUnitCode] = useState("piece");
+  const [baseUnitLabel, setBaseUnitLabel] = useState("Piece");
+  const [conversionLines, setConversionLines] = useState("");
+  const [newVariantLines, setNewVariantLines] = useState("");
+  const [existingVariants, setExistingVariants] = useState<Array<{ id: string; name: string; variant_value: string | null; sku: string | null; stock_quantity: number | null; active: boolean | null; attributes: Record<string, string> | null }>>([]);
+  const [loadingVariants, setLoadingVariants] = useState(false);
 
   const [onlineEnabled, setOnlineEnabled] =
     useState(false);
@@ -230,15 +261,25 @@ export function ProductDialog({
   function resetForm() {
     setName("");
     setProductTitle("");
+    setMetaTitle("");
+    setProductSize("");
+    setVariantLabel("");
     setCategoryId("");
     setParentCategoryId("");
     setSku("");
     setShortDescription("");
+    setFullDescription("");
 
     setCostPrice("");
     setSellingPrice("");
     setOnlinePrice("");
     setStockQuantity("");
+
+    setBaseUnitCode("piece");
+    setBaseUnitLabel("Piece");
+    setConversionLines("");
+    setNewVariantLines("");
+    setExistingVariants([]);
 
     setOnlineEnabled(false);
     setFeatured(false);
@@ -364,6 +405,9 @@ export function ProductDialog({
     setProductTitle(
       product.product_title ?? ""
     );
+    setMetaTitle(product.meta_title ?? "");
+    setProductSize(product.size ?? "");
+    setVariantLabel(product.variant_label ?? "");
 
     setCategoryId(
       product.category_id ?? ""
@@ -380,6 +424,24 @@ export function ProductDialog({
     setShortDescription(
       product.short_description ?? ""
     );
+    setFullDescription(product.description ?? "");
+
+    // Product list queries may omit the long description; load it explicitly
+    // when opening the editor so saving unrelated fields never clears it.
+    void (async () => {
+      const { data: descriptionRow, error: descriptionError } = await supabase
+        .from("products")
+        .select("description, meta_title")
+        .eq("id", product.id)
+        .maybeSingle();
+      if (descriptionError) {
+        console.error("Unable to load product description:", descriptionError);
+        setError(`Unable to load product description: ${descriptionError.message}`);
+        return;
+      }
+      setFullDescription(descriptionRow?.description ?? product.description ?? "");
+      setMetaTitle(descriptionRow?.meta_title ?? product.meta_title ?? "");
+    })();
 
     setCostPrice(
       product.cost_price !==
@@ -424,6 +486,18 @@ export function ProductDialog({
           )
         : ""
     );
+
+    setBaseUnitCode(product.base_unit_code ?? "");
+    setBaseUnitLabel(product.base_unit_label ?? "");
+    setConversionLines(
+      Array.isArray(product.unit_conversions)
+        ? product.unit_conversions
+            .filter((unit) => unit && unit.label && Number(unit.factor) > 0)
+            .map((unit) => `${unit.label}=${unit.factor}`)
+            .join("\n")
+        : ""
+    );
+    setNewVariantLines("");
 
     setOnlineEnabled(
       Boolean(
@@ -471,6 +545,7 @@ export function ProductDialog({
     loadProductImages(
       product.id
     );
+    void loadExistingVariants(product.id);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -478,6 +553,23 @@ export function ProductDialog({
     product,
     categories,
   ]);
+
+  async function loadExistingVariants(productId: string) {
+    setLoadingVariants(true);
+    const { data, error: variantsError } = await supabase
+      .from("product_variants")
+      .select("id, name, variant_value, sku, stock_quantity, active, attributes")
+      .eq("product_id", productId)
+      .order("created_at", { ascending: true });
+    if (variantsError) {
+      console.error("Unable to load existing variants:", variantsError);
+      setError(`Unable to load existing variants: ${variantsError.message}`);
+      setExistingVariants([]);
+    } else {
+      setExistingVariants((data ?? []) as Array<{ id: string; name: string; variant_value: string | null; sku: string | null; stock_quantity: number | null; active: boolean | null; attributes: Record<string, string> | null }>);
+    }
+    setLoadingVariants(false);
+  }
 
   function handleOpenChange(
     value: boolean
@@ -1019,6 +1111,47 @@ export function ProductDialog({
       return;
     }
 
+    const parsedConversions: Array<{
+      code: string;
+      label: string;
+      factor: number;
+      canPurchase: boolean;
+      canSell: boolean;
+    }> = [];
+
+    if (baseUnitCode.trim()) {
+      if (!baseUnitLabel.trim()) {
+        setError("Please enter the base unit label.");
+        return;
+      }
+
+      const seenLabels = new Set<string>();
+      for (const rawLine of conversionLines.split("\n")) {
+        const line = rawLine.trim();
+        if (!line) continue;
+        const separator = line.lastIndexOf("=");
+        if (separator <= 0) {
+          setError(`Invalid unit conversion "${line}". Use one unit per line in the format Dozen=12.`);
+          return;
+        }
+        const label = line.slice(0, separator).trim();
+        const factor = Number(line.slice(separator + 1).trim());
+        const key = label.toLowerCase();
+        if (!label || !Number.isFinite(factor) || factor <= 0 || key === baseUnitLabel.trim().toLowerCase() || seenLabels.has(key)) {
+          setError(`Check the unit conversion "${line}". Unit names must be unique and factors must be greater than zero.`);
+          return;
+        }
+        seenLabels.add(key);
+        parsedConversions.push({
+          code: label.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, ""),
+          label,
+          factor,
+          canPurchase: true,
+          canSell: true,
+        });
+      }
+    }
+
     // const imageValidation =
     //   validateImages();
 
@@ -1039,6 +1172,11 @@ export function ProductDialog({
           trimmedProductTitle ||
           null,
 
+        meta_title: metaTitle.trim() || null,
+
+        size: productSize.trim() || null,
+        variant_label: variantLabel.trim() || null,
+
         slug:
           generateSlug(
             trimmedName
@@ -1053,6 +1191,8 @@ export function ProductDialog({
         short_description:
           shortDescription.trim() ||
           null,
+
+        description: sanitizeProductDescription(fullDescription) || null,
 
         cost_price:
           Number(
@@ -1099,6 +1239,16 @@ export function ProductDialog({
 
         visibility:
           visibility,
+
+        // Only write unit metadata when the user explicitly configures it.
+        // This keeps untouched legacy products' newly added columns NULL.
+        ...(baseUnitCode.trim()
+          ? {
+              base_unit_code: baseUnitCode.trim().toLowerCase(),
+              base_unit_label: baseUnitLabel.trim(),
+              unit_conversions: parsedConversions,
+            }
+          : {}),
       };
 
       let productId =
@@ -1145,6 +1295,47 @@ export function ProductDialog({
         throw new Error(
           "Unable to determine product ID."
         );
+      }
+
+      // Add new variants only. Existing variants and their stock are never
+      // updated or deleted by this form.
+      const variantLines = newVariantLines.split("\n").map((line) => line.trim()).filter(Boolean);
+      if (variantLines.length > 0) {
+        const variantRows = variantLines.map((line) => {
+          const attributes: Record<string, string> = {};
+          for (const part of line.split(",")) {
+            const separator = part.indexOf("=");
+            if (separator <= 0) {
+              throw new Error(`Invalid variant "${line}". Use attributes like size=2/4, color=Red.`);
+            }
+            const key = part.slice(0, separator).trim().toLowerCase();
+            const value = part.slice(separator + 1).trim();
+            if (!key || !value || attributes[key]) {
+              throw new Error(`Invalid or repeated attribute in variant "${line}".`);
+            }
+            attributes[key] = value;
+          }
+          const name = Object.entries(attributes)
+            .map(([key, value]) => `${key.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())} ${value}`)
+            .join(" · ");
+          const variantValue = Object.values(attributes).join(" / ");
+          return {
+            product_id: productId,
+            name,
+            variant_value: variantValue,
+            sku: null,
+            cost_price: costPrice === "" ? null : Number(costPrice),
+            selling_price: sellingPrice === "" ? null : Number(sellingPrice),
+            stock_quantity: 0,
+            active: true,
+            attributes,
+          };
+        });
+        const { error: variantInsertError } = await supabase
+          .from("product_variants")
+          .insert(variantRows);
+        if (variantInsertError) throw variantInsertError;
+        setNewVariantLines("");
       }
 
       try {
@@ -1285,6 +1476,29 @@ export function ProductDialog({
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
+                <Label htmlFor="product-size">Size</Label>
+                <Input
+                  id="product-size"
+                  value={productSize}
+                  onChange={(event) => setProductSize(event.target.value)}
+                  placeholder="e.g. Single, Double, King"
+                />
+                <p className="text-xs text-muted-foreground">Used for product details and storefront size filters. Leave blank when size does not apply.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="product-variant-label">Variant / Design</Label>
+                <Input
+                  id="product-variant-label"
+                  value={variantLabel}
+                  onChange={(event) => setVariantLabel(event.target.value)}
+                  placeholder="e.g. Anokhi, Ikat, Blue Floral"
+                />
+                <p className="text-xs text-muted-foreground">Use this to identify the design or version shown on this product card.</p>
+              </div>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
                 <Label>
                   Category *
                 </Label>
@@ -1384,6 +1598,20 @@ export function ProductDialog({
             </div>
 
             <div className="space-y-2">
+              <Label htmlFor="meta-title">Meta Title</Label>
+              <Input
+                id="meta-title"
+                value={metaTitle}
+                onChange={(event) => setMetaTitle(event.target.value)}
+                maxLength={70}
+                placeholder="e.g. Laddu Gopal Ji Dress & Poshak | Vaishnavi Collections"
+              />
+              <p className="text-xs text-muted-foreground">
+                SEO title used in search results and the product page browser title. Leave blank to use the product title automatically.
+              </p>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="short-description">
                 Short Description
               </Label>
@@ -1403,6 +1631,18 @@ export function ProductDialog({
                 placeholder="Short product description..."
                 className="w-full resize-none rounded-md border bg-background px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Full Product Description</Label>
+              <ProductDescriptionEditor
+                value={fullDescription}
+                onChange={setFullDescription}
+                disabled={saving}
+              />
+              <p className="text-xs text-muted-foreground">
+                Use this for complete product information, features, material, size, care instructions, and bullet points. Formatting is preserved on the storefront.
+              </p>
             </div>
           </section>
 
@@ -1513,6 +1753,136 @@ export function ProductDialog({
                   placeholder="Optional"
                 />
               </div>
+            </div>
+          </section>
+
+          {/* UNITS & CONVERSIONS */}
+          <section className="space-y-4 border-t pt-5">
+            <div>
+              <h3 className="font-medium">Inventory Units & Conversions</h3>
+              <p className="text-sm text-muted-foreground">
+                Configure how this product is counted in stock. Leave the base unit blank when editing an existing product to keep its current configuration unchanged.
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="base-unit-code">Base inventory unit</Label>
+                <select
+                  id="base-unit-code"
+                  value={baseUnitCode}
+                  disabled={saving || (isEditMode && Boolean(product?.base_unit_code))}
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    setBaseUnitCode(next);
+                    setBaseUnitLabel(next ? ({
+                      piece: "Piece",
+                      bottle: "Bottle",
+                      packet: "Packet",
+                      set: "Set",
+                      pair: "Pair",
+                      gram: "Gram",
+                      kilogram: "Kilogram",
+                      milliliter: "Milliliter",
+                      liter: "Liter",
+                    } as Record<string, string>)[next] ?? next : "");
+                  }}
+                  className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                >
+                  <option value="">Leave unchanged / not configured</option>
+                  <option value="piece">Piece</option>
+                  <option value="pair">Pair</option>
+                  <option value="set">Set</option>
+                  <option value="packet">Packet</option>
+                  <option value="bottle">Bottle</option>
+                  <option value="gram">Gram</option>
+                  <option value="kilogram">Kilogram</option>
+                  <option value="milliliter">Milliliter</option>
+                  <option value="liter">Liter</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="base-unit-label">Base unit label</Label>
+                <Input
+                  id="base-unit-label"
+                  value={baseUnitLabel}
+                  onChange={(event) => setBaseUnitLabel(event.target.value)}
+                  disabled={!baseUnitCode}
+                  placeholder="Piece"
+                />
+              </div>
+            </div>
+
+            {baseUnitCode ? (
+              <div className="space-y-2">
+                <Label htmlFor="unit-conversions">Additional units (one per line)</Label>
+                <textarea
+                  id="unit-conversions"
+                  value={conversionLines}
+                  onChange={(event) => setConversionLines(event.target.value)}
+                  rows={3}
+                  placeholder={"Dozen=12\nHalf dozen=6\nPair=2"}
+                  className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  The number is how many base units are in one additional unit. For example, if the base unit is Piece, Dozen=12 means 1 dozen = 12 pieces. These units are enabled for both purchase and sale.
+                </p>
+              </div>
+            ) : null}
+          </section>
+
+          {/* PRODUCT VARIANTS */}
+          <section className="space-y-4 border-t pt-5">
+            <div>
+              <h3 className="font-medium">Variants & Options</h3>
+              <p className="text-sm text-muted-foreground">
+                Manage real sellable combinations such as size + color + design. Existing variants and their stock are preserved; new variants start at zero stock.
+              </p>
+            </div>
+            {isEditMode && (
+              <div className="rounded-lg border bg-slate-50 p-3">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="text-sm font-semibold text-slate-800">Existing variants</p>
+                  <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-slate-600">{loadingVariants ? "Loading…" : `${existingVariants.length} variant${existingVariants.length === 1 ? "" : "s"}`}</span>
+                </div>
+                {loadingVariants ? (
+                  <p className="text-sm text-slate-500">Loading current variants…</p>
+                ) : existingVariants.length ? (
+                  <div className="space-y-2">
+                    {existingVariants.map((variant) => {
+                      const attributes = variant.attributes && Object.keys(variant.attributes).length
+                        ? Object.entries(variant.attributes).map(([key, value]) => `${key.replace(/_/g, " ")}: ${value}`).join(" · ")
+                        : variant.variant_value || variant.name;
+                      return (
+                        <div key={variant.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border bg-white px-3 py-2">
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium text-slate-800">{attributes}</p>
+                            <p className="text-xs text-slate-500">{variant.sku ? `SKU ${variant.sku} · ` : ""}{variant.active === false ? "Inactive" : "Active"}</p>
+                          </div>
+                          <p className="shrink-0 text-xs font-semibold text-slate-700">Stock: {variant.stock_quantity ?? 0}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-slate-500">No variants created yet. Add the combinations you actually sell below.</p>
+                )}
+                <p className="mt-2 text-xs text-slate-500">This list is read-only here to prevent accidental changes to existing stock.</p>
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label htmlFor="new-product-variants">Add variants (one combination per line)</Label>
+              <textarea
+                id="new-product-variants"
+                value={newVariantLines}
+                onChange={(event) => setNewVariantLines(event.target.value)}
+                rows={4}
+                placeholder={"size=2/4, color=Red\nsize=2/6, color=Red\nsize=2/8, color=Green"}
+                className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                Use comma-separated key=value attributes. Bedsheet examples: size=Single, design=Anokhi, color=Red. Create a separate line for each real size/design/color combination; similar prints should have distinct design names or codes (for example design=Floral-A and design=Floral-B). Do not create combinations you do not stock. New variants start at zero stock; receive stock through Purchases.
+              </p>
             </div>
           </section>
 

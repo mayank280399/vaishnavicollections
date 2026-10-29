@@ -207,7 +207,7 @@ export function InventoryTable({
                         )}
 
                         <span className="font-medium text-slate-900">
-                          {product.stockQuantity}
+                          {product.stockQuantity}{product.baseUnitLabel ? ` ${product.baseUnitLabel}` : ""}
                         </span>
                       </div>
                     </td>
@@ -290,7 +290,7 @@ export function InventoryTable({
                                   </span>
 
                                   <span className="font-medium text-slate-900">
-                                    {variant.stockQuantity}
+                                    {variant.stockQuantity}{product.baseUnitLabel ? ` ${product.baseUnitLabel}` : ""}
                                   </span>
 
                                   <span className="text-slate-700">

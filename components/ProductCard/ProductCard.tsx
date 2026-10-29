@@ -21,6 +21,8 @@ export interface StorefrontProduct {
   price: number;
   originalPrice?: number | null;
   category?: string | null;
+  size?: string | null;
+  variantLabel?: string | null;
   badge?: string | null;
   stockQuantity?: number | null;
 }
@@ -336,6 +338,12 @@ export default function ProductCard({
           <h3 className="line-clamp-2 min-h-8 text-xs font-semibold leading-4 text-[#10233e] sm:text-sm">
             {displayTitle}
           </h3>
+
+          {(product.size || product.variantLabel) && (
+            <p className="mt-1 line-clamp-1 text-[10px] text-slate-500 sm:text-xs">
+              {[product.size ? `Size: ${product.size}` : null, product.variantLabel].filter(Boolean).join(" · ")}
+            </p>
+          )}
 
           {/* Price */}
 

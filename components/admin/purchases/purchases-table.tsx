@@ -145,6 +145,11 @@ export default function PurchasesTable() {
           unit_cost,
           discount,
           line_total,
+          entered_unit_code,
+          entered_unit_label,
+          entered_quantity,
+          conversion_factor,
+          base_quantity,
           created_at,
           products (
             name,
@@ -239,6 +244,12 @@ export default function PurchasesTable() {
 
           quantity:
             Number(item.quantity ?? 0),
+
+          entered_unit_code: item.entered_unit_code ?? null,
+          entered_unit_label: item.entered_unit_label ?? null,
+          entered_quantity: item.entered_quantity == null ? null : Number(item.entered_quantity),
+          conversion_factor: item.conversion_factor == null ? null : Number(item.conversion_factor),
+          base_quantity: item.base_quantity == null ? null : Number(item.base_quantity),
 
           unit_cost:
             Number(item.unit_cost ?? 0),

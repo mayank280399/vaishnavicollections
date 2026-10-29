@@ -30,6 +30,7 @@ type InventoryProductRow = {
   selling_price: number | string | null;
   cost_price: number | string | null;
   stock_quantity: number | string | null;
+  base_unit_label: string | null;
   online_enabled: boolean | null;
   online_price: number | string | null;
   visibility: string;
@@ -109,6 +110,7 @@ export async function getInventoryProducts(): Promise<{
       selling_price,
       cost_price,
       stock_quantity,
+      base_unit_label,
       online_enabled,
       online_price,
       visibility,
@@ -414,6 +416,8 @@ export async function getInventoryProducts(): Promise<{
           costPrice,
 
           stockQuantity,
+
+          baseUnitLabel: product.base_unit_label ?? null,
 
           onlineEnabled:
             Boolean(
