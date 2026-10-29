@@ -23,6 +23,19 @@ export type Product = {
   sku: string | null;
   name: string;
   product_title: string | null;
+  meta_title?: string | null;
+  size?: string | null;
+  variant_label?: string | null;
+  description?: string | null;
+  base_unit_code?: string | null;
+  base_unit_label?: string | null;
+  unit_conversions?: Array<{
+    code: string;
+    label: string;
+    factor: number;
+    canPurchase?: boolean;
+    canSell?: boolean;
+  }> | null;
   short_description: string | null;
   selling_price: number | null;
   cost_price: number | null;
