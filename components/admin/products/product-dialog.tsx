@@ -431,7 +431,7 @@ export function ProductDialog({
     void (async () => {
       const { data: descriptionRow, error: descriptionError } = await supabase
         .from("products")
-        .select("description")
+        .select("description, meta_title")
         .eq("id", product.id)
         .maybeSingle();
       if (descriptionError) {
@@ -440,6 +440,7 @@ export function ProductDialog({
         return;
       }
       setFullDescription(descriptionRow?.description ?? product.description ?? "");
+      setMetaTitle(descriptionRow?.meta_title ?? product.meta_title ?? "");
     })();
 
     setCostPrice(
