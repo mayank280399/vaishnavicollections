@@ -482,6 +482,7 @@ export function SaleDialog({
     useState(false);
 
   const [quantity, setQuantity] = useState("1");
+  const [unitCode, setUnitCode] = useState("");
   const [sellingPrice, setSellingPrice] =
     useState("");
 
