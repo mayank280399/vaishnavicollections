@@ -41,7 +41,12 @@ export default function ProductsPage() {
         category_id,
         sku,
         name,
+        product_title,
+        meta_title,
+        size,
+        variant_label,
         short_description,
+        description,
         selling_price,
         cost_price,
         stock_quantity,
@@ -52,6 +57,10 @@ export default function ProductsPage() {
         online_price,
         visibility,
         featured,
+        is_handmade,
+        is_made_to_order,
+        bulk_orders_available,
+        handmade_featured,
         created_at,
         updated_at
       `)
