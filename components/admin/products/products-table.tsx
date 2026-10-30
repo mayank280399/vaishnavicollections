@@ -33,8 +33,8 @@ export type Product = {
     code: string;
     label: string;
     factor: number;
-    canPurchase?: boolean;
-    canSell?: boolean;
+    canPurchase: boolean;
+    canSell: boolean;
   }> | null;
   short_description: string | null;
   selling_price: number | null;
