@@ -11,6 +11,7 @@ type CheckoutOrderSummaryProps = {
   subtotal: number;
   shipping: number;
   total: number;
+  discountAmount?: number;
   totalQuantity: number;
   currentStep: number;
   submitting: boolean;
@@ -40,6 +41,7 @@ export default function CheckoutOrderSummary({
   subtotal,
   shipping,
   total,
+  discountAmount = 0,
   totalQuantity,
   currentStep,
   submitting,
@@ -180,6 +182,13 @@ export default function CheckoutOrderSummary({
                     : formatPrice(shipping)}
                 </span>
               </div>
+
+              {discountAmount > 0 && (
+                <div className="flex items-center justify-between text-emerald-700">
+                  <span>Offer discount</span>
+                  <span className="font-semibold">−{formatPrice(discountAmount)}</span>
+                </div>
+              )}
 
               <div className="flex items-end justify-between border-t border-slate-100 pt-4">
                 <span className="text-base font-bold text-slate-900">

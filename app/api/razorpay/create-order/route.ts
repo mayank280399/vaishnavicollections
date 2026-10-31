@@ -4,6 +4,7 @@ import Razorpay from "razorpay";
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { calculatePromotionQuote } from "@/lib/promotions/engine";
 
 type CheckoutBody = {
   items?: Array<{ productId?: string; product_id?: string; quantity?: number }>;
@@ -17,6 +18,7 @@ type CheckoutBody = {
   country?: string;
   notes?: string;
   saveCustomerDetails?: boolean;
+  couponCode?: string;
 };
 
 function safeError(error: unknown) {
@@ -108,7 +110,9 @@ export async function POST(request: Request) {
       intentItems.push({ product_id: product.id, name: product.product_title || product.name, slug: product.slug, unit_price: unitPrice, quantity });
     }
 
-    const amountPaise = Math.round(total * 100);
+    const subtotalAmount = Math.round((total + Number.EPSILON) * 100) / 100;
+    const quote = await calculatePromotionQuote(createAdminClient(), user.id, subtotalAmount, body.couponCode || null);
+    const amountPaise = Math.round(quote.payableAmount * 100);
     if (!Number.isSafeInteger(amountPaise) || amountPaise < 100) {
       return NextResponse.json({ success: false, error: "The checkout total is invalid. Please review your cart." }, { status: 400 });
     }
@@ -141,6 +145,11 @@ export async function POST(request: Request) {
       user_id: user.id,
       razorpay_order_id: razorpayOrder.id,
       amount_paise: amountPaise,
+      subtotal_amount: subtotalAmount,
+      discount_amount: quote.discountAmount,
+      promotion_id: quote.promotionId,
+      promotion_code: quote.promotionCode,
+      promotion_name: quote.promotionName,
       currency: "INR",
       customer_name: customerName,
       customer_phone: customerPhone,
@@ -167,6 +176,7 @@ export async function POST(request: Request) {
       currency: "INR",
       keyId,
       customer: { name: customerName, phone: customerPhone, email: user.email || "" },
+      pricing: { subtotal: quote.subtotalAmount, discount: quote.discountAmount, total: quote.payableAmount, promotionName: quote.promotionName, promotionCode: quote.promotionCode },
     });
   } catch (error) {
     console.error("Razorpay create-order route failed:", {

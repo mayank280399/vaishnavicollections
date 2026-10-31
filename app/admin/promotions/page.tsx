@@ -7,6 +7,7 @@ import { listPromotions, savePromotion, setPromotionActive, type PromotionInput 
 type Promotion = {
   id: string;
   code: string;
+  promotion_kind: "COUPON" | "AUTOMATIC";
   name: string;
   description: string | null;
   discount_type: "FIXED" | "PERCENTAGE";
@@ -24,6 +25,7 @@ type Promotion = {
 
 const blank: PromotionInput = {
   code: "",
+  promotion_kind: "COUPON",
   name: "",
   description: "",
   discount_type: "FIXED",
@@ -71,7 +73,7 @@ export default function PromotionsAdminPage() {
   function edit(p: Promotion) {
     setEditingId(p.id);
     setForm({
-      code: p.code, name: p.name, description: p.description ?? "",
+      code: p.code, promotion_kind: p.promotion_kind || "COUPON", name: p.name, description: p.description ?? "",
       discount_type: p.discount_type, discount_value: Number(p.discount_value),
       minimum_order_amount: Number(p.minimum_order_amount),
       maximum_discount_amount: p.maximum_discount_amount == null ? null : Number(p.maximum_discount_amount),
@@ -139,7 +141,10 @@ export default function PromotionsAdminPage() {
           {editingId && <button type="button" onClick={resetForm} className="text-sm font-medium text-slate-600 underline">Cancel edit</button>}
         </div>
         <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <label className="text-sm font-medium">Coupon code
+          <label className="text-sm font-medium">Promotion type
+            <select value={form.promotion_kind} onChange={e => update("promotion_kind", e.target.value as PromotionInput["promotion_kind"])} className="mt-1.5 w-full rounded-xl border bg-white px-3 py-2.5"><option value="COUPON">Coupon code</option><option value="AUTOMATIC">Automatic offer</option></select>
+          </label>
+          <label className="text-sm font-medium">{form.promotion_kind === "COUPON" ? "Coupon code" : "Internal identifier"}
             <input required maxLength={40} value={form.code} onChange={e => update("code", e.target.value.toUpperCase())} placeholder="WELCOME50" className="mt-1.5 w-full rounded-xl border px-3 py-2.5 uppercase outline-none focus:border-[#D4AF37]" />
           </label>
           <label className="text-sm font-medium">Internal offer name
@@ -176,7 +181,7 @@ export default function PromotionsAdminPage() {
           </label>
           <div className="flex flex-wrap gap-5 sm:col-span-2 lg:col-span-3">
             <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.first_order_only} onChange={e => update("first_order_only", e.target.checked)} /> First order only</label>
-            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.active} onChange={e => update("active", e.target.checked)} /> Active (available to use when checkout enforcement is enabled)</label>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.active} onChange={e => update("active", e.target.checked)} /> Active (available to eligible customers)</label>
           </div>
           <div className="flex flex-wrap gap-3 sm:col-span-2 lg:col-span-3">
             <button disabled={saving} className="inline-flex items-center gap-2 rounded-xl bg-[#071A35] px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-50"><Save size={16} />{saving ? "Saving…" : editingId ? "Save changes" : "Create promotion"}</button>
@@ -190,7 +195,7 @@ export default function PromotionsAdminPage() {
         {loading ? <p className="p-6 text-sm text-slate-500">Loading promotions…</p> : promotions.length === 0 ? <div className="p-8 text-center"><BadgePercent className="mx-auto text-slate-300" size={30} /><p className="mt-2 font-medium">No promotions configured yet</p><p className="mt-1 text-sm text-slate-500">Create an offer above. It will remain inactive unless you enable it.</p></div> :
           <div className="divide-y">{promotions.map(p => <article key={p.id} className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2"><span className="rounded-lg bg-[#071A35] px-2.5 py-1 font-mono text-sm font-bold tracking-wide text-[#D4AF37]">{p.code}</span><span className={p.active ? "rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700" : "rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600"}>{p.active ? "Active" : "Inactive"}</span>{p.first_order_only && <span className="rounded-full bg-amber-50 px-2 py-1 text-xs text-amber-800">First order only</span>}</div>
+              <div className="flex flex-wrap items-center gap-2"><span className="rounded-lg bg-[#071A35] px-2.5 py-1 font-mono text-sm font-bold tracking-wide text-[#D4AF37]">{p.promotion_kind === "AUTOMATIC" ? "AUTO · " : ""}{p.code}</span><span className={p.active ? "rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700" : "rounded-full bg-slate-100 px-2 py-1 text-xs font-semibold text-slate-600"}>{p.active ? "Active" : "Inactive"}</span>{p.first_order_only && <span className="rounded-full bg-amber-50 px-2 py-1 text-xs text-amber-800">First order only</span>}</div>
               <h3 className="mt-2 font-semibold text-slate-900">{p.name}</h3>
               {p.description && <p className="mt-1 text-sm text-slate-500">{p.description}</p>}
               <p className="mt-2 text-sm text-slate-600">{p.discount_type === "FIXED" ? money(Number(p.discount_value)) : `${p.discount_value}%`} off · Min. cart {money(Number(p.minimum_order_amount))}{p.maximum_discount_amount ? ` · Max discount ${money(Number(p.maximum_discount_amount))}` : ""}</p>
@@ -199,7 +204,7 @@ export default function PromotionsAdminPage() {
             <div className="flex shrink-0 flex-wrap gap-2"><button onClick={() => edit(p)} className="rounded-lg border px-3 py-2 text-sm font-semibold">Edit</button><button onClick={() => void toggle(p)} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold">{p.active ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}{p.active ? "Pause" : "Activate"}</button></div>
           </article>)}</div>}
       </section>
-      <p className="text-xs leading-5 text-slate-500">Important: this page saves promotion configuration only. Coupon application, redemption counters and discount deduction must be wired into the server-side checkout/order-creation transaction before offers are advertised or activated for customers.</p>
+      <p className="text-xs leading-5 text-slate-500">Automatic offers are applied when eligible. Customers may enter one coupon code at checkout; coupon and automatic discounts do not stack. Redemption limits are enforced after verified payment.</p>
     </main>
   );
 }

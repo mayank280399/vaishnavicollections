@@ -15,6 +15,8 @@ import CheckoutDetailsStep from "@/components/checkout/CheckoutDetailsStep";
 import CheckoutDeliveryStep from "@/components/checkout/CheckoutDeliveryStep";
 import CheckoutPlaceOrderStep from "@/components/checkout/CheckoutPlaceOrderStep";
 import CheckoutOrderSummary from "@/components/checkout/CheckoutOrderSummary";
+import CheckoutOffers from "@/components/checkout/CheckoutOffers";
+import type { PromotionQuote } from "@/lib/promotions/engine";
 
 declare global {
   interface Window {
@@ -127,6 +129,9 @@ export default function CheckoutPage() {
 
   const [showOrderItems, setShowOrderItems] =
     useState(false);
+
+  const [promotionQuote, setPromotionQuote] = useState<PromotionQuote | null>(null);
+  const [appliedCouponCode, setAppliedCouponCode] = useState("");
 
   const [form, setForm] =
     useState<FormState>({
@@ -487,8 +492,9 @@ export default function CheckoutPage() {
 
   const shipping = 0;
 
+  const discountAmount = promotionQuote?.subtotalAmount === subtotal ? promotionQuote.discountAmount : 0;
   const total =
-    subtotal + shipping;
+    Math.max(0, subtotal + shipping - discountAmount);
 
   const totalQuantity = useMemo(() => {
     return items.reduce(
@@ -848,6 +854,7 @@ export default function CheckoutPage() {
           country: "India",
           notes: form.notes.trim(),
           saveCustomerDetails: recipientMode === "me" && saveCustomerDetails,
+          couponCode: appliedCouponCode,
         }),
       });
 
@@ -1043,6 +1050,11 @@ export default function CheckoutPage() {
           {/* Left */}
 
           <div>
+            <CheckoutOffers
+              items={cartItems.map((item) => ({ productId: item.product_id, quantity: item.quantity }))}
+              subtotal={subtotal}
+              onQuoteChange={(quote, code) => { setPromotionQuote(quote); setAppliedCouponCode(code); }}
+            />
             {/* STEP 1 */}
 
             {currentStep === 1 && (
@@ -1110,6 +1122,7 @@ export default function CheckoutPage() {
           <CheckoutOrderSummary
             items={items}
             subtotal={subtotal}
+            discountAmount={discountAmount}
             shipping={shipping}
             total={total}
             totalQuantity={totalQuantity}

@@ -165,6 +165,34 @@ export async function POST(request: Request) {
       }, { status: 500 });
     }
 
+    // Apply the promotion snapshot only after Razorpay confirms capture.
+    // The database function locks the promotion and enforces redemption limits.
+    const { error: promotionFinalizeError } = await admin.rpc("finalize_online_order_promotion", {
+      p_order_id: createdOrderId,
+      p_user_id: user.id,
+      p_subtotal_amount: Number(intent.subtotal_amount || 0),
+      p_discount_amount: Number(intent.discount_amount || 0),
+      p_promotion_id: intent.promotion_id || null,
+      p_promotion_code: intent.promotion_code || null,
+      p_promotion_name: intent.promotion_name || null,
+    });
+
+    if (promotionFinalizeError) {
+      console.error("Captured payment promotion/order finalization failed:", promotionFinalizeError);
+      await admin.from("razorpay_checkout_intents").update({
+        status: "PAID",
+        razorpay_payment_id: razorpayPaymentId,
+        order_id: createdOrderId,
+        updated_at: new Date().toISOString(),
+      }).eq("id", intent.id).eq("user_id", user.id);
+      return NextResponse.json({
+        success: false,
+        paymentCaptured: true,
+        orderId: createdOrderId,
+        error: "Your payment was received, but the offer/order totals need review. Please do not pay again; contact support with your payment ID.",
+      }, { status: 409 });
+    }
+
     const { data: order, error: orderLookupError } = await admin
       .from("orders")
       .select("id, order_number, total_amount, payment_status")
