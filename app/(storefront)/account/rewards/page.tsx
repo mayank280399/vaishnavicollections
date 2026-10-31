@@ -9,7 +9,6 @@ import {
   ArrowUpRight,
   Gift,
   History,
-  Loader2,
   RefreshCw,
   ShoppingBag,
   Sparkles,
@@ -224,7 +223,6 @@ export default function AccountRewardsPage() {
   const eligibleSpend = Math.max(account.eligible_spend_balance, 0);
   const progress = Math.min((eligibleSpend / spendPerStamp) * 100, 100);
   const remaining = Math.max(spendPerStamp - eligibleSpend, 0);
-  const earnedTypes = ["EARNED", "BONUS", "MANUAL_ADJUSTMENT"];
   const unlockedCount = rewards.filter((reward) => account.points_balance >= reward.points_required).length;
 
   return (
