@@ -131,6 +131,7 @@ export default function CheckoutPage() {
     useState(false);
 
   const [promotionQuote, setPromotionQuote] = useState<PromotionQuote | null>(null);
+  const [selectedPromotionId, setSelectedPromotionId] = useState<string | null>(null);
   const [appliedCouponCode, setAppliedCouponCode] = useState("");
 
   const [form, setForm] =
@@ -854,6 +855,7 @@ export default function CheckoutPage() {
           country: "India",
           notes: form.notes.trim(),
           saveCustomerDetails: recipientMode === "me" && saveCustomerDetails,
+          promotionId: selectedPromotionId,
           couponCode: appliedCouponCode,
         }),
       });
@@ -1053,7 +1055,11 @@ export default function CheckoutPage() {
             <CheckoutOffers
               items={cartItems.map((item) => ({ productId: item.product_id, quantity: item.quantity }))}
               subtotal={subtotal}
-              onQuoteChange={(quote, code) => { setPromotionQuote(quote); setAppliedCouponCode(code); }}
+              onQuoteChange={(quote, promotionId, code) => {
+                setPromotionQuote(quote);
+                setSelectedPromotionId(promotionId);
+                setAppliedCouponCode(code);
+              }}
             />
             {/* STEP 1 */}
 

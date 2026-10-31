@@ -19,6 +19,7 @@ type CheckoutBody = {
   notes?: string;
   saveCustomerDetails?: boolean;
   couponCode?: string;
+  promotionId?: string | null;
 };
 
 function safeError(error: unknown) {
@@ -111,7 +112,14 @@ export async function POST(request: Request) {
     }
 
     const subtotalAmount = Math.round((total + Number.EPSILON) * 100) / 100;
-    const quote = await calculatePromotionQuote(createAdminClient(), user.id, subtotalAmount, body.couponCode || null);
+    const admin = createAdminClient();
+    const quote = await calculatePromotionQuote(
+      admin,
+      user.id,
+      subtotalAmount,
+      body.couponCode || null,
+      body.promotionId || null,
+    );
     const amountPaise = Math.round(quote.payableAmount * 100);
     if (!Number.isSafeInteger(amountPaise) || amountPaise < 100) {
       return NextResponse.json({ success: false, error: "The checkout total is invalid. Please review your cart." }, { status: 400 });
@@ -140,7 +148,6 @@ export async function POST(request: Request) {
       }, { status: 502 });
     }
 
-    const admin = createAdminClient();
     const { data: checkoutIntent, error: intentError } = await admin.from("razorpay_checkout_intents").insert({
       user_id: user.id,
       razorpay_order_id: razorpayOrder.id,

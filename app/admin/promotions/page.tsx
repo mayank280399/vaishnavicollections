@@ -204,7 +204,7 @@ export default function PromotionsAdminPage() {
             <div className="flex shrink-0 flex-wrap gap-2"><button onClick={() => edit(p)} className="rounded-lg border px-3 py-2 text-sm font-semibold">Edit</button><button onClick={() => void toggle(p)} className="inline-flex items-center gap-2 rounded-lg border px-3 py-2 text-sm font-semibold">{p.active ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}{p.active ? "Pause" : "Activate"}</button></div>
           </article>)}</div>}
       </section>
-      <p className="text-xs leading-5 text-slate-500">Automatic offers are applied when eligible. Customers may enter one coupon code at checkout; coupon and automatic discounts do not stack. Redemption limits are enforced after verified payment.</p>
+      <p className="text-xs leading-5 text-slate-500">Customers can select one eligible coupon or automatic offer per order. Loyalty stamps are still earned after successful payment on the final discounted order total. Coupon discounts and loyalty-point redemption are not combined on the same order. Redemption limits are enforced after verified payment.</p>
     </main>
   );
 }
