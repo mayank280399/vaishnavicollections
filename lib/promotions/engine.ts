@@ -5,6 +5,7 @@ export type PromotionQuote = {
   promotionCode: string | null;
   promotionName: string | null;
   promotionKind: "COUPON" | "AUTOMATIC" | null;
+  firstOrderOnly: boolean;
   discountAmount: number;
   subtotalAmount: number;
   payableAmount: number;
@@ -42,7 +43,7 @@ export async function calculatePromotionQuote(
 
   const empty: PromotionQuote = {
     promotionId: null, promotionCode: null, promotionName: null,
-    promotionKind: null, discountAmount: 0, subtotalAmount: subtotal,
+    promotionKind: null, firstOrderOnly: false, discountAmount: 0, subtotalAmount: subtotal,
     payableAmount: subtotal, description: null,
   };
 
@@ -113,6 +114,7 @@ export async function calculatePromotionQuote(
     promotionCode: selected.promotion.promotion_kind === "COUPON" ? selected.promotion.code : null,
     promotionName: selected.promotion.name,
     promotionKind: selected.promotion.promotion_kind,
+    firstOrderOnly: selected.promotion.first_order_only,
     discountAmount: selected.discount,
     subtotalAmount: subtotal,
     payableAmount: roundMoney(subtotal - selected.discount),

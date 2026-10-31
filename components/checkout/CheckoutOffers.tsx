@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BadgePercent, CheckCircle2, Loader2, Ticket, X } from "lucide-react";
+import { BadgePercent, CheckCircle2, Loader2, Ticket, X, Sparkles } from "lucide-react";
 import type { PromotionQuote } from "@/lib/promotions/engine";
 
 type Props = {
@@ -36,9 +36,15 @@ export default function CheckoutOffers({ items, subtotal, onQuoteChange }: Props
       setQuote(nextQuote);
       onQuoteChange(nextQuote, code);
       if (nextQuote.promotionId) {
-        setMessage(code ? "Coupon applied successfully." : "An eligible offer has been applied automatically.");
+        setMessage(nextQuote.firstOrderOnly
+          ? "Your first-purchase offer has been applied."
+          : code
+            ? "Coupon applied successfully."
+            : "An eligible offer has been applied automatically.");
       } else {
-        setMessage(code ? "Coupon removed." : "No automatic offers are available for this cart yet.");
+        setMessage(code
+          ? "Coupon removed."
+          : "No automatic offers are available for this cart yet.");
       }
     } catch (e) {
       setQuote(null);
@@ -72,7 +78,10 @@ export default function CheckoutOffers({ items, subtotal, onQuoteChange }: Props
     <section className="mb-5 rounded-2xl border border-[#D4AF37]/40 bg-white p-4 shadow-sm sm:p-5">
       <div className="flex items-center gap-2">
         <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#071A35] text-[#D4AF37]"><BadgePercent size={18} /></span>
-        <div><h2 className="text-sm font-bold text-[#071A35]">Offers & coupons</h2><p className="text-xs text-slate-500">Check available savings on this order.</p></div>
+        <div>
+          <h2 className="text-sm font-bold text-[#071A35]">Offers & coupons</h2>
+          <p className="text-xs text-slate-500">First-purchase offers are applied automatically when your account is eligible.</p>
+        </div>
       </div>
       <form onSubmit={applyCoupon} className="mt-4 flex flex-col gap-2 sm:flex-row">
         <div className="relative min-w-0 flex-1">
@@ -84,7 +93,18 @@ export default function CheckoutOffers({ items, subtotal, onQuoteChange }: Props
       </form>
       {error && <p role="alert" className="mt-3 text-xs text-red-600">{error}</p>}
       {message && <p role="status" className="mt-3 flex items-center gap-1.5 text-xs text-emerald-700"><CheckCircle2 size={14}/>{message}</p>}
-      {quote?.promotionId && <div className="mt-3 flex items-start justify-between gap-3 rounded-xl bg-[#fffaf0] p-3"><div><p className="text-sm font-semibold text-[#071A35]">{quote.promotionName}</p><p className="mt-0.5 text-xs text-slate-500">{quote.promotionCode ? `Code: ${quote.promotionCode}` : "Automatic offer"}{quote.description ? ` · ${quote.description}` : ""}</p></div><p className="shrink-0 text-sm font-bold text-emerald-700">−{money(quote.discountAmount)}</p></div>}
+      {quote?.promotionId && (
+        <div className="mt-3 flex items-start justify-between gap-3 rounded-xl bg-[#fffaf0] p-3">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-semibold text-[#071A35]">{quote.promotionName}</p>
+              {quote.firstOrderOnly && <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2 py-1 text-[10px] font-bold text-amber-800"><Sparkles size={11}/> FIRST PURCHASE</span>}
+            </div>
+            <p className="mt-1 text-xs text-slate-500">{quote.promotionCode ? `Code: ${quote.promotionCode}` : "Automatic offer"}{quote.description ? ` · ${quote.description}` : ""}</p>
+          </div>
+          <p className="shrink-0 text-sm font-bold text-emerald-700">−{money(quote.discountAmount)}</p>
+        </div>
+      )}
     </section>
   );
 }
