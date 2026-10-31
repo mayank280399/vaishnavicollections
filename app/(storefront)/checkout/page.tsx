@@ -492,7 +492,7 @@ export default function CheckoutPage() {
 
   const shipping = 0;
 
-  const discountAmount = promotionQuote?.subtotalAmount === subtotal ? promotionQuote.discountAmount : 0;
+  const discountAmount = promotionQuote && Math.abs(promotionQuote.subtotalAmount - subtotal) < 0.01 ? promotionQuote.discountAmount : 0;
   const total =
     Math.max(0, subtotal + shipping - discountAmount);
 
