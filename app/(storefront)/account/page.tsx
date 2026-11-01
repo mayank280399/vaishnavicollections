@@ -205,7 +205,7 @@ export default function AccountPage() {
           ...item,
           amount: Number(item.amount || 0),
         })),
-        orders: ordersResult.error ? [] : (ordersResult.data ?? []).map((order) => ({
+        orders: ordersResult.error ? [] : (ordersResult.data ?? []).map((order: { id: string; order_number: string | null; total_amount: number | string | null; status: string; created_at: string }) => ({
           id: order.id,
           sale_number: order.order_number,
           total_amount: Number(order.total_amount || 0),
