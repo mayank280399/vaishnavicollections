@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 
 export type PromotionInput = {
   code: string;
+  promotion_kind: "COUPON" | "AUTOMATIC";
   name: string;
   description?: string;
   discount_type: "FIXED" | "PERCENTAGE";
@@ -39,6 +40,7 @@ async function requirePromotionAdmin() {
 
 function normalizeInput(input: PromotionInput) {
   const code = input.code.trim().toUpperCase();
+  const promotionKind = input.promotion_kind || "COUPON";
   const name = input.name.trim();
   const value = Number(input.discount_value);
   const minimum = Number(input.minimum_order_amount);
@@ -60,6 +62,7 @@ function normalizeInput(input: PromotionInput) {
 
   return {
     code,
+    promotion_kind: promotionKind,
     name,
     description: input.description?.trim() || null,
     discount_type: input.discount_type,
