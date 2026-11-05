@@ -5,12 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ReportsData } from "@/lib/reports/reports-types";
 
 function money(value: number) {
-  return \`₹\${value.toLocaleString("en-IN", { maximumFractionDigits: 0 })}\`;
+  return `₹${value.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 }
 function compactMoney(value: number) {
-  if (Math.abs(value) >= 100000) return \`₹\${(value / 100000).toFixed(1)}L\`;
-  if (Math.abs(value) >= 1000) return \`₹\${(value / 1000).toFixed(0)}k\`;
-  return \`₹\${value}\`;
+  if (Math.abs(value) >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
+  if (Math.abs(value) >= 1000) return `₹${(value / 1000).toFixed(0)}k`;
+  return `₹${value}`;
 }
 
 export function ReportsProfitLoss({ data }: { data: ReportsData }) {
@@ -32,9 +32,9 @@ export function ReportsProfitLoss({ data }: { data: ReportsData }) {
     <div className="min-w-0 space-y-5">
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
         <Metric label="Gross profit" value={money(grossProfit)} />
-        <Metric label="Gross margin" value={\`\${grossMargin.toFixed(1)}%\`} />
+        <Metric label="Gross margin" value={`${grossMargin.toFixed(1)}%`} />
         <Metric label="Net profit" value={money(netProfit)} highlight={netProfit >= 0} />
-        <Metric label="Net margin" value={\`\${netMargin.toFixed(1)}%\`} />
+        <Metric label="Net margin" value={`${netMargin.toFixed(1)}%`} />
       </div>
 
       <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
@@ -45,10 +45,10 @@ export function ReportsProfitLoss({ data }: { data: ReportsData }) {
           </CardHeader>
           <CardContent className="space-y-4 pb-5">
             <Row label="Sales revenue" value={money(revenue)} />
-            <Row label="Cost of goods sold" value={\`− \${money(costOfGoods)}\`} />
+            <Row label="Cost of goods sold" value={`− ${money(costOfGoods)}`} />
             <div className="rounded-lg bg-muted/60 px-3 py-3"><Row label="Gross profit" value={money(grossProfit)} strong /></div>
-            <Row label="Operating expenses" value={\`− \${money(expenses)}\`} />
-            <div className={\`rounded-xl px-4 py-4 text-white \${netProfit >= 0 ? "bg-brand-navy" : "bg-rose-800"}\`}>
+            <Row label="Operating expenses" value={`− ${money(expenses)}`} />
+            <div className={`rounded-xl px-4 py-4 text-white ${netProfit >= 0 ? "bg-brand-navy" : "bg-rose-800"}`}>
               <div className="flex items-center justify-between gap-3"><span className="text-sm font-semibold">Estimated net profit</span><span className="text-xl font-bold">{money(netProfit)}</span></div>
               <p className="mt-1 text-xs text-white/65">Net margin: {netMargin.toFixed(1)}%</p>
             </div>
@@ -89,5 +89,5 @@ function Row({ label, value, strong = false }: { label: string; value: string; s
   return <div className="flex items-center justify-between gap-4"><span className={strong ? "text-sm font-semibold" : "text-sm text-muted-foreground"}>{label}</span><span className={strong ? "text-sm font-bold" : "text-sm font-medium"}>{value}</span></div>;
 }
 function Metric({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
-  return <Card className="min-w-0 rounded-2xl border-border/80 shadow-sm"><CardContent className="p-3.5 sm:p-4"><p className="text-[11px] font-medium text-muted-foreground">{label}</p><p className={\`mt-1 truncate text-lg font-bold sm:text-xl \${highlight ? "text-emerald-700 dark:text-emerald-400" : "text-foreground"}\`}>{value}</p></CardContent></Card>;
+  return <Card className="min-w-0 rounded-2xl border-border/80 shadow-sm"><CardContent className="p-3.5 sm:p-4"><p className="text-[11px] font-medium text-muted-foreground">{label}</p><p className={`mt-1 truncate text-lg font-bold sm:text-xl ${highlight ? "text-emerald-700 dark:text-emerald-400" : "text-foreground"}`}>{value}</p></CardContent></Card>;
 }
