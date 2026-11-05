@@ -4,13 +4,13 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PurchaseReport } from "@/lib/reports/reports-types";
 
-function money(value: number) { return \`₹\${value.toLocaleString("en-IN", { maximumFractionDigits: 0 })}\`; }
+function money(value: number) { return `₹${value.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`; }
 function compactMoney(value: number) {
-  if (Math.abs(value) >= 100000) return \`₹\${(value / 100000).toFixed(1)}L\`;
-  if (Math.abs(value) >= 1000) return \`₹\${(value / 1000).toFixed(0)}k\`;
-  return \`₹\${value}\`;
+  if (Math.abs(value) >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
+  if (Math.abs(value) >= 1000) return `₹${(value / 1000).toFixed(0)}k`;
+  return `₹${value}`;
 }
-function dateLabel(value: string) { return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short" }).format(new Date(\`\${value}T00:00:00\`)); }
+function dateLabel(value: string) { return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short" }).format(new Date(`${value}T00:00:00`)); }
 
 export function ReportsPurchases({ data }: { data: PurchaseReport }) {
   return (
