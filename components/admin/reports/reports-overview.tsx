@@ -39,17 +39,17 @@ const GOLD = "#d4af37";
 const PALETTE = ["#0f1f3d", "#d4af37", "#6f86a8", "#c58a4b", "#91a4bd", "#8b9a75"];
 
 function money(value: number) {
-  return \`₹\${value.toLocaleString("en-IN", { maximumFractionDigits: 0 })}\`;
+  return `₹${value.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 }
 
 function compactMoney(value: number) {
-  if (Math.abs(value) >= 100000) return \`₹\${(value / 100000).toFixed(1)}L\`;
-  if (Math.abs(value) >= 1000) return \`₹\${(value / 1000).toFixed(0)}k\`;
-  return \`₹\${value}\`;
+  if (Math.abs(value) >= 100000) return `₹${(value / 100000).toFixed(1)}L`;
+  if (Math.abs(value) >= 1000) return `₹${(value / 1000).toFixed(0)}k`;
+  return `₹${value}`;
 }
 
 function shortDate(value: string) {
-  const date = new Date(\`\${value}T00:00:00\`);
+  const date = new Date(`${value}T00:00:00`);
   return new Intl.DateTimeFormat("en-IN", { day: "2-digit", month: "short" }).format(date);
 }
 
@@ -93,10 +93,10 @@ export function ReportsOverview({ data }: { data: ReportsData }) {
   return (
     <div className="min-w-0 space-y-5 sm:space-y-6">
       <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        <MetricCard title="Net sales" value={money(data.sales.totalSales)} detail={\`\${data.sales.invoiceCount} recorded invoices\`} icon={Banknote} tone="navy" />
-        <MetricCard title="Gross profit" value={money(data.sales.grossProfit)} detail={\`\${grossMargin.toFixed(1)}% gross margin\`} icon={TrendingUp} tone="gold" />
-        <MetricCard title="Operating expenses" value={money(data.expenses.totalExpenses)} detail={\`\${data.expenses.expenseCount} expense entries\`} icon={ReceiptText} tone="slate" />
-        <MetricCard title="Net profit" value={money(netProfit)} detail={\`\${netMargin.toFixed(1)}% net margin\`} icon={Wallet} tone={netProfit >= 0 ? "gold" : "rose"} />
+        <MetricCard title="Net sales" value={money(data.sales.totalSales)} detail={`${data.sales.invoiceCount} recorded invoices`} icon={Banknote} tone="navy" />
+        <MetricCard title="Gross profit" value={money(data.sales.grossProfit)} detail={`${grossMargin.toFixed(1)}% gross margin`} icon={TrendingUp} tone="gold" />
+        <MetricCard title="Operating expenses" value={money(data.expenses.totalExpenses)} detail={`${data.expenses.expenseCount} expense entries`} icon={ReceiptText} tone="slate" />
+        <MetricCard title="Net profit" value={money(netProfit)} detail={`${netMargin.toFixed(1)}% net margin`} icon={Wallet} tone={netProfit >= 0 ? "gold" : "rose"} />
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -195,9 +195,9 @@ export function ReportsOverview({ data }: { data: ReportsData }) {
           </CardHeader>
           <CardContent className="space-y-3">
             <SummaryRow label="Sales revenue" value={money(data.sales.totalSales)} />
-            <SummaryRow label="Cost of goods sold" value={\`− \${money(data.sales.totalCost)}\`} />
+            <SummaryRow label="Cost of goods sold" value={`− ${money(data.sales.totalCost)}`} />
             <div className="border-t border-dashed pt-3"><SummaryRow label="Gross profit" value={money(data.sales.grossProfit)} strong /></div>
-            <SummaryRow label="Operating expenses" value={\`− \${money(data.expenses.totalExpenses)}\`} />
+            <SummaryRow label="Operating expenses" value={`− ${money(data.expenses.totalExpenses)}`} />
             <div className="rounded-xl bg-brand-navy px-4 py-3 text-white">
               <div className="flex items-center justify-between gap-3">
                 <span className="text-sm font-semibold">Estimated net profit</span>
@@ -260,7 +260,7 @@ function MetricCard({ title, value, detail, icon: Icon, tone }: {
             <p className="mt-2 truncate text-xl font-bold tracking-tight text-foreground sm:text-2xl">{value}</p>
             <p className="mt-1 truncate text-[10px] text-muted-foreground sm:text-xs">{detail}</p>
           </div>
-          <span className={\`flex size-9 shrink-0 items-center justify-center rounded-xl \${iconClass}\`}><Icon className="size-4" /></span>
+          <span className={`flex size-9 shrink-0 items-center justify-center rounded-xl ${iconClass}`}><Icon className="size-4" /></span>
         </div>
       </CardContent>
     </Card>
