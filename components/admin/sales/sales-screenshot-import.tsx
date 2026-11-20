@@ -23,6 +23,7 @@ type Row = {
   issues: string[];
 };
 type Extraction = { importId: string; imageUrl: string | null; rows: Row[]; products: Product[]; categories: Category[] };
+type AmountType = "LINE_TOTAL" | "UNIT_PRICE";
 
 const PAYMENT_METHODS = [
   { value: "CASH", label: "Cash" },
@@ -55,8 +56,9 @@ export default function SalesScreenshotImport() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [imported, setImported] = useState(false);
+  const [amountType, setAmountType] = useState<AmountType>("LINE_TOTAL");
 
-  const total = useMemo(() => data?.rows.reduce((sum, row) => sum + (Number(row.amount) || 0), 0) ?? 0, [data]);
+  const total = useMemo(() => data?.rows.reduce((sum, row) => sum + (Number(row.amount) || 0) * (amountType === "UNIT_PRICE" ? Number(row.quantity) || 0 : 1), 0) ?? 0, [data, amountType]);
   const issueCount = data?.rows.filter((row) => !row.date || !row.product_id || Number(row.quantity) <= 0 || !Number.isFinite(Number(row.amount)) || !row.payment_method).length ?? 0;
 
   function updateRow(index: number, patch: Partial<Row>) {
@@ -225,7 +227,7 @@ export default function SalesScreenshotImport() {
                       <Field label="Category"><input value={category.category_name || "Unmatched"} readOnly className="bg-slate-50 text-slate-500" /></Field>
                       <Field label="Subcategory"><input value={category.subcategory_name || "—"} readOnly className="bg-slate-50 text-slate-500" /></Field>
                       <Field label="Quantity"><input type="number" min="0.001" step="0.001" value={row.quantity} disabled={imported} onChange={(e) => updateRow(index, { quantity: Number(e.target.value) })} /></Field>
-                      <Field label="Amount (line total ₹)"><input type="number" min="0" step="0.01" value={row.amount} disabled={imported} onChange={(e) => updateRow(index, { amount: Number(e.target.value) })} /></Field>
+                      <Field label={amountType === "LINE_TOTAL" ? "Amount (line total ₹)" : "Amount (per unit ₹)"}><input type="number" min="0" step="0.01" value={row.amount} disabled={imported} onChange={(e) => updateRow(index, { amount: Number(e.target.value) })} /></Field>
                       <Field label="Mode of payment"><select value={row.payment_method} disabled={imported} onChange={(e) => updateRow(index, { payment_method: e.target.value })}><option value="">Select payment mode</option>{PAYMENT_METHODS.map((method) => <option key={method.value} value={method.value}>{method.label}</option>)}</select></Field>
                       <Field label="Customer"><input value="Anonymous" readOnly className="bg-slate-50 text-slate-500" /></Field>
                     </div>
