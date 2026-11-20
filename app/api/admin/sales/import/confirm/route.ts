@@ -23,7 +23,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const body = await request.json() as { importId?: string; rows?: ImportRow[] };
+    const body = await request.json() as { importId?: string; amountType?: "LINE_TOTAL" | "UNIT_PRICE"; rows?: ImportRow[] };
     if (!body.importId || !Array.isArray(body.rows) || body.rows.length === 0) {
       return NextResponse.json({ error: "Import draft or sales rows are missing." }, { status: 400 });
     }
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       date: String(row.date ?? ""),
       product_id: String(row.product_id ?? ""),
       quantity: Number(row.quantity),
-      amount: Number(row.amount),
+      amount: Number(row.amount) * (body.amountType === "UNIT_PRICE" ? Number(row.quantity) : 1),
       payment_method: String(row.payment_method ?? "").toUpperCase(),
     }));
 
