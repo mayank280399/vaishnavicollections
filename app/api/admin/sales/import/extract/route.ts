@@ -109,7 +109,12 @@ export async function POST(request: Request) {
     const bytes = Buffer.from(await file.arrayBuffer());
     const contentHash = createHash("sha256").update(bytes).digest("hex");
     const { data: duplicate } = await supabase.from("sales_image_imports").select("id,status").eq("content_hash", contentHash).maybeSingle();
-    if (duplicate?.status === "IMPORTED") return NextResponse.json({ error: "This exact screenshot has already been imported.", duplicateImportId: duplicate.id }, { status: 409 });
+    if (duplicate) {
+      const message = duplicate.status === "IMPORTED"
+        ? "This exact screenshot has already been imported."
+        : "This screenshot already has an import draft. Open the existing draft or use a different screenshot.";
+      return NextResponse.json({ error: message, duplicateImportId: duplicate.id, status: duplicate.status }, { status: 409 });
+    }
 
     const mime = file.type;
     const dataUrl = `data:${mime};base64,${bytes.toString("base64")}`;
