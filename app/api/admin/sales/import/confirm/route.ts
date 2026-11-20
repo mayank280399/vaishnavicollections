@@ -35,9 +35,25 @@ export async function POST(request: Request) {
       .order("display_name");
     if (customerError) throw new Error(customerError.message);
 
-    const anonymousCustomer = (customers ?? []).find((customer) => /walk.?in|anonymous|guest/i.test(customer.display_name));
+    let anonymousCustomer = (customers ?? []).find((customer) => /walk.?in|anonymous|guest/i.test(customer.display_name));
     if (!anonymousCustomer) {
-      return NextResponse.json({ error: 'Create or retain a "Walk-in Customer" / "Anonymous" customer record before importing physical-shop sales.' }, { status: 422 });
+      const { data: createdCustomer, error: createCustomerError } = await supabase
+        .from("customers")
+        .insert({
+          customer_code: `ANON-${Date.now()}`,
+          display_name: "Anonymous",
+          source: "PHYSICAL_SHOP",
+          total_orders: 0,
+          total_spent: 0,
+          lifetime_profit: 0,
+          customer_segment: "NEW",
+        })
+        .select("id,display_name")
+        .single();
+      if (createCustomerError || !createdCustomer) {
+        throw new Error(createCustomerError?.message ?? "Could not create the default Anonymous customer.");
+      }
+      anonymousCustomer = createdCustomer;
     }
 
     const validRows = body.rows.map((row) => ({
