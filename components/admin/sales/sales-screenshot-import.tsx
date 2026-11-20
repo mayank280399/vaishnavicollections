@@ -2,8 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { ArrowLeft, CheckCircle2, FileImage, ImagePlus, Loader2, Plus, RefreshCw, Trash2, Upload, X } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileImage, ImagePlus, Loader2, Plus, RefreshCw, Trash2, Upload } from "lucide-react";
 
 type Product = { id: string; name: string; category_id: string | null };
 type Category = { id: string; name: string; parent_id: string | null };
@@ -240,7 +239,7 @@ export default function SalesScreenshotImport() {
             <aside className="space-y-3">
               <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                 <h3 className="font-semibold text-slate-900">Original screenshot</h3>
-                {data.imageUrl ? <a href={data.imageUrl} target="_blank" rel="noreferrer" className="mt-3 block overflow-hidden rounded-xl border bg-slate-50"><Image src={data.imageUrl} alt="Uploaded sales screenshot" width={900} height={1200} unoptimized className="h-auto max-h-[420px] w-full object-contain" /></a> : <p className="mt-3 text-sm text-slate-500">Original image saved privately.</p>}
+                {data.imageUrl ? <a href={data.imageUrl} target="_blank" rel="noreferrer" className="mt-3 block overflow-hidden rounded-xl border bg-slate-50">{/* eslint-disable-next-line @next/next/no-img-element */}<img src={data.imageUrl} alt="Uploaded sales screenshot" className="h-auto max-h-[420px] w-full object-contain" /></a> : <p className="mt-3 text-sm text-slate-500">Original image saved privately.</p>}
                 <p className="mt-2 text-xs text-slate-500">Use this to compare each extracted entry with the source.</p>
                 <button type="button" onClick={() => { setData(null); setFile(null); setError(""); setSuccess(""); setImported(false); }} disabled={busy || imported} className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-xl border text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"><RefreshCw className="size-4" /> Upload another screenshot</button>
               </section>
