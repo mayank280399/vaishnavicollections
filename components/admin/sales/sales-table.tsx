@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 
 import { SaleDialog } from "@/components/admin/sales/sale-dialog";
+import Link from "next/link";
+import { ImagePlus } from "lucide-react";
 import { FilterDisclosure } from "@/components/admin/filter-disclosure";
 import { createClient } from "@/lib/supabase/client";
 
@@ -415,7 +417,12 @@ export default function SalesTable() {
             View and manage all sales
           </p>
         </div>
-        <SaleDialog showTrigger onSaved={loadSales} />
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Link href="/admin/sales/import" className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-amber-400 hover:bg-amber-50">
+            <ImagePlus className="h-4 w-4" /> Import Screenshot
+          </Link>
+          <SaleDialog showTrigger onSaved={loadSales} />
+        </div>
       </div>
 
       {/* Error */}
