@@ -73,6 +73,7 @@ create policy "Sales import admins can upload screenshots"
   on storage.objects for insert to authenticated
   with check (
     bucket_id = 'sales-imports'
+    and (storage.foldername(name))[1] = auth.uid()::text
     and exists (
       select 1 from public.profiles p
       where p.id = auth.uid()
@@ -85,6 +86,7 @@ create policy "Sales import admins can read screenshots"
   on storage.objects for select to authenticated
   using (
     bucket_id = 'sales-imports'
+    and (storage.foldername(name))[1] = auth.uid()::text
     and exists (
       select 1 from public.profiles p
       where p.id = auth.uid()
